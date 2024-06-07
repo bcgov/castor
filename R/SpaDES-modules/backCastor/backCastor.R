@@ -29,7 +29,7 @@ defineModule(sim, list(
     defineParameter("queryCutblocks", "character", "cutseq", NA, NA, "This describes the type of query for the cutblocks"),
     defineParameter("getArea", "logical", FALSE, NA, NA, "This describes if the area ha should be returned for each landing"),
     defineParameter("resetAge", "logical", FALSE, NA, NA, "Set this to TRUE to define roadyear and roadstatus as the time since the road was built/used. If FALSE then it returns the sequence that the road was built/used."),
-    defineParameter("startHarvestYear", "numeric", 1980, NA, NA, "This describes the min year from which to query the cutblocks"),
+    defineParameter("startHarvestYear", "numeric", 1970, NA, NA, "This describes the min year from which to query the cutblocks"),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
@@ -170,7 +170,7 @@ getExistingCutblocks<-function(sim){
   
     if(ext(sim$ras) == ext(ras.blk)){
       exist_cutblocks<-data.table(blockid = ras.blk[])
-      setnames(exist_cutblocks, "blockid.layer", "blockid")
+      setnames(exist_cutblocks, "blockid.lyr.1", "blockid")
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
       exist_cutblocks<-exist_cutblocks[blockid > 0, ]
       
@@ -182,7 +182,7 @@ getExistingCutblocks<-function(sim){
       dbCommit(sim$castordb)
       
       message('...getting age')
-      blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvestyr) as age, cutblockid as blockid from ", P(sim, "nameCutblockTable", "backCastor"), 
+      blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvest_year) as age, objectid as blockid from ", P(sim, "nameCutblockTable", "backCastor"), 
                                        " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"))
       
       dbExecute(sim$castordb, "CREATE INDEX index_blockid on pixels (blockid)")

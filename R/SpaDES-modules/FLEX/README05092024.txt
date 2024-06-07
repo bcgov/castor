@@ -1,0 +1,8 @@
+2024-05-09 Meeting with Rich and Jo on FLEX changes
+
+1. juveinle disperser at .6, adult dispeter at .2 -- adult different
+2. all adults with low d2 change survival rate
+3. polygonize the territory to make it territory range for d2 calc
+4. Use empirical rates as function of the D2
+5. p-value for determining threshold D2
+6. kit number was low in dispersers in reporting

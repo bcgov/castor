@@ -26,12 +26,10 @@ The dataCastor preps the database connectivity and other objects required to run
 # Usage
 
 ```{r module_usage}
-library(SpaDES)
-library(SpaDES.core)
 library(data.table)
 library(dplyr)
-
 source(here::here("R/functions/R_Postgres.R"))
+
 paths <- list(
   modulePath = paste0(here::here(),"/R/SpaDES-modules"),
   outputPath = paste0(here::here(),"/R/SpaDES-modules/dataCastor")
@@ -42,6 +40,7 @@ parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list(saveCastorDB = TRUE,
+                    sqlite_dbname = 'simple',
                     randomLandscapeZoneNumber = 1,
                     randomLandscape = list(100,100,0, 100, 0, 100),
                     randomLandscapeZoneConstraint = data.table(zoneid = 1,  variable = 'age', threshold = 140, type = 'ge', percentage = 0)
@@ -69,12 +68,12 @@ inputs <- list()
 outputs <- list()
 
 
-mySim <- simInit(times = times, params = parameters, modules = modules,
+mySim <- SpaDES.core::simInitAndSpades(times = times, params = parameters, modules = modules,
                  objects = objects, paths= paths)
 
-system.time({
-mysimout<-spades(mySim)
-})
+#system.time({
+#mysimout<-spades(mySim)
+#})
 ```
 
 # Dependendices

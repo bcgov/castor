@@ -1,0 +1,40 @@
+---
+title: "Untitled"
+author: "Kyle Lochhead"
+date: "2024-05-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Harvest Schedule from patchworks
+forestryCastor needs a raster stack of harvest units in each time period
+
+### Get the harvest seqeuence and raster grid
+```{r}
+library(sf)
+library(terra)
+spatial.hsq<-"C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/scenario50yrs/conditional.gpkg"
+setwd('C:/Users/klochhea/castor/R/scenarios/whitesail/patchworks_seq')
+
+harvest<-st_read(spatial.hsq) #the outputs from pathworks
+
+#Connect to the Castordb to get the raster information
+con = dbConnect(RSQLite::SQLite(), dbname = "morice_whitesail_castordb.sqlite")
+ras.info<-dbGetQuery(con, "SELECT * FROM raster_info where name = 'ras';")
+print(ras.info)
+ras<-rast(xmin= ras.info$xmin, xmax=ras.info$xmax, ymin=ras.info$ymin, ymax=ras.info$ymax, nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow)
+crs(ras) <-st_crs(as.integer(ras.info$crs))$wkt
+dbDisconnect(con)
+
+ras.hseq<-lapply(seq(from = 5, to= 50, by=5), function(x){
+  temp<-terra::rasterize(harvest[harvest$year == x, ], ras, field = "stand")
+  names(temp) <- paste0("hsq_", x)
+  temp
+})
+
+out<-rast(ras.hseq)
+writeRaster(out, "conditional_hsq.tif")
+```

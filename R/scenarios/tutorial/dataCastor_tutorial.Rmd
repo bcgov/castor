@@ -1,0 +1,129 @@
+<!--
+Copyright 2024 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "Database creation for tutorial"
+author: "Kyle Lochhead"
+date: "26-March-2024"
+output: pdf_document
+---
+
+# Overview
+-	A simple castordb build for bulkley TsA
+
+# Usage
+Set parameters for creating the database in the code chunk below.
+
+```{r module_usage}
+# R Packages need to run the script
+library (SpaDES) 
+library (SpaDES.core)
+library (data.table)
+library (keyring)
+source (here::here("R/functions/R_Postgres.R")) # R functions needed to run the script
+#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') # Location of JAVA program; make sure the version is correct
+paths <- list(modulePath = paste0 (here::here (), "/R/SpaDES-modules"),
+              inputPath = paste0 (here::here (), "/R/scenarios/tutorial/inputs"),
+              outputPath = paste0 (here::here (), "/R/scenarios/tutorial/outputs"))
+
+times <- list (start = 0, end = 0) # sets start and end time parameters; here both = 0 since this is a database creation step
+
+parameters <-  list( # list of all parameters in the model, by module
+  .progress = list(type = NA, interval = NA), # whether to include a progress meter; not needed
+  .globals = list(), # any global parameters; not needed
+  dataCastor = list ( # list of parameters specific to the dataCastor module  
+                         dbName = 'castor', # name of the PostgreSQL database
+                         sqlite_dbname = "bulkley", # name of sqlite database that you are outputting
+                         saveCastorDB = TRUE,
+                         nameBoundaryFile = "tsa_aac_bounds", # name of the polygon table in the Postgres database you want to use to define the analysis area
+                         nameBoundaryColumn = "tsa_name", # name of the column in the polygon table for identifying analysis area
+                         nameBoundary = "Bulkley_TSA", # name of the analysis area within the column and polygon table 
+                         nameBoundaryGeom = 'wkb_geometry', # name of the spatial geometry column of the polygon table 
+                         nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster table in the Postgres database you want to use to define the analysis area; note the inclusion of "rast.", which indicates the data is in the rast schema of the database
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat", # name of the value attribute table for identifying the associated names of the integer values in the raster table
+                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2022', # name of the raster table that contains the timber harvest land base (THLB) area; these are the areas available for the model to harvest, and they are periodically defined as part of timber supply reviews
+                         nameZoneRasters = c("rast.zone_cond_nharv",
+                                             "rast.zone_cond_beo", 
+                                             "rast.zone_cond_vqo", 
+                                             "rast.zone_wha_2021", 
+                                             "rast.zone_uwr_2021", 
+                                             "rast.zone_cond_fsw", 
+                                             "rast.zone_cond_cw",
+                                             "rast.zone_cond_pri_old_deferral"
+                          ), 
+                          nameZoneTable = "zone.constraints", 
+                          # natural and managed stands yield curves are the same    
+                          nameYieldsRaster = "rast.ycid_vdyp_2020", 
+                          nameYieldTable = "yc_vdyp_2020", 
+                          nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+                          nameYieldTransitionTable = "tipsy_prov_2020",  
+                          nameForestInventoryRaster = "rast.vri2022_id", 
+                          nameForestInventoryKey = "feature_id", 
+                          nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2022",
+                          nameForestInventoryAge = "proj_age_1",  
+                          nameForestInventoryHeight = "proj_height_1",
+                          nameForestInventoryCrownClosure = "crown_closure",                                           nameForestInventoryTreed = "bclcs_level_2",
+                          nameForestInventoryBasalArea= "basal_area",
+                          nameForestInventoryQMD = "quad_diam_125",
+                          nameForestInventorySiteIndex = "site_index"  
+                    ),
+  blockingCastor = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cutblk_2022"),
+  roadCastor = list(roadMethod = 'mst',
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.ce_road_2022'
+                  ),
+  uploadCastor = list(aoiName = 'tutorial',
+                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                                     keyring::key_get("vmdbname", keyring="postgreSQL")))
+  )
+
+scenario = data.table (name = "tutorial", 
+                       description = "Using dataCastor for tutorial.")
+
+#patchSizeDist <- data.table(ndt= c(1,1,1,1,1,1,
+#                                  2,2,2,2,2,2,
+#                                  3,3,3,3,3,3,
+#                                  4,4,4,4,4,4,
+#                                  5,5,5,5,5,5), 
+#                           sizeClass = c(40,80,120,160,200,240), 
+#                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+#                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+#                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+#                                    0.1,0.02,0.02,0.02,0.02,0.8,
+#                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+modules <- list("dataCastor", 
+                "blockingCastor",
+                "roadCastor"
+                #"uploadCastor"
+                )
+objects <- list(#patchSizeDist = patchSizeDist, 
+                scenario = scenario
+                )
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+
+mysimout<-spades(mySim)
+```
+

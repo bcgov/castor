@@ -1,0 +1,83 @@
+This script takes the m8_ras that is needed for the ignition and fire size models Kyle built and creates and id key for each 10x10km pixel. I do this to speed up my downScaleData section is fireCastor because creating and disagregating rasters takes times this way I can use postgres to do most of the heavy lifting which is way faster.
+
+```{r}
+library(raster)
+library(data.table)
+library(rpostgis)
+library(keyring)
+library(climr)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+```
+
+
+```{r}
+
+nameBoundary<-getSpatialQuery("SELECT * FROM tsa_boundaries")
+
+boundaryInfo <- list("tsa_boundaries","administrative_area_name",nameBoundary$administrative_area_name, "shape")
+
+
+ras.m8<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                                        srcRaster= "rast.m8_est_rf",
+                                        clipper=boundaryInfo[1] , 
+                                        geom= boundaryInfo[4] , 
+                                        where_clause =  paste0(boundaryInfo[2] , " in (''", paste(boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                        conn=NULL))
+  plot(ras.m8)
+
+# get the bounding box of BC
+  spatiallyVaryingPts<-data.table(est_rf = ras.m8 [])
+  spatiallyVaryingPts[, pixelid10km := seq_len(.N)]
+  setnames(spatiallyVaryingPts, c("est_rf", "pixelid10km")) 
+
+  #create empty raster that I stream the climateID numbers into
+ras.downdat<-ras.m8
+ras.downdat[]<-spatiallyVaryingPts$pixelid10km
+
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216,
+                              xmn = 159587.5, xmx = 1881187.5,
+                              ymn = 173787.5, ymx = 1748187.5,
+                              crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+                              resolution = c(100, 100),
+                              vals = 0)
+prov.rast<-terra::rast(prov.rast)
+
+# add 3005 projection to x 
+x_new<-terra::project(ras.downdat, prov.rast, method="near")
+plot(x_new)
+
+```
+
+
+```{r}
+writeRaster(x_new, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\pixelID10km.tif", overwrite=TRUE)
+# 
+# # run this in R:
+ paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/pixelID10km.tif -t 100x100 rast.pixelId10km | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
+
+```
+
+Make the look-up table
+
+```{r}
+# Maybe I need to re-interpolate the elevation raster to the same as prism and extract the elevation values which I then put into the lookup table
+# get elevation data for the lat long coordinates
+
+
+#Check
+x <- raster(ras.m8[[1]])
+x[]<-spatiallyVaryingPts$est_rf.layer
+plot(x)
+
+```
+
+
+```{r}
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("vat", "spatially_varying_10km_vat"), value= spatiallyVaryingPts, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+```
+

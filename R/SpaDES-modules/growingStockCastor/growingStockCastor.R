@@ -35,7 +35,6 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("periodLength", "integer", 5, NA, NA, "The length of the time period. Ex, 1 year, 5 year"),
     defineParameter("vacuumInterval", "integer", 5, NA, NA, "The interval when the database should be vacuumed"),
-    defineParameter("growingStockConst", "numeric", 9999, NA, NA, "A percentage of the initial level of growingstock maintaining a minimum amount of growingstock"),
     defineParameter("maxYieldAge", "integer", 350, 0, 500, "Maximum age of the yield curves.")
     ),
   inputObjects = bind_rows(
@@ -139,7 +138,9 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
   sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim)*P(sim, "periodLength", "growingStockCastor"),  
                                      dbGetQuery(sim$castordb,"SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels group by compartid;"))
                                      
-  
+  message("...create indexes")
+  dbExecute(sim$castordb, "DROP INDEX IF EXISTS index_height")
+  dbExecute(sim$castordb, "CREATE INDEX index_height on pixels (height);")
   rm(tab1)
   gc()
   return(invisible(sim))

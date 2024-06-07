@@ -1,0 +1,458 @@
+<!--
+Copyright 2020 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "Database creation for Fort St. John TSA Analyses Version 2.0"
+author: "Kyle Lochhead"
+date: "03 June 2022"
+output: pdf_document
+---
+
+# Overview
+
+The area of interest(aoi) is the cariboo natural resource region. This area includes Quesnel, Williams Lake and 100 Mile House Timber supply areas. 
+
+The Quesnel Timber Supply Area (TSA) covers approximately 1.28 million hectares and includes the city of Quesnel, and the communities of Red Bluff, Barlow Creek, Dragon Lake and Bouchie Lake.  Other communities within the Quesnel TSA include Wells in the east, and Nazko and Kluskus villages in the west. The allowable annual cut for the Quesnel Timber Supply Area is set at 2,607,000 cubic metres by chief forester Diane Nicholls on June 16, 2017. This AAC limits to harvest maximums of 127,000 cubic metres from deciduous tree-leading stands and 1.25 million cubic metres to living trees. The remainder must be harvested from dead trees.CLUS found a maximum even flow harvest of 1.34 M m3.
+
+The Williams Lake Timber Supply Area (TSA) lies in the central Cariboo Region, straddling the Fraser Basin and the Interior Plateau between the Coast Mountains on the west and the Cariboo Mountains on the east. It's bounded by the Quesnel TSA to the north and 100 Mile House and Lillooet TSAs to the south. One of the largest TSAs in the province, it covers about 4.93 million hectares and includes the City of Williams Lake and the communities of Horsefly, Alexis Creek, Anahim Lake and Tatla Lake. The Williams Lake TSA is administered by the Cariboo Chilcotin Natural Resource District in Williams Lake. Effective February 25, 2015, the AAC for the Williams Lake TSA will be 3 000 000 cubic metres. This includes a partition of a maximum of 1 500 000 cubic metres per year for live volume which means the remainder of the AAC is for salvaging dead trees. CLUS found a maximum even flow harvest of 1.61 M m3
+
+The 100 Mile House Timber Supply Area (TSA) is in south-central British Columbia and consists of about 1.24 million hectares. Communities within it include 100 Mile House, 108 Mile Ranch, Clinton, Lac la Hache, Forest Grove, 70 Mile House, Lone Butte and Bridge Lake. The TSA is administered by the 100 Mile House Natural Resource District.Following the Clinton Community Forest Agreement (CFA) on June 11, 2014, the TSA’s allowable annual cut (AAC) was reduced to 1,948,002 cubic metres, of which no more than 477,707 cubic metres are attributable to live trees. The 100 Mile House TSA’s adjusted AAC remains in place until November 6, 2018. From then until the next determination, it will be 967,805 cubic metres, of which no more than 477,707 cubic metres are attributable to live trees.CLUS found a maximum even flow harvest of 969 000 m3
+
+# Set libaries
+```{r}
+library(SpaDES)
+library(SpaDES.core)
+library(data.table)
+library(dplyr)
+library (keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+
+# Adjust parameters
+```{r, early_seral}
+userdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/test_flex/rcb_clusdb.sqlite") ) 
+
+#---- Remove all early seral constraints
+if(FALSE){
+dbExecute(userdb, "Update zoneConstraints set type = '' where reference_zone = 'rast.zone_cond_beo_pg_cclup' and threshold = 40")
+}
+#---- Change to new cclup
+if(F){
+  cclup<-RASTER_CLIP2(tmpRast = 'temp1', srcRaster ='rast.zone_cond_beo_pg_cclup' , clipper = 'nat_dr' , 
+geom = 'wkb_geometry', where_clause = paste0("region_org", " in (''", "RCB" ,"'')"), conn=NULL)
+  zoneids<-unique(cclup[])
+zoneids<-zoneids[!is.na(zoneids)]
+cclup.zone.const<-getTableQuery(glue::glue_sql("select * from zone.constraints where reference_zone = 'rast.zone_cond_beo_pg_cclup' and zoneid in ({vals*})",vals = zoneids, .con = NULL))
+cclup.zone.const$zone_column<-'zone7'
+t.area<-data.table(raster::freq(cclup))
+setnames(t.area, c("value", "count"), c("zoneid", "t_area"))
+t.area<-t.area[!is.na(zoneid),]
+cclup.zone.const<-data.table(merge(cclup.zone.const, t.area, by = 'zoneid', all.x=T)  )
+cclup.zone.const<-cclup.zone.const[t_area>=10, ]
+
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, glue::glue("INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :denom, :multi_condition, :t_area, :start, :stop);"), cclup.zone.const)
+  dbClearResult(rs)
+dbCommit(userdb)
+cclup.table<-data.table(zone7 = cclup[])
+cclup.table<-cclup.table[,pixelid:= seq_len(.N)]
+cclup.table<-cclup.table[!is.na(zone7),]
+dbExecute(userdb, "UPDATe pixels set zone7 = 0;")
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, "UPDATE pixels set zone7 = :zone7 where pixelid = :pixelid;", cclup.table)
+  dbClearResult(rs)
+dbCommit(userdb)
+dbDisconnect(userdb)
+
+
+}
+#Update wrong current yields
+if(FALSE){
+  ras.ylds.current<-RASTER_CLIP2(tmpRast = 'temp1', srcRaster ='rast.ycid_tipsy_current_2020' , clipper = 'nat_dr' , 
+                               geom = 'wkb_geometry', where_clause = paste0("region_org", " in (''", "RCB" ,"'')"), conn=NULL)
+pixels<-data.table(yieldid=ras.ylds.current[])
+pixels[,pixelid:=seq_len(.N)]
+pixels<-pixels[!is.na(yieldid) | !(yieldid ==0),]
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, "UPDATE pixels set yieldid = :yieldid where pixelid = :pixelid;", pixels)
+  dbClearResult(rs)
+dbCommit(userdb)
+
+dbExecute(userdb, "VACUUM;")
+dbDisconnect(userdb)
+}
+#---- Add the watershed analysis
+if(FALSE){
+  wau<-RASTER_CLIP2(tmpRast = 'temp1', srcRaster ='rast.zone_cond_wau' , clipper = 'nat_dr' , 
+geom = 'wkb_geometry', where_clause = paste0("region_org", " in (''", "RCB" ,"'')"), conn=NULL)
+zoneids<-unique(wau[])
+zoneids<-zoneids[!is.na(zoneids)]
+wau.zone.const<-getTableQuery(glue::glue_sql("select * from zone.constraints where reference_zone = 'rast.zone_cond_wau' and zoneid in ({vals*})",vals = zoneids, .con = NULL))
+
+wau.zone.const$zone_column<-paste0('zone', nrow(dbGetQuery(userdb, "select * from zone")) +1)
+t.area<-data.table(raster::freq(wau))
+setnames(t.area, c("value", "count"), c("zoneid", "t_area"))
+t.area<-t.area[!is.na(zoneid),]
+wau.zone.const<-merge(wau.zone.const, t.area, by = 'zoneid', all.x=T)
+
+#----update the clusdb
+dbExecute(userdb, "Insert into zone (zone_column, reference_zone) values ('zone10', 'rast.zone_cond_wau')")
+
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, glue::glue("INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :denom, :multi_condition, :t_area, :start, :stop);"), wau.zone.const)
+  dbClearResult(rs)
+dbCommit(userdb)
+
+dbExecute(userdb, "Alter table pixels add column zone10 integer;")
+wau.table<-data.table(zone10 = wau[])
+wau.table<-wau.table[,pixelid:= seq_len(.N)]
+wau.table<-wau.table[!is.na(zone10),]
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, "UPDATE pixels set zone10 = :zone10 where pixelid = :pixelid;", wau.table)
+  dbClearResult(rs)
+dbCommit(userdb)
+dbDisconnect(userdb)
+}
+#Add in old growth
+if(FALSE){
+  old63e<-RASTER_CLIP2(tmpRast = 'temp1', srcRaster ='rast.oldgrwth_def_rec63e' , clipper = 'nat_dr' , 
+geom = 'wkb_geometry', where_clause = paste0("region_org", " in (''", "RCB" ,"'')"), conn=NULL)
+zoneids<-unique(old63e[])
+zoneids<-zoneids[!is.na(zoneids)]
+old63e.zone.const<-getTableQuery(glue::glue_sql("select * from zone.constraints where reference_zone = 'rast.oldgrwth_def_rec63e' and zoneid in ({vals*})",vals = zoneids, .con = NULL))
+
+old63e.zone.const$zone_column<-'zone13'
+old63e.zone.const$t_area<-0
+
+#----update the clusdb
+dbExecute(userdb, "Insert into zone (zone_column, reference_zone) values ('zone13', 'rast.oldgrwth_def_rec63e')")
+
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, glue::glue("INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :denom, :multi_condition, :t_area, :start, :stop);"), old63e.zone.const)
+  dbClearResult(rs)
+dbCommit(userdb)
+
+dbExecute(userdb, "Alter table pixels add column zone13 integer;")
+old63e.table<-data.table(zone13 = old63e[])
+old63e.table<-old63e.table[,pixelid:= seq_len(.N)]
+old63e.table<-old63e.table[!is.na(zone13),]
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, "UPDATE pixels set zone13 = :zone13 where pixelid = :pixelid;", old63e.table)
+  dbClearResult(rs)
+dbCommit(userdb)
+dbDisconnect(userdb)
+}
+
+#---- Add early seral constraints to all prioirtiy clusters of fetas
+if(FALSE){
+clusters<-getTableQuery("SELECT clus from test_columbia_clust3_v2 where median < 14;")
+lu<-RASTER_CLIP2(tmpRast = 'temp1', srcRaster ='rast.zone_cond_beo_pg_cclup' , clipper = 'test_columbia_clust3_v2' , 
+                  geom = 'wkb_geometry', where_clause = paste0("clus in (7, 9, 14, 15, 19, 26, 36, 41, 43, 51, 53, 57, 61, 64, 83, 85, 86, 98, 100, 106, 107, 109, 118, 120)"), conn=NULL)
+
+lu<-RASTER_CLIP2(tmpRast = 'temp1', srcRaster ='rast.feta_id' , clipper = 'test_columbia_clust3_v2' , 
+                  geom = 'wkb_geometry', where_clause = paste0("clus in (51,15,26,9,107,19)"), conn=NULL)
+
+zones<-data.table(freq(lu))
+zones<-zones[value>0 & count > 100,]
+
+early.s<-unique(dbGetQuery(userdb, glue::glue_sql("select zoneid, reference_zone, zone_column, ndt, variable, denom, multi_condition, t_area, start, stop from zoneConstraints where reference_zone = 'rast.zone_cond_beo_pg_cclup' and zoneid in ({vals*})", vals = zones$value, .con =userdb)))
+early.s$percentage<-1
+early.s$threshold <-40
+early.s$type <-'le'
+
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, glue::glue("INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :denom, :multi_condition, :t_area, :start, :stop);"), early.s)
+  dbClearResult(rs)
+  dbCommit(userdb)
+  
+#Check
+dbGetQuery(userdb, "select * from zoneConstraints where reference_zone = 'rast.zone_cond_beo_pg_cclup' and threshold < 50")
+  
+dbDisconnect(userdb)
+}
+
+#---- Add in feta level seral tracking for priority clusters
+fetas<-RASTER_CLIP2(tmpRast = 'temp1', srcRaster ='rast.feta_id' , clipper = 'test_columbia_clust3_v2' , 
+                  geom = 'wkb_geometry', where_clause = paste0("clus in (7, 9, 14, 15, 19, 26, 36, 41, 43, 51, 53, 57, 61, 64, 83, 85, 86, 98, 100, 106, 107, 109, 118, 120)"), conn=NULL)
+fetas<-unique(fetas[])
+fetas<-fetas[!is.na(fetas)] #1109 fetas
+feta.const.early<-data.table(zoneid = fetas, reference_zone = 'rast.feta_id', zone_column = 'zone9', ndt = 0, variable = 'age', threshold = 40, type = 'le', percentage = 99, denom = NA, multi_condition = NA, t_area = 3000, start =0, stop = 250)
+feta.const.old<-data.table(zoneid = fetas, reference_zone = 'rast.feta_id', zone_column = 'zone9', ndt = 0, variable = 'age', threshold = 100, type = 'ge', percentage = 1, denom = NA, multi_condition = NA, t_area = 3000, start =0, stop = 250)
+feta.const<-rbindlist(list(feta.const.early, feta.const.old))
+
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, glue::glue("INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :denom, :multi_condition, :t_area, :start, :stop);"), feta.const)
+dbClearResult(rs)
+dbCommit(userdb)
+dbDisconnect(userdb)  
+
+
+#---no harvest in 2 prioirty clusters
+if(FALSE){
+dbExecute(userdb, "DELETE FROM zoneConstraints where reference_zone = 'rast.feta_id'")
+  
+lu<-RASTER_CLIP2(tmpRast = 'temp1', srcRaster ='rast.feta_id' , clipper = 'test_columbia_clust3_v2' , 
+                  geom = 'wkb_geometry', where_clause = paste0("clus in (51,15,26,9,107,19)"), conn=NULL)
+
+zones<-data.table(freq(lu))
+zones<-zones[value>0 & count > 100,]
+
+nh.fetas<- data.table(zoneid = zones$value, reference_zone= 'rast.feta_id', zone_column = 'zone9', ndt =0, variable ='', threshold ='', type ='nh', percentage='', denom=NA, multi_condition=NA, t_area=3000, start=0, stop=15)
+
+dbBegin(userdb)
+  rs<-dbSendQuery(userdb, glue::glue("INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :denom, :multi_condition, :t_area, :start, :stop);"), nh.fetas)
+dbClearResult(rs)
+dbCommit(userdb)
+  
+#Check
+dbGetQuery(userdb, "select * from zoneConstraints where reference_zone = 'rast.feta_id'")
+  
+dbDisconnect(userdb)
+}
+
+if(FALSE){
+ dbGetQuery(userdb, "select * from zoneConstraints where reference_zone = 'rast.feta_id'")
+ dbExecute(userdb, "Update zoneConstraints set stop = 250 where reference_zone = 'rast.feta_id' and type = 'nh'")
+ dbExecute(userdb, "Update zoneConstraints set type = '' where reference_zone = 'rast.feta_id' and type = 'nh'")
+ 
+ dbExecute(userdb, "Update zoneConstraints set type = 'nh' where reference_zone = 'rast.feta_id' and type = ''")
+  dbDisconnect(userdb)
+}
+
+```
+
+# Usage
+Set parameters for creating the database in the code chunk below. 
+```{r module_usage}
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
+#Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+
+setPaths(modulePath = here::here("R/SpaDES-modules"),
+         outputPath = here::here("R/scenarios/test_FLEX/"))
+
+getPaths() # shows where the 4 relevant paths are
+
+times <- list(start = 0, end = 7)
+parameters <-  list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
+                         #save_clusdb = TRUE,
+                         useCLUSdb = paste0(here::here(), "/R/scenarios/test_FLEX/rcb_clusdb.sqlite"),
+                         sqlite_dbname = "rcb",
+                         nameBoundaryFile = "nat_dr", # name of the (TSA) boundary data in postgres
+                         nameBoundaryColumn = "region_org", 
+                         nameBoundary = "RCB",  
+                         nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
+                         nameCompartmentRaster = "rast.tsa_aac_boundary", 
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
+                         nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018'
+                         nameZoneRasters = c("rast.zone_cond_nharv",
+                                             #"rast.oldgrwth_def_rec63a",
+                                             #"rast.oldgrwth_def_rec63c",
+                                             #"rast.oldgrwth_def_rec63e",
+                                             "rast.zone_cond_vqo", 
+                                             "rast.zone_wha_2021", 
+                                             "rast.zone_uwr_2021", 
+                                             "rast.zone_cond_fsw", 
+                                             "rast.zone_cond_cw",
+                                             "rast.zone_cond_beo_pg_cclup",
+                                             #"rast.zone_ndt_blocks"
+                                             "rast.feta_id",
+                                             "rast.zone_cond_wau"
+                                           ), 
+                     nameZoneTable = "zone.constraints",
+                           # nameZonePriorityRaster = "rast.zone_cond_beo",
+                        nameYieldsRaster = "rast.ycid_vdyp_2020",
+                        nameYieldTable = "yc_vdyp_2020",
+                        nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
+                        nameYieldCurrentTable = "tipsy_current_prov_2020",
+                        nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020",
+                        nameYieldTransitionTable = "tipsy_prov_2020",
+                        nameForestInventoryRaster = "rast.vri2020_id",
+                        nameForestInventoryKey = "feature_id",
+                        nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",
+                        nameForestInventoryAge = "proj_age_1",
+                        nameForestInventoryHeight = "proj_height_1",
+                        nameForestInventoryCrownClosure = "crown_closure",
+                        nameForestInventoryTreed = "bclcs_level_2",
+                        nameForestInventorySiteIndex = "site_index",
+                        nameForestInventoryBasalArea= "basal_area",
+                        nameForestInventoryQMD = "quad_diam_125"),
+  blockingCLUS = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_ndt_blocks', 
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cut_bl", 
+                      useLandingsArea = FALSE),
+  growingStockCLUS = list(periodLength = 5),
+  forestryCLUS = list( harvestBlockPriority = " age DESC ", 
+                      reportHarvestConstraints = T),
+                      #salvageRaster = 'rast.dead_vol_125_2020'),
+  roadCLUS = list(roadMethod = 'mst', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.ce_road_2019'# existing road network
+                  ),
+  fisherCLUS = list(
+    nameFetaRaster = 'rast.feta_id',
+    nameRasWetlands = 'rast.wetland'
+  ),
+    FLEX = list(
+    # "iterations" = 100, # hard coding it in for 100 simulations, better for output
+    # "yrs.to.run" = 10,
+    "simulations" = 200,
+    "propFemales" = 0.3, 
+    "maxAgeFemale" = 9,
+    "dist_mov" = 1.0,
+    "TS" = 10,
+    "D2_param" = "Max",
+    "name_out" = "Cariboo",
+    "sim_order" = 2
+    ),
+   uploaderCLUS = list(aoiName = 'rcb_nichols', 
+                      dbInfo  = list('165.227.35.74', 'klochhea', 'XVneCw86',  'clus'))
+  )
+#scenario = data.table(name="bau_ef_250yrs", description = "business as usual: projecting current trends with mature plus old seral targets from cclup")
+
+#scenario = data.table(name="bau_ef_nh_pri_areas", description = "BAU but no timber harvesting in priority clusters for 200 years")
+scenario = data.table(name="updated_ef_nh_pri_areas", description = "Updated even-flow plus no timber harvesting in priority clusters for 200 years")
+
+#scenario = data.table(name="no_harvest_2", description = "Let the forest grow for 200 years: no timber harvesting")
+
+patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+                                  2,2,2,2,2,2,
+                                  3,3,3,3,3,3,
+                                  4,4,4,4,4,4,
+                                  5,5,5,5,5,5,
+                                  6,6,6,6,6,6,
+                                  7,7,7,7,7,7,
+                                  8,8,8,8,8,8,
+                                  9,9,9,9,9,9,
+                                  10,10,10,10,10,10,
+                                  11,11,11,11,11,11,
+                                  12,12,12,12,12,12,
+                                  13,13,13,13,13,13,
+                                  14,14,14,14,14,14), 
+                           sizeClass = c(40,80,120,160,200,240), 
+                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                    0.1,0.02,0.02,0.02,0.02,0.8,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.1,0.05,0.05,0.8,0,0,
+                                    0.2,0.05,0.05,0.7,0,0,
+                                    0.05,0.05,0,0.9,0,0,
+                                    0.05,0.05,0,0.9,0,0,
+                                    0.1,0.2,0,0.7,0,0,
+                                    0.05,0.05,0,0.9,0,0,
+                                    0.2,0.05,0.05,0.7,0,0,
+                                    0.2,0.05,0.05,0.7,0,0,
+                                    0.2,0.05,0.05,0.7,0,0))
+
+harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
+                                         partition = ' vol > 150 ', 
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
+                                                    1), 
+                                         #flow = 0, 
+                                         #flow = 7690000, #bau harvest
+                                         flow = 6104000, #6104000 achieved
+                                         partition_type = 'live'), 
+                               
+                              data.table(compartment ="Williams_Lake_TSA",
+                                         partition = ' vol > 110 ', 
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
+                                                    1), 
+                                         #flow = 0, 
+                                         #flow = 9157071, #bau harvest
+                                         flow = 8210000, #8200000 achieved, 8230000 too high
+                                         partition_type = 'live'),
+                              
+                              data.table(compartment ="Onehundred_Mile_House_TSA",
+                                         partition = ' vol > 150 ', 
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
+                                                    1), 
+                                         #flow = 0, 
+                                         #flow = 5534991, #bau harvest
+                                         flow = 4745000, #4745000 achieved, 47500000 too high
+                                         partition_type = 'live')
+                              
+))
+
+modules <- list("dataLoaderCLUS", 
+                "blockingCLUS",
+                "growingStockCLUS",
+                "forestryCLUS",
+                "fisherCLUS",
+                "roadCLUS",
+                #"FLEX"
+                "uploaderCLUS"
+                )
+
+#objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
+objects <- list(patchSizeDist = patchSizeDist,
+                harvestFlow = harvestFlow,
+                scenario = scenario 
+                )
+
+inputs <- list()
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects)
+outputs(mySim) <- data.frame (objectName = c("growingStockReport","fisherReport", "harvestReport", "harvestBlocksVolume"))
+
+system.time({
+mysimout<-spades(mySim)
+})
+```
+
+# Dependendices
+
+First need an area of interest.
++nameBoundaryFile <- the vector data of the areas to consider. Defaults to caribou herd boundaries.
++nameBoundary<-The specific area of interest
++nameBoundaryColumn<-The column in the nameBoundaryFile that support the query for the area of interest
++nameBoundaryGeom<-the geometry column from which to run the spatial query containing the area of interest
+
+The remaining files are:
++nameCompartmentRaster<- a provincial raster of compartments -- also known as supply blocks. Defaults to 1 compartment
++nameZoneRaster<-a provincial raster of management zones. Defaluts to 1 zone
++nameYieldRaster<-a provincial raster of id's that support a look up to yield tables. Defaults to 1 yield table
++nameAgeRaster<- a provincial raster of age. This can be set to zero, if correctly used to look up yields and constraints. Defaults to an age of 120
++nameCrownClosureRaster<- a provincial raster of crown closure. Used for management constraints. Defaults to 0 crown closure
++nameMaskHarvestLandbaseRaster<- a provincial raster of the timber harvesting landbase (THLB) that delinates area feasible to harvest timber. Defaults to all of the area of interest being eligible for harvesting.
+
+# Events
+
+The module only has an inititialization event for connecting to a database and establishing database objects
+
+
+## Output data
+
+The outputs contain the database connection object, functions needed to generate queries and the boundary and bounding box of the boundary needed for other queries
+
+# Links to other modules
+
+Links to every module required by CLUS
+

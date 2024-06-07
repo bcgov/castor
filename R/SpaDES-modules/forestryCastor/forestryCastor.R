@@ -50,6 +50,7 @@ defineModule(sim, list(
     expectsInput(objectName = "growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "SpatRaster", desc = "A raster of the study area", sourceURL = NA),
+    expectsInput(objectName = "harvestSchedule", objectClass = "SpatRaster", desc = "A raster of harvest units for each time period", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     
@@ -76,8 +77,13 @@ doEvent.forestryCastor = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim) #note target flow is a data.table object-- dont need to get it.
-      sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCastor", "schedule", 3)
-      sim <- scheduleEvent(sim, end(sim) , "forestryCastor", "save", 9)
+      if(!is.null(harvestSchedule)){
+        sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCastor", "followSchedule", 3)
+        sim <- scheduleEvent(sim, end(sim) , "forestryCastor", "save", 9)
+      }else{
+        sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCastor", "schedule", 3)
+        sim <- scheduleEvent(sim, end(sim) , "forestryCastor", "save", 9)
+      }
       
       if(P(sim, "harvestZonePriorityInterval", "forestryCastor") > 0){
         sim <- scheduleEvent(sim, time(sim)+ 1 , "forestryCastor", "updateZonePriority", 10)
@@ -87,6 +93,10 @@ doEvent.forestryCastor = function(sim, eventTime, eventType) {
       sim <- setConstraints(sim)
       sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
       sim <- scheduleEvent(sim, time(sim) + 1, "forestryCastor", "schedule", 3)
+    },
+    followSchedule = {
+      sim <- simHarvestQueue(sim)
+      sim <- scheduleEvent(sim, time(sim) + 1, "forestryCastor", "followSchedule", 3)
     },
     updateZonePriority={
       sim <- updateZonePriorityTable(sim)
@@ -103,12 +113,14 @@ doEvent.forestryCastor = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-
+  
   #Check to see if a scenario object has been instantiated
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
-  sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  #sim$compartment_list<-unique(harvestFlow[, c("compartment", "partition")]) #For looping in partitions
+  if(!is.null(sim$harvestFlow)){
+    sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+    #sim$compartment_list<-unique(harvestFlow[, c("compartment", "partition")]) #For looping in partitions
+    }
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()) # , harvest_type = character()
  
   #Remove zones as a scenario
@@ -179,7 +191,7 @@ saveForestry<- function(sim) {
   message("Write rasters")
   #write.csv(sim$harvestReport, "harvestReport.csv")
   terra::writeRaster(sim$harvestBlocks, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
-  terra::writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
+  #terra::writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -442,6 +454,63 @@ setConstraints<- function(sim) {
   return(invisible(sim))
 }
 
+simHarvestQueue <- function(sim) {
+  #Objects that need appending 
+  sim$harvestPixelList <- data.table()
+  land_pixels <- data.table()
+  
+  ras.h.blocks<-harvestSchedule[[paste0("hsq_", time(sim)*sim$updateInterval)]]
+  h.blocks<-data.table(blockid = ras.h.blocks[])[, pixelid:=seq_len(.N)]
+  setnames(h.blocks, c("blockid", "pixelid"))
+  h.blocks<-h.blocks[!is.na(blockid),]
+  
+  h.blocks.attributes<-merge(h.blocks, data.table(dbGetQuery(sim$castordb, paste0("select compartid, pixelid, vol as vol_h, height, thlb, age, dist, elv from pixels where pixelid in (", paste(unique(h.blocks$pixelid), collapse = ", "), ");"))), by.x = "pixelid", by.y ="pixelid", all.x=T)
+  sim$harvestPixelList <-  rbindlist(list(sim$harvestPixelList, h.blocks.attributes[,c("blockid", "pixelid", "dist", "vol_h")]), use.names = TRUE ) 
+  
+  h.blocks.attributes[ ,tot_thlb:=sum(thlb), by= "compartid"]
+  
+  temp.harvestBlockList<-h.blocks.attributes[, list(sum(vol_h*thlb), mean(height), mean(elv)), by = c("blockid", "compartid")]
+  setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
+  sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
+  
+  h.blocks.summary<-h.blocks.attributes[, list(sum(thlb, na.rm =T), sum(vol_h*thlb, na.rm =T), sum(age*(thlb/tot_thlb), na.rm =T)), by = "compartid"]
+  temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = h.blocks.summary$compartid, 
+                                  target = h.blocks.summary$V2/sim$updateInterval , 
+                                  area= h.blocks.summary$V1/sim$updateInterval , 
+                                  volume = h.blocks.summary$V2/sim$updateInterval, 
+                                  age = h.blocks.summary$V3, 
+                                  hsize = nrow(temp.harvestBlockList)/sim$updateInterval,
+                                  transition_area  = NA,  
+                                  transition_volume  = NA,
+                                  avail_thlb = NA) #,  harvest_type = 'live'
+  
+  sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
+  
+  
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", h.blocks[, "pixelid"])
+  dbClearResult(rs)
+  dbCommit(sim$castordb)
+  
+  #Save the harvesting raster
+  sim$harvestBlocks[h.blocks$pixelid]<-time(sim)*sim$updateInterval
+  sim$harvestBlocksVolume[h.blocks$pixelid]<-h.blocks.attributes$vol
+  
+  #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
+  land_pixels<-rbindlist(list(land_pixels, data.table(dbGetQuery(sim$castordb, paste0("select landing from blocks where blockid in (",
+                                                                                      paste(unique(h.blocks$blockid), collapse = ", "), ");")))))
+  #convert to class SpatialPoints needed for roadCastor
+  if(length(land_pixels) > 0){
+    sim$landings <- land_pixels$landing
+  }else{
+    message("no landings")
+    sim$landings <- NULL
+  }
+  
+  #stop()
+  return(invisible(sim))
+}
+
 getHarvestQueue <- function(sim) {
   #Objects that need appending 
   sim$harvestPixelList <- data.table()
@@ -672,6 +741,13 @@ runCoCela<-function(sim){
 }
 
 .inputObjects <- function(sim) {
+  if(!suppliedElsewhere(harvestSequence)){
+    harvestSequence <- NULL
+  }
+  
+  if(!suppliedElsewhere("harvestFlow", sim)){
+    harvestFlow <- NULL
+  }
   return(invisible(sim))
 }
 

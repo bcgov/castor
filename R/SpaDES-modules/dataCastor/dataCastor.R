@@ -24,7 +24,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "dataCastor.Rmd"),
-  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table", "rpostgis", "sqldf"),
+  reqdPkgs = list(),
   parameters = rbind(
     
    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
@@ -32,7 +32,8 @@ defineModule(sim, list(
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
    defineParameter("seedRandomLandscape", "integer", 123, 1, 100000, "The seed for building random landscapes"),
    defineParameter("maxAgeRandomLandscape", "integer", 250, 1, 400, "The maximum age for building random landscapes"),
-   defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
+   defineParameter("buffer_aoi", "numeric", 0, 0, 1000000, "Buffer the area of interest in metres"),
+    defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
     defineParameter("dbHost", "character", 'localhost', NA, NA, "The name of the postgres host"),
     defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
@@ -119,7 +120,7 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- setZoneConstraints(sim)
         sim <- setZonePrescriptions(sim)
         sim <- setIndexesCastorDB(sim) # creates index to facilitate db querying?
-        sim <- updateGS(sim) # update the forest attributes
+        #sim <- updateGS(sim) # update the forest attribute. Removing this so that blockingCastor can run even though yield curves may not have basal area or height
         sim <- scheduleEvent(sim, eventTime = 0,  "dataCastor", "forestStateNetdown", eventPriority=90)
           
       }else{ #copy existing castordb
@@ -195,7 +196,7 @@ createCastorDB <- function(sim) {
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom text, multi_condition text, t_area numeric, start integer, stop integer);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zonePrescription ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, minHarvestVariable text, minHarvestThreshold numeric, start integer default 0, stop integer default 500);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
+own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, cvol numeric DEFAULT 0, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex numeric, dec_pcnt numeric, eca numeric, salvage_vol numeric default 0, dual numeric, priority numeric default 0);")
   return(invisible(sim))
 }
@@ -990,8 +991,7 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
     dbCommit(sim$castordb)
   }
   
-  message("...create indexes")
-  dbExecute(sim$castordb, "CREATE INDEX index_height on pixels (height);")
+  
   rm(tab1)
   gc()
   return(invisible(sim))
@@ -1012,6 +1012,9 @@ randomRaster<-function(extent, clusterLevel){
   model <- RandomFields::RMstable(scale = 300, var = 0.003,  alpha = clusterLevel)
   data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)$variable1
   data.rv<-(data.rv - min(data.rv))/(max(data.rv)- min(data.rv))
+  
+  
+  
   return(terra::setValues(ras, data.rv))
 }
 

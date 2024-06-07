@@ -1,0 +1,128 @@
+---
+title: "CMI Issue"
+author: "Elizabeth Kleynhans"
+date: "2024-04-04"
+output: html_document
+---
+
+
+```{r}
+library(climr)
+library(data.table)
+library(ggplot2)
+
+```
+
+
+Get lat, long, and elevation for 15 locations in BC
+```{r}
+#test_pts<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\escape_clim_2020.csv")
+
+test_pts<-data.frame(id = seq(1,15,by=1),
+                      lon = c(-120.1879,-120.4258,-121.9251,-120.3030,-127.5062,-127.6785, -120.7541,-128.8055,-120.7693,-123.2985,-127.4969,-128.3576,-128.6876,-121.6685,-117.7658),
+                      lat = c(59.3396, 57.4644, 59.9900, 55.2420, 54.0191, 54.1638, 51.4921, 54.8385, 54.9365, 54.0320, 54.2036, 54.5116, 54.5913, 52.4060,49.7312),
+                      elev = c(441.9092,901.2709,461.7851,926.7590,1098.2932,1022.2858,1179.9183, 164.3891, 1073.8667, 740.3359,  867.5170, 309.3564,  221.9352,  715.9024, 1215.3536))
+```
+
+Extract climR data for the 15 locations and plot it
+```{r}
+ds_out <- climr_downscale(xyz = test_pts, which_normal = "auto", 
+                          gcm_models = c("ACCESS-ESM1-5", "MPI-ESM1-2-HR"), 
+                          ssp = c("ssp245"), 
+                          #gcm_period = c("2021_2040", "2041_2060","2061_2080"),
+                          #gcm_ts_years = 2015,
+                          historic_ts = 2015,
+                          max_run = 3, # we want 3 individual runs for each model
+                          vars = c("CMI05", "CMI06", "CMI07", "CMI08", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "PPT05","PPT06", "PPT07", "PPT08" ))
+
+ds_out
+ds_out2<-ds_out[PERIOD=="2015",]
+data_long_1 <- tidyr::gather(ds_out2, condition, measurement, CMI05:PPT08, factor_key=TRUE)
+
+p <- ggplot(data_long_1, aes(x=condition, y=measurement)) + 
+  labs(title="climR data",x="CMI", y = "")+
+  geom_boxplot()
+p
+```
+
+Extract climateBC data for the 15 locations and plot it
+```{r}
+test_pts<-test_pts[,c("id","lat", "lon", "elev")]
+
+write.csv(test_pts,'C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\test_pts.csv')
+
+setwd("D:/Climatebc_v742"); # set the ClimateBC root directory as the working directory
+exe <- "ClimateBC_v7.42.exe"
+
+## 2015
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\test_pts.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\test_pts_2020.csv'
+yearPeriod = '/Year_2015.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+test_pts3<-read.csv('C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\test_pts_2020.csv')
+
+test_pts3<-as.data.table(test_pts3)
+test_pts3<-test_pts3[,c("id", "Latitude", "Longitude", "Elevation","CMI05", "CMI06", "CMI07", "CMI08", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "PPT05","PPT06", "PPT07", "PPT08" )]
+summary(test_pts3)
+
+data_long_2 <- tidyr::gather(test_pts3, condition, measurement, CMI05:PPT08, factor_key=TRUE)
+
+# Basic box plot
+p <- ggplot(data_long_2, aes(x=condition, y=measurement)) + 
+  labs(title="ClimateBC data",x="CMI", y = "")+
+  geom_boxplot()
+p
+```
+
+Plot the climateBC data and the climR data together in one figure
+```{r}
+data_long_1a<-data_long_1[,c("id", "condition","measurement")]
+data_long_1a$program<-"climR"
+data_long_2a<-data_long_2[,c("id","condition","measurement")]
+data_long_2a$program<-"ClimateBC"
+
+data_long<-rbind(data_long_1a,data_long_2a)
+
+p <- ggplot(data_long, aes(x=condition, y=measurement, fill=program)) + 
+  labs(x="Month", y = "Tmax")+
+  geom_boxplot()
+p
+```
+
+How correlated are they?
+```{r}
+rl.wide= as.data.table(reshape(data = data_long,
+                    idvar= c("id", "program"),
+                    v.names= c("measurement"),
+                    timevar= "condition",
+                    direction = "wide"))
+
+rl.wide1<-rl.wide[program=="climR"]
+rl.wide2<-rl.wide[program=="ClimateBC"]
+
+wide<-cbind(rl.wide1, rl.wide2)
+
+require (ggcorrplot)
+dist.cut.corr <- (wide [,c(11:14,25:28)])
+corr <- round (cor (dist.cut.corr), 3)
+p.mat <- round (cor_pmat (dist.cut.corr), 2)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "PPT")
+
+
+dist.cut.corr <- (wide [,c(7:10,21:24)])
+corr <- round (cor (dist.cut.corr), 3)
+p.mat <- round (cor_pmat (dist.cut.corr), 2)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Tmax")
+
+dist.cut.corr <- (wide [,c(3:6,17:20)])
+corr <- round (cor (dist.cut.corr), 3)
+p.mat <- round (cor_pmat (dist.cut.corr), 2)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Tmax")
+
+
+```
+

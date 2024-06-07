@@ -1,12 +1,3 @@
----
-title: "Castor Quick Start Tutorial"
-author: "Tyler Muhly"
-date: "02/12/2020"
-output:
-  html_document:
-    keep_md: yes
-  pdf_document: default
----
 
 # Forest and Land Use Simulator (Castor) Quick Start Tutorial
 The Castor quick-start tutorial provides step-by-step instructions on how to use Castor It is designed to familiarize you with creating and running a simple forest harvest scenario analysis with Castor It takes you through all the steps needed to set-up and run Castor from scratch.

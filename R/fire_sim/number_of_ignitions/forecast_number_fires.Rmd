@@ -44,16 +44,16 @@ prov.ras <- raster::raster ( # standardized provincial raster with no data in it
   resolution = restest,
   vals = 0)
 
-m5<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m5.rds")
+m8<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
 
 #get the random spatial effect
-preds.all<-predict(m5, newdata = m5$data)
+preds.all<-predict(m8, newdata = m8$data)
 spat.int<-data.table(preds.all)[, c("pixelid", "est_rf")]
 
 est_rf <- prov.ras
 spat.int<-unique(spat.int)
 est_rf[spat.int$pixelid]<-spat.int$est_rf
-writeRaster(est_rf, "est_rf.tif",overwrite=TRUE)
+writeRaster(est_rf, "m8_est_rf.tif",overwrite=TRUE)
 
 ```
 

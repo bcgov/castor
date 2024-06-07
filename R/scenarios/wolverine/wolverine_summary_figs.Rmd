@@ -1,0 +1,87 @@
+---
+title: "revelstoke_summary_figs"
+author: "Tyler Muhly"
+date: "02/24/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (data.table)
+require (DBI)
+require (RPostgreSQL)
+require (dplyr)
+require (ggplot2)
+require (here)
+require (scales)
+```
+
+
+## Figures for Visualizing Harvest Results
+
+
+```{r, harvest fig}
+schema<-"wolverine_5scen"
+conn <- dbConnect (RPostgreSQL::PostgreSQL(),
+				          host = keyring::key_get("vmdbhost", keyring="postgreSQL"),
+                  user = keyring::key_get("vmdbuser", keyring="postgreSQL"),
+                  password = keyring::key_get("vmdbpass", keyring="postgreSQL"),
+                  dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
+				          port = "5432")
+data.harvest <- data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.harvest where scenario != 'load_data_May2024'") ))[scenario == 'bau_no_harvesting', scenario := 'scen1_no_harv_he'][scenario == 'bma_in_cpa_no_harvesting', scenario := 'scen2_no_harv_bma_in_cpa'][scenario == 'cpa_no_harvesting', scenario := 'scen3_no_harv_in_cpa'][scenario == 'bma_aoi_no_harvesting', scenario := 'scen4_no_harv_in_bma'][scenario == 'le_no_harvesting', scenario := 'scen5_no_harv_le']
+data.volumebyarea<-data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.volumebyarea where scenario != 'load_data_May2024'") ))[scenario == 'bau_no_harvesting', scenario := 'scen1_no_harv_he'][scenario == 'bma_in_cpa_no_harvesting', scenario := 'scen2_no_harv_bma_in_cpa'][scenario == 'cpa_no_harvesting', scenario := 'scen3_no_harv_in_cpa'][scenario == 'bma_aoi_no_harvesting', scenario := 'scen4_no_harv_in_bma'][scenario == 'le_no_harvesting', scenario := 'scen5_no_harv_le'][area_name == 'MacKenzie_TSA', area_name:= 'Mackenzie_TSA'][area_name == 'MacKenzie_SW_TSA', area_name:= 'Mackenzie_SW_TSA']
+data.disturb <- data.table(dbGetQuery (conn, glue::glue("SELECT scenario, compartment, timeperiod, critical_hab, total_area, cut40, road50, c40r50, c40r500 FROM {schema}.disturbance where scenario != 'load_data_May2024'")) )[scenario == 'bau_no_harvesting', scenario := 'scen1_no_harv_he'][scenario == 'bma_in_cpa_no_harvesting', scenario := 'scen2_no_harv_bma_in_cpa'][scenario == 'cpa_no_harvesting', scenario := 'scen3_no_harv_in_cpa'][scenario == 'bma_aoi_no_harvesting', scenario := 'scen4_no_harv_in_bma'][scenario == 'le_no_harvesting', scenario := 'scen5_no_harv_le']
+data.seral <- data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.survival where scenario != 'load_data_May2024'")))[scenario == 'bau_no_harvesting', scenario := 'scen1_no_harv_he'][scenario == 'bma_in_cpa_no_harvesting', scenario := 'scen2_no_harv_bma_in_cpa'][scenario == 'cpa_no_harvesting', scenario := 'scen3_no_harv_in_cpa'][scenario == 'bma_aoi_no_harvesting', scenario := 'scen4_no_harv_in_bma'][scenario == 'le_no_harvesting', scenario := 'scen5_no_harv_le']
+dbDisconnect (conn)
+
+data.volumebyarea<-data.volumebyarea[scenario == 'bau_no_harvesting', scenario := 'scen1_no_harv_he'][scenario == 'bma_in_cpa_no_harvesting', scenario := 'scen2_no_harv_bma_in_cpa'][scenario == 'cpa_no_harvesting', scenario := 'scen3_no_harv_in_cpa'][scenario == 'bma_aoi_no_harvesting', scenario := 'scen4_no_harv_in_bma'][scenario == 'le_no_harvesting', scenario := 'scen5_no_harv_le'][area_name == 'MacKenzie_TSA', area_name:= 'Mackenzie_TSA'][area_name == 'MacKenzie_SW_TSA', area_name:= 'Mackenzie_SW_TSA']
+ggplot (data.volumebyarea, aes (x = timeperiod, 
+                                                       y = volume_harvest, color = scenario, linetype = scenario)) +
+                            geom_line (position = position_dodge (width = 1), size = 1) + 
+                            facet_wrap (. ~area_name, nrow =3) +
+                            theme_classic()
+```
+
+
+# Caribou indicators
+```{r}
+plot.seral<- ggplot (data.seral[timeperiod <= 50, ], 
+                               aes (x = timeperiod, y = (prop_age * 100), 
+                                    color = scenario, linetype = scenario)) +
+                            geom_line (position = position_dodge (width = 1), size = 1) + 
+  labs(y="Early Seral (<40 years) Percentage (%)")
+                            theme (legend.position = c (0.15, 0.15),
+                                   legend.title = element_text(size = 10),
+                                   legend.text = element_text( size = 8)) +
+                            #scale_x_continuous (limits = c(0, 80), breaks = seq(0,60,20)) +
+                           #scale_y_continuous (label = comma, breaks = seq(0,50,2)) +
+                            theme_classic ()
+       
+  plot.survival<- ggplot (data.seral[timeperiod <= 50, ], 
+                               aes (x = timeperiod, y = survival_rate, 
+                                    color = scenario, linetype = scenario)) +
+                            geom_line (position = position_dodge (width = 1), size = 1) + 
+  labs(y="Adult Female Survival Rate")
+                            theme (legend.position = c (0.15, 0.15),
+                                   legend.title = element_text(size = 10),
+                                   legend.text = element_text( size = 8)) +
+                            #scale_x_continuous (limits = c(0, 80), breaks = seq(0,60,20)) +
+                           #scale_y_continuous (label = comma, breaks = seq(0,50,2)) +
+                            theme_classic ()                     
+ plot.disturbed<-ggplot (data.disturb[timeperiod <= 50, ], 
+                               aes (x = timeperiod, y = (c40r500/total_area)*100, 
+                                    color = scenario, linetype = scenario)) +
+   facet_wrap(~critical_hab, nrow = 1)+
+                            geom_line (position = position_dodge (width = 1), size = 1) + 
+  labs(y="Disturbance (500m) Percentage (%)")
+                            theme (legend.position = c (0.15, 0.15),
+                                   legend.title = element_text(size = 10),
+                                   legend.text = element_text( size = 8)) +
+                            #scale_x_continuous (limits = c(0, 80), breaks = seq(0,60,20)) +
+                           #scale_y_continuous (label = comma, breaks = seq(0,50,2)) +
+                            theme_classic ()                           
+
+```
+
+
+

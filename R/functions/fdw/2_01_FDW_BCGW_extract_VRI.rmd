@@ -1,0 +1,273 @@
+---
+title: "FDW BCGW Data Extract: VRI"
+output: html_document
+
+---
+
+## VRI data from BCGW 
+## To Cloud PostgreSQl Server
+
+
+Using Foreign Data Wrapper: oracle_fdw  
+
+Processing AR2021 data.
+
+
+make sure that the setup script has been run to set up the oracle connection 
+
+## this will ignore geometry and has a reduced attribute list
+
+Load date: `r Sys.Date()`
+
+Start: `r format(Sys.time(),"%c")` 
+
+Sequence:  
+
+- load VRI from Oracle
+- load tsa table from ARDATA: fids_ard_by_tsa_2021.csv
+- load BEC data from CSV: bec11_vri_fid.csv
+- load list of rasterized vri features: vri_rasterized_fid.csv
+
+
+
+
+
+
+```{r cloud_connection, eval=TRUE,message=FALSE,warning=FALSE}
+
+library(RPostgreSQL)
+library(data.table)
+library(tidyverse)
+
+cloud <- '159.203.39.152'
+database <- 'msyt'
+
+con <- dbConnect('PostgreSQL',host=cloud,dbname=database)
+
+
+
+```
+
+
+create the msyt schema: msyt_2021  
+
+```{sql pre_delete, eval=TRUE,connection=con,warning=FALSE}
+
+-- create the schema for first load
+create schema if not exists msyt_2021;
+
+
+drop table if exists msyt_2021.veg_comp;
+drop table if exists msyt_2021.veg_comp_from_fdw;
+
+
+drop foreign table if exists load_2021.veg_comp_lyr_r1_poly;
+
+select now();
+
+
+
+```
+
+
+update geometry columns
+
+```{sql do_geom,eval=TRUE,connection=con,warning=FALSE}
+
+select populate_geometry_columns();
+
+select now();
+
+
+```
+
+
+
+### import the foreign schema and limit to VRI only
+
+```{sql load_foreign_tables, eval=TRUE,connection=con}
+
+-- FDW RESULTS data extract
+
+
+import foreign schema "WHSE_FOREST_VEGETATION"
+limit to (WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY)
+FROM SERVER oradb_idwprod1 INTO load_2021;
+
+-- set up pre fetch conditions
+alter foreign table load_2021.veg_comp_lyr_r1_poly options (ADD prefetch '10240'); 
+
+
+select count (*) from load_2021.veg_comp_lyr_r1_poly;
+
+```
+
+
+### extract VRI 
+
+```{sql extract_vri, eval=TRUE,connection=con}
+
+
+select now();
+
+-- load the subset of attribution required
+create table msyt_2021.veg_comp_from_fdw as select 
+	feature_id,
+	map_id,
+	inventory_standard_cd,
+	polygon_area,
+	non_productive_descriptor_cd,
+	non_productive_cd,
+	input_date,
+	bclcs_level_1,
+	bclcs_level_2,
+	bclcs_level_3,
+	bclcs_level_4,
+	bclcs_level_5,
+	interpretation_date,
+	project,
+	reference_year,
+	fiz_cd,
+	for_mgmt_land_base_ind,
+	projected_date,
+	opening_id,
+	adjusted_ind,
+	--bec_zone_code as bec_zone,
+	--bec_subzone,
+	--bec_variant,
+	--bec_phase,
+	earliest_nonlogging_dist_type,
+	earliest_nonlogging_dist_date,
+	stand_percentage_dead,
+	free_to_grow_ind,
+	harvest_date,
+	layer_id,
+	for_cover_rank_cd,
+	non_forest_descriptor,
+	interpreted_data_src_cd,
+	quad_diam_125,
+	quad_diam_175,
+	est_site_index_species_cd,
+	est_site_index,
+	est_site_index_source_cd,
+	crown_closure,
+	reference_date,
+	site_index,
+	dbh_limit,
+	basal_area,
+	vri_live_stems_per_ha,
+	vri_dead_stems_per_ha,
+	species_cd_1,
+	species_pct_1,
+	species_cd_2,
+	species_pct_2,
+	species_cd_3,
+	species_pct_3,
+	species_cd_4,
+	species_pct_4,
+	species_cd_5,
+	species_pct_5,
+	species_cd_6,
+	species_pct_6,
+	proj_age_1,
+	proj_age_2,
+	proj_height_1,
+	proj_height_2,
+	live_stand_volume_125,
+	dead_stand_volume_125
+from load_2021.veg_comp_lyr_r1_poly
+;	
+
+
+
+select count (*) from msyt_2021.veg_comp_from_fdw;
+
+
+```
+
+Load from Foreign Table Complete: `r format(Sys.time(),"%c")`
+
+
+
+## Cast types after load
+
+Oracle tends to use var char and other inefficient types.  
+Cast these to text.   
+
+```{sql update_veg_fid_types, eval=TRUE,connection=con}
+
+-- rename loading table
+alter table msyt_2021.veg_comp_from_fdw rename to veg_comp;
+
+-- note that FDW load assigns feature as numeric
+-- it should be cast to integer
+alter table msyt_2021.veg_comp alter feature_id type integer;
+
+
+-- change the var char to text
+alter table msyt_2021.veg_comp alter map_id type text;
+alter table msyt_2021.veg_comp alter inventory_standard_cd type text;
+alter table msyt_2021.veg_comp alter non_productive_descriptor_cd type text;
+alter table msyt_2021.veg_comp alter non_productive_cd type text;
+alter table msyt_2021.veg_comp alter bclcs_level_1 type text;
+alter table msyt_2021.veg_comp alter bclcs_level_2 type text;
+alter table msyt_2021.veg_comp alter bclcs_level_3 type text;
+alter table msyt_2021.veg_comp alter bclcs_level_4 type text;
+alter table msyt_2021.veg_comp alter bclcs_level_5 type text;
+alter table msyt_2021.veg_comp alter project type text;
+alter table msyt_2021.veg_comp alter fiz_cd type text;
+alter table msyt_2021.veg_comp alter for_mgmt_land_base_ind type text;
+alter table msyt_2021.veg_comp alter adjusted_ind type text;
+alter table msyt_2021.veg_comp alter earliest_nonlogging_dist_type type text;
+alter table msyt_2021.veg_comp alter free_to_grow_ind type text;
+alter table msyt_2021.veg_comp alter layer_id type text;
+alter table msyt_2021.veg_comp alter for_cover_rank_cd type text;
+alter table msyt_2021.veg_comp alter non_forest_descriptor type text;
+alter table msyt_2021.veg_comp alter interpreted_data_src_cd type text;
+alter table msyt_2021.veg_comp alter est_site_index_species_cd type text;
+alter table msyt_2021.veg_comp alter est_site_index_source_cd type text;
+alter table msyt_2021.veg_comp alter species_cd_1 type text;
+alter table msyt_2021.veg_comp alter species_cd_2 type text;
+alter table msyt_2021.veg_comp alter species_cd_3 type text;
+alter table msyt_2021.veg_comp alter species_cd_4 type text;
+alter table msyt_2021.veg_comp alter species_cd_5 type text;
+alter table msyt_2021.veg_comp alter species_cd_6 type text;
+
+-- change timestamp to text
+alter table msyt_2021.veg_comp alter input_date type text;
+alter table msyt_2021.veg_comp alter interpretation_date type text;
+alter table msyt_2021.veg_comp alter projected_date type text;
+alter table msyt_2021.veg_comp alter earliest_nonlogging_dist_date type text;
+alter table msyt_2021.veg_comp alter harvest_date type text;
+alter table msyt_2021.veg_comp alter reference_date type text;
+
+update msyt_2021.veg_comp
+set 
+  input_date = substring(input_date,1,10),
+  interpretation_date = substring(interpretation_date,1,10),
+  projected_date = substring(projected_date,1,10),
+  earliest_nonlogging_dist_date = substring(earliest_nonlogging_dist_date,1,10),
+  harvest_date = substring(harvest_date,1,10),
+  reference_date = substring(reference_date,1,10)
+;
+  
+
+select count (*) from msyt_2021.veg_comp;
+
+
+```
+
+
+Type reset complete: `r format(Sys.time(),"%c")`
+
+
+
+```{r eval=TRUE}
+
+z <- dbDisconnect(con)
+
+```
+
+
+End: `r format(Sys.time(),"%c")`
+

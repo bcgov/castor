@@ -31,7 +31,6 @@ For a comparison on these approaches go [here](https://github.com/bcgov/castor/b
 # Usage
 
 ```{r module_usage}
-library(SpaDES.core)
 library(data.table)
 library(dplyr)
 source(here::here("R/functions/R_Postgres.R"))
@@ -46,7 +45,7 @@ parameters <- list(
   dataCastor = list(saveCastorDB = TRUE,
                      randomLandscape = list(100,100,0,100,0,100),
                      randomLandscapeZoneConstraint = 
-                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20, zoneid =1)
                     ),
   blockingCastor = list(blockMethod='pre', 
                       patchZone = 'default',
@@ -72,11 +71,9 @@ paths <- list(
   outputPath = outputDir
 )
 
-mySim <- simInit(times = times, params = parameters, modules = modules,
+mySim <- SpaDES.core::simInitAndSpades(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
-system.time({
-  mySimOut<-spades(mySim)
-})
+
 #eventDiagram(mySimOut)
 ```
 

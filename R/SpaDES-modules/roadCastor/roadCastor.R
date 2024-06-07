@@ -378,11 +378,10 @@ setGraph<- function(sim){
   #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
   #step 3: Label the edges with the correct vertex name
   if(!is.null(sim$boundaryInfo)){
-    
     bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
     ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
-    #TODO: Need a velox workaround. Testing below
-    step.one<-terra::extract(sim$ras, terra::vect(bound.line), cells=TRUE, xy=FALSE, ID = FALSE)$layer
+    #A velox workaround. Testing below
+    step.one<-terra::extract(sim$ras, terra::vect(bound.line), cells=TRUE, xy=FALSE, ID = FALSE)$lyr.1
     
     step.two<-data.table(dbGetQuery(sim$castordb, paste0("select pixelid, roadtype from pixels where roadtype >= 0 and 
                                                   pixelid in (",paste(step.one, collapse = ', '),")")))
@@ -390,8 +389,9 @@ setGraph<- function(sim){
     step.two.xy<-data.table (terra::xyFromCell(sim$ras, step.two$pixelid)) #Get the euclidean distance -- maybe this could be a pre-solved road network instead?
     step.two.xy[, id:= seq_len(.N)] # create a label (id) for each record to be able to join back
     
-    sim$roadSourceID<-step.two[order(roadtype)][1]$pixelid #Assign the road source to any one of the perm roads
-    
+    if(!suppliedElsewhere(sim$roadSourceID)){
+      sim$roadSourceID<-step.two[order(roadtype)][1]$pixelid #Assign the road source to any one of the perm roads
+    }
     #Sequential Nearest Neighbour without replacement - find the closest pixel to create the loop
     edges.loop<-rbindlist(lapply(1:nrow(step.two.xy), function(i){
       if(nrow(step.two.xy) == i ){ #The last pixel needed to make the loop
@@ -416,7 +416,9 @@ setGraph<- function(sim){
     rm(bound.line, step.one, step.two.xy, link.cell)#remove unused objects
     gc() #garbage collection
   }else{ #Just pick a permanent road from the db
-    sim$roadSourceID <- dbGetQuery(sim$castordb, "Select pixelid from pixels where roadtype = 0 limit 1")$pixelid
+    if(!suppliedElsewhere(sim$roadSourceID)){
+      sim$roadSourceID <- dbGetQuery(sim$castordb, "Select pixelid from pixels where roadtype = 0 limit 1")$pixelid
+    }
   }
   
   #Take care of perm roads
@@ -515,6 +517,7 @@ lcpList<- function(sim){##Get a list of paths from which there is a to and from 
 mstSolve <- function(sim){
   message('mstSolve')
   #------get the edge list between a permanent road and the landing
+  if(nrow(sim$harvestPixelList)>0){
   landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),][ landings %in% sim$nodes, ]
   #landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
   weights.closest.rd <- cppRouting::get_distance_matrix(Graph=sim$g, 
@@ -544,6 +547,8 @@ mstSolve <- function(sim){
   }else{
     edges.all<-edge.list
   }
+  
+  edges.all<-edges.all[!is.na(weight),]
   gi.mst <- igraph::mst(graph_from_data_frame(edges.all, directed=FALSE))
   paths.matrix <- data.table(get.edgelist(gi.mst, names=TRUE)) #Is this getting the edgelist using the vertex ids -yes!
   #V1 = from, V2 = to...we set the 'to' using roadSourceID on line 506
@@ -572,6 +577,7 @@ mstSolve <- function(sim){
     #------Clean up
     rm(landing.cell,weights.closest.rd,edge.list,edges.all,gi.mst,paths.matrix,toRoadSourceID,alreadyRoaded)
     gc()
+  }
   }
   return(invisible(sim)) 
 }

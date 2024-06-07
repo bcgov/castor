@@ -1,0 +1,151 @@
+<!--
+Copyright 2020 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "Database creation for Wolverine Scenario Analysis"
+author: "Kyle Lochhead"
+date: "2 Novemeber 2023"
+output: pdf_document
+---
+
+# Overview
+-	Need timber supply impact analysis for the wolverine herd
+
+
+# Usage
+Set parameters for creating the database in the code chunk below.
+
+```{r module_usage}
+library (SpaDES)
+library (SpaDES.core)
+library (data.table)
+library (keyring)
+library (terra)
+
+source (here::here("R/functions/R_Postgres.R"))
+
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+
+moduleDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules"))
+inputDir <- file.path (paste0 (here::here (), "/R/scenarios/revelstoke_wg/inputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here::here (), "/R/scenarios/revelstoke_wg/outputs")) %>% reproducible::checkPath (create = TRUE)
+
+
+times <- list (start = 0, end = 52)
+parameters <-  list (
+        .progress = list (type = NA, interval = NA),
+        .globals = list (),
+        dataCastor = list(dbName = 'castor',
+                          saveCastorDB = FALSE,
+                          sqlite_dbname = "golden", 
+                          nameBoundaryFile = "public.tsa_aac_bounds", 
+                          nameBoundaryColumn = "tsa_name", 
+                          nameBoundary = "Golden_TSA", 
+                          nameBoundaryGeom = 'wkb_geometry',
+                          nameCompartmentRaster = "rast.tsa_aac_boundary", 
+                          nameCompartmentTable = "vat.tsa_aac_bounds_vat" 
+        ),
+        roadCastor = list (roadMethod = 'pre',
+                           nameCostSurfaceRas = 'rast.rd_cost_surface',
+                           nameRoads =  'rast.ce_road_2022'
+                           ),
+        backCastor = list(startHarvestYear = 1970,
+                             nameCutblockRaster= 'rast.cns_cutblk_2022', 
+                             nameCutblockTable= 'cut_block_all_bc', 
+                             queryCutblocks = 'cutseq_centroid_2022',
+                             resetAge = T 
+                              )
+        
+        )
+
+scenario = data.table (name = "backCastor", description = "dataCastor output")
+
+modules <- list("dataCastor",
+                #"growingStockCastor",
+                #"blockingCastor", 
+                "roadCastor",
+                #"survivalCastor",
+                "backCastor"
+                #"disturbanceCastor",
+                #"volumebyareaReportCastor",
+                #"uploadCastor"
+                )
+
+objects <- list (scenario = scenario
+                 )
+
+paths <- list(modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+
+# outputs to keep; these are tables that get used in the uploader
+
+system.time({
+mysimout<-spades(mySim)
+})
+
+```
+
+## Update roadstatus
+Use the script below to replicate the STSM approach of not creating 'blocks' (i.e., each pixel is a block) in the castor db.
+
+```{r, create blocks}
+rd.stat<-rast("C:/Users/klochhea/castor/R/scenarios/revelstoke_wg/outputs/backCastor_Golden_TSA_pre_status_52.tif")
+#clip harvest year with the aoi
+cut.year<-rast("C:/Users/klochhea/castor/R/Params/cns_cutblk_year_2022.tif")
+cut.year<-crop(cut.year, rd.stat)
+cut.year[]<-cut.year[]-2022
+
+rd.stat[rd.stat[] > -52] <- 0
+rd.stat[rd.stat[] == -52] <- 1
+
+in.block<-cut.year*rd.stat
+in.block[in.block[] == 0]<- NA
+
+writeRaster(in.block, "C:/Users/klochhea/castor/R/scenarios/revelstoke_wg/outputs/inblock_golden.tif")
+
+#Over write the inblock roads
+rd.stat<-rast("C:/Users/klochhea/castor/R/scenarios/revelstoke_wg/outputs/backCastor_Golden_TSA_pre_status_52.tif")
+in.block<-rast("C:/Users/klochhea/castor/R/scenarios/revelstoke_wg/outputs/inblock_golden.tif")
+rd.stat[rd.stat[] == -52] <- 0
+in.block[is.na(in.block[])]<-0
+rd.stat<-rd.stat + in.block
+writeRaster(rd.stat, "C:/Users/klochhea/castor/R/scenarios/revelstoke_wg/outputs/est_roadstatus_golden.tif")
+
+castordb <- dbConnect(RSQLite::SQLite(), dbname ="C:/Users/klochhea/castor/R/scenarios/revelstoke_wg/golden_bau_20231205_castordb.sqlite")
+ras.info<-dbGetQuery(castordb, "Select * from raster_info limit 1;")
+ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0, crs = 3005)
+
+update_roadstatus<- data.table(est_rs=rd.stat[])[,pixelid:=seq_len(.N)]
+setnames(update_roadstatus, "est_rs.layer", "est_rs")
+update_roadstatus<-update_roadstatus[!is.na(est_rs),]
+
+plot(rd.stat)
+# update pixels table 
+dbBegin (castordb)
+rs <- dbSendQuery (castordb, "UPDATE pixels SET roadstatus = :est_rs where pixelid = :pixelid;", update_roadstatus)
+dbClearResult (rs)
+dbCommit (castordb)
+
+dbDisconnect(castordb)
+```
+

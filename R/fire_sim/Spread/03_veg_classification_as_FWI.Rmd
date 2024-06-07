@@ -6,7 +6,9 @@ output: html_document
 ---
 
 
-# FIX it appears some fires are found to be started in the FWI_veg type =N. I think part of the problem is that if earliest disturbance year is the same as the fire year it is making years since disturbance =0 and then as a result it is classifying vegetation type as N because that area was just burned. But I think this is actually the fire i want to get info for. So I think therea re two solutions. 1.) either I reclassify the vegetation in the VRI using the VRI from the year before so that the burn date does not appear or I include an if statement saying that if the year burnt = the same year as my fire year then I should ignore it. ill try the latter for starters but I might swithch. 
+# FIX it appears some fires are found to be started in the FWI_veg type =N. I think part of the problem is that if earliest disturbance year is the same as the fire year it is making years since disturbance =0 and then as a result it is classifying vegetation type as N because that area was just burned. But I think this is actually the fire i want to get info for. So I think therea re two solutions. 1.) either I reclassify the vegetation in the VRI using the VRI from the year before so that the burn date does not appear or I include an if statement saying that if the year burnt = the same year as my fire year then I should ignore it. I fixed this problem with the N by using the VRI from the year before and also putting the if else statement. 
+
+i noticed another problem 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
