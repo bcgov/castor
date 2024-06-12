@@ -47,8 +47,8 @@ defineModule(sim, list(
     defineParameter("simEndYear", "numeric", 2100, NA, NA, "The simulation year at which fire spread is first simulated"),
     defineParameter("nameBecRast", "numeric", NA, NA, NA, "Raster of bec zones across BC."),
     defineParameter("nameBecTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the bec zone and bec subzone information"),
-    defineParameter("gcm", "character", '99999', NA, NA, "Global climate model from which to get future climate data e.g. ACCESS-ESM1-5"),
-    defineParameter("ssp", "character", '99999', NA, NA, "Climate projection from which to get future climate data e.g. ssp370"),
+    #defineParameter("gcm", "character", '99999', NA, NA, "Global climate model from which to get future climate data e.g. ACCESS-ESM1-5"),
+    #defineParameter("ssp", "character", '99999', NA, NA, "Climate projection from which to get future climate data e.g. ssp370"),
     #defineParameter("maxRun", "integer", '99999', NA, NA, "Maximum number of model runs to include. A value of 0 is ensembleMean only."),
     #defineParameter("run", "character", '99999', NA, NA, "The run of the climate projection from which to get future climate data e.g. r1i1p1f1"),
     defineParameter("nameForestInventoryRaster", "numeric", NA, NA, NA, "Raster of VRI feature id"),
@@ -77,6 +77,7 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     createsOutput("firedisturbanceTable", "data.table", "Disturbance by fire table for every pixel i.e. every time a pixel is burned it is updated by one so that at the end of the simulation time period we know how many times each pixel was burned"),
     createsOutput("fireReport", "data.table", "Summary per simulation period of the fire indicators i.e. total area burned, number of fire starts"),
+    createsOutput("perFireReport", "data.table", "This table provides the pixelid of the ignition location and size reached by each fire."),
     createsOutput("fire.size.sim","data.table","List of simulated fire sizes"),
     createsOutput("ras.frt", "raster", "Raster of fire regime types (maybe not needed)"),
     createsOutput("frt_id", "data.table", "List of fire regime types (maybe not needed)"),
@@ -186,13 +187,14 @@ Init <- function(sim) {
   #sim$firedisturbance <- sim$pts
   #sim$ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
   sim$fire.size<-data.table(pixelid10km = as.integer(), size= as.numeric())
-  sim$perFireReport<-data.table(timeperiod= integer(), pixelid10km = as.integer(), areaburned = integer())
+  
+  sim$perFireReport<-data.table(timeperiod= integer(), pixelid10km = as.integer(), ignition_location = as.integer(), areaburned = as.integer())
   
   sim$firedisturbanceTable<-data.table(scenario = scenario$name, numberFireReps = P(sim, "numberFireReps", "fireCastor"), pixelid = sim$pts$pixelid, numberTimesBurned = as.integer(0))
   
   sim$fireReport<-data.table(timeperiod= integer(), numberstarts = integer(), totalareaburned = integer(), thlbburned = integer())
   
-  dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN veg_cat numeric;"))
+  #dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN veg_cat numeric;"))
   
   return(invisible(sim))
   
@@ -200,7 +202,13 @@ Init <- function(sim) {
 
 getStaticVariables<-function(sim){
   
+  qry<-paste0("SELECT COUNT('frt') as exists_check FROM sqlite_master WHERE type='table' AND name='pixels';")
+  
+  if(dbGetQuery(sim$castordb, qry)$exists_check==1) {
+  
   message("get static raster layers")
+  
+  
   #get static rasters e.g. frt, slope, aspect, spatially varying intercept etc. This gets done once.
   sim$ras.frt<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                          srcRaster= P(sim, "nameFrtRaster", "fireCastor"), 
@@ -226,6 +234,8 @@ getStaticVariables<-function(sim){
   dbClearResult(rs)
   dbCommit(sim$castordb)
   gc()
+  
+  }
   
    message("get aspect")
    ras.aspect<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
@@ -402,9 +412,12 @@ getClimateVariables <- function(sim) {
    #id_vals2<-merge(climate_dat_no1)
    
    #### FIX I have listed one run here but I need to run the sim for each run so think about how to do this.####
+   qry<-paste0("SELECT * FROM climate_", P(sim, "gcmname", "climateCastor"),"_", P(sim, "ssp", "climateCastor"), " WHERE period = ", time(sim)*P(sim,"calculateInterval","fireCastor") + P(sim, "simStartYear","fireCastor"), " AND run = '",P(sim, "run", "climateCastor"), "';")
    
-   dat<-data.table(dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor") , " AND run == 'r10i1p1f1'", ";")))
-   #sim$run
+   #qry<-paste0("SELECT * FROM climate_MPI_ssp370 WHERE period = 2023 AND run = 'r1i1p1f1';")
+   print(qry)
+   
+   dat<-data.table(dbGetQuery(sim$castordb, qry))   
    
    sim$clim<-merge(dat, id_vals, by.x = "pixelid_climate", by.y ="pixelid_climate", all.y=TRUE )
    
@@ -448,6 +461,10 @@ getClimateVariables <- function(sim) {
    
 
 createVegetationTable <- function(sim) {
+  
+  qry<-paste0("SELECT COUNT('bclcs_level_1') as exists_check FROM sqlite_master WHERE type='table' AND name='pixels';")
+  
+  if(dbGetQuery(sim$castordb, qry)$exists_check==1) {
   
   message("get vegetation data from the VRI")
   
@@ -511,6 +528,7 @@ createVegetationTable <- function(sim) {
         
         rm(inv_id, attrib_inv)
         gc()
+      
     
       } else {
         message("no vegetation attributes supplied to determine fuel types")
@@ -523,6 +541,9 @@ createVegetationTable <- function(sim) {
   } else {
     message("no feature id key raster supplied for VRI")
   }
+  } else {
+    message("VRI data already extracted")
+    }
   
   return(invisible(sim)) 
 }
@@ -1303,7 +1324,7 @@ downScaleData<-function(sim){
   # "INNER JOIN pixels ON climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"),".pixelid_climate = pixels.pixelid_climate;"))
   
   
-  dat_climate<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid_climate, ppt_05, ppt_06, ppt_07, ppt_08, tmax_05, tmax_06, tmax_07, tmax_08, cmi_05, cmi_06, cmi_07, cmi_08, cmi, cmi3yr FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor") , " AND run == 'r10i1p1f1'", ";")))
+  dat_climate<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid_climate, ppt_05, ppt_06, ppt_07, ppt_08, tmax_05, tmax_06, tmax_07, tmax_08, cmi_05, cmi_06, cmi_07, cmi_08, cmi, cmi3yr FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor"), " AND run = '", P(sim, "run", "climateCastor"), "';")))
   
   message("get climate for aoi")
   
@@ -1328,15 +1349,15 @@ downScaleData<-function(sim){
   #UPDATE HERE AFTER THE FULL PROVINCIAL CMI TABLE IS MADE
   message("get provincial meanCMI")
   
-  # prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "prov_cmi_table","fireCastor"), " WHERE gcm= ",P(sim, "gcm", "fireCastor"), "AND ssp=", P(sim, "ssp", "fireCastor"), "and period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor") , " AND run =", P(sim, "ssp", "fireCastor"), ";")))
+#  prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "prov_cmi_table","fireCastor"), " WHERE gcm= ",P(sim, "gcm", "fireCastor"), "AND ssp=", P(sim, "ssp", "fireCastor"), "and period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor") , " AND run =", P(sim, "ssp", "fireCastor"), ";")))
   # 
-  # Prov_CMI<-data.table(dbGetTableQuery(sim$castordb, paste0("SELECT * FROM climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*(P(sim, "calculateInterval", "fireCastor")) + P(sim, "simStartYear", "fireCastor") , ";")))
-  # 
-  # agg$avgCMIProv<-Prov_CMI$meanCMI
-  # agg<-data.table(agg)
-  # agg[,"Group.1":=NULL]
-  
+   Prov_CMI<-dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " WHERE run == '", P(sim, "run", "climateCastor"),"' AND period=", time(sim)*(P(sim, "calculateInterval", "fireCastor")) + P(sim, "simStartYear", "fireCastor") , ";"))
+   
   dat<-merge(dat_veg, agg, by.x="pixelid10km", by.y="pixelid10km")
+  
+  dat$avgCMIProv<-Prov_CMI$ave_cmi
+  print(dat$avgCMIProv)
+  
   dat$frt<-as.factor(dat$frt)
   dat[, frt5:=0][frt==5, frt5:=1]
   dat[, frt7:=0][frt==7, frt7:=1]
@@ -1355,9 +1376,9 @@ downScaleData<-function(sim){
   
   poissonProcessModel<-function(sim){
     
-# sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*CMI_MIN-0.124*(CMI-CMI3YR/3)-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
+ sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*cmi_min-0.124*(cmi-cmi3yr/3)-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
 
- sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*(-18)-0.124*(-10)-0.363*(-2)  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable+1) )]
+# sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*(-18)-0.124*(-10)-0.363*(-2)  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable+1) )]
 
   return(invisible(sim))
 }
@@ -1422,9 +1443,10 @@ fireSize <- function(sim) {
     }
   
   
-  sim$downdat[, mu1:= 2.158738 - 0.001108 * PPT_sm - 0.011496 * 0.24 + -0.719612 * est  -0.020594 * log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921 * 0.24 +1.918825 * est -0.209590*log(con + 1) ][, sigma2:= 0.27]
+  sim$downdat[, mu1:= 2.158738 - 0.001108 * PPT_sm - 0.011496 * cmi + -0.719612 * est  -0.020594 * log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921 * cmi +1.918825 * est -0.209590*log(con + 1) ][, sigma2:= 0.27]
   
-  sim$downdat[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629 * frt12-1.540873 * frt13 - 0.842797 * frt14  - 1.334035* frt15+ 0.6835479 * 0.24 + 0.1055167 * TEMP_MAX )))][,pi1:=1-pi2]
+  
+  sim$downdat[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*avgCMIProv+0.1055167*TEMP_MAX )))][,pi1:=1-pi2]
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
@@ -1457,13 +1479,19 @@ return(invisible(sim))
     if (length(sim$fire.size$fire.size>0)) {
     sim$fire.size$ignit_location<-0
     
-    browser()
+    
     
     for (g in 1:length(sim$fire.size$pixelid10km)){
       x<-sim$probFireRast[pixelid10km==sim$fire.size$pixelid10km[g],]
       pixelid_value<-sample(x$pixelid,size=1, prob=x$prob_ignition_escape)
       sim$fire.size$ignit_location[g]<-pixelid_value
     }
+ 
+    # create individual fire size report with starting locations   
+    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location=sim$fire.size$ignit_location, pixelid10km = sim$fire.size$pixelid10km, areaburned = sim$fire.size$fire.size)
+    sim$perFireReport<-rbindlist(list(sim$perFireReport,tempperFireReport ))
+    
+    print(sim$perFireReport)
     
     sim$probFireRast[is.na(prob_ignition_spread), prob_ignition_spread:=0]
     sim$probFireRast[is.na(prob_ignition_escape), prob_ignition_escape:=0]
@@ -1485,11 +1513,9 @@ return(invisible(sim))
     sim$fire.size$fire.size<-round(sim$fire.size$fire.size,0)
     
     message("simulating fire")
-    sim$out <- spread2(area, start = sim$fire.size$ignit_location, spreadProb =spreadRas, exactSize=sim$fire.size$fire.size, asRaster = FALSE, allowOverlap=FALSE)
+    sim$out <- spread2(area, start = sim$fire.size$ignit_location, spreadProbRel =spreadRas, exactSize=sim$fire.size$fire.size, asRaster = FALSE, allowOverlap=FALSE)
  
     message("resetting age and volume in pixels table")
-    
-    browser()
     
     dbBegin(sim$castordb)
     rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0, basalarea = 0, height = 0 WHERE pixelid = :pixels", sim$out[, "pixels"])
@@ -1504,9 +1530,9 @@ return(invisible(sim))
     
     totalareaburned=sim$out[,.N]
     
-    tempperFireReport<-data.table(timeperiod = time(sim), pixelid10km = sim$fire.size$pixelid10km, areaburned = sim$fire.size$fire.size)
-    sim$perFireReport<-rbindlist(list(sim$perFireReport,tempperFireReport ))
-    
+    # tempperFireReport<-data.table(timeperiod = time(sim), pixelid10km = sim$fire.size$pixelid10km, areaburned = sim$fire.size$fire.size)
+    # sim$perFireReport<-rbindlist(list(sim$perFireReport,tempperFireReport ))
+    # 
     } else {
       message("no fires simulated")
       totalareaburned = 0
@@ -1531,6 +1557,7 @@ savefirerast<-function(sim){
   firepts[, burned:=0]
   
   firepts[pixelid %in% sim$out$pixels, burned := 1]
+  firepts[pixelid %in% sim$out$initialPixels, burned := 2]
   
   burnpts<-sim$ras
   burnpts[]<-firepts$burned
