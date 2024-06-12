@@ -82,10 +82,10 @@ parameters <- list(
                            nameCostSurfaceRas = 'rast.rd_cost_surface',
                            nameRoads =  'rast.ce_road_2022'),
  disturbanceCastor = list(calculateInterval =  1, 
-                                 criticalHabitatTable = "vat.criticalhabitat_tweedsmuir_vat",
+                                 criticalHabitatTable = "vat.zone_cond_bc_tweedsmuir_crithab",
                                  criticalHabRaster = "rast.zone_cond_bc_tweedsmuir_crithab",
                                  permDisturbanceRaster = "rast.mine_ag_wind_rail",
-                                 recovery = 30), # no road recovery
+                                 recovery = 21), # no road recovery
  volumebyareaReportCastor = list (calculateInterval = 1,
                                          AreaofInterestRaster = "rast.morice_wha",
                                          AreaofInterestTable = "vat.morice_wha"),
@@ -112,9 +112,9 @@ modules <- list("dataCastor",
                 "uploadCastor"
                 )
 
-scenario = data.table (name = "base_case",
-                       description = "business as usual. morice land use regional plan")
-harvestSchedule <- rast("basecase_hsq.tif")
+scenario = data.table (name = "alternative_smz_rr21",
+                       description = "alternative_smz. morice land use regional plan. recovery 21 years")
+harvestSchedule <- rast("alternative_smz_hsq.tif")
 
 
 objects <- list(harvestSchedule  = harvestSchedule , 

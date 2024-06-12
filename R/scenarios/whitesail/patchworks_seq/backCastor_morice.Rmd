@@ -136,5 +136,17 @@ adjust.rd.stat<-adjust.rd.stat[rdstat.lyr.1 == -53 & inblock.layer < 0, rdstat.l
 rd.stat[]<-NA
 rd.stat[]<-adjust.rd.stat$rdstat.lyr.1
 writeRaster(rd.stat, "C:/Users/klochhea/castor/R/scenarios/whitesail/patchworks_seq/est_roadstatus_whitesail.tif", overwrite=T)
+
+
+#Recieved some road infomrationf from CAnfor
+ras<-rd.stat
+ras[]<-1:(nrow(ras)*ncol(ras))
+canfor1<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/whitesail_overgrown_or_rehabbed_walk_only_access.shp")
+canfor2<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/whitesail_rehabbed_roads_2024_05_14.shp")
+
+c1<-unique(rbind(terra::extract(y = canfor1, x =ras),terra::extract(y = canfor2, x =ras))$lyr.1)
+rd.stat[c1]<- -53
+rd.stat
+writeRaster(rd.stat, "C:/Users/klochhea/castor/R/scenarios/whitesail/patchworks_seq/est_roadstatus_canfor_whitesail.tif", overwrite=T)
 ```
 
