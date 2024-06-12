@@ -56,7 +56,7 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- getClimateDataForAOI(sim)
-      #sim <- getClimateDataForProvince(sim)
+      sim <- getClimateDataForProvince(sim)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -66,8 +66,11 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
 }
     
 getClimateDataForAOI <- function(sim) {
+  
+  
+  qry<-paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info('climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"),"') WHERE name='pixelid_climate';")
       
-      qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), "';")
+     # qry<-paste0("SELECT COUNT (*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"),"';")
       
       if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
      
@@ -109,6 +112,27 @@ getClimateDataForAOI <- function(sim) {
       
       message("Downloading climate data from climateBC for AOI ...")  
       
+      if (P(sim, "climateData", "climateCastor")== "observed") {
+        
+        message("extracting observed climate data")
+        
+        ds_out <- downscale(
+          xyz = climate_id_key,
+          which_refmap = "auto",
+          obs_years = (P(sim, "climateYears", "climateCastor")),
+          obs_ts_dataset = "climatena",
+          vars = (P(sim, "vars_aoi", "climateCastor")))
+        
+        ds_out$GCM<-"climatena"
+        ds_out$SSP<-"none"
+        ds_out$RUN<-"none"
+        ds_out<-data.table(ds_out)
+        ds_out[,DATASET:=NULL]
+        
+      } else {
+        
+        message("extracting gcm data")
+      
       ds_out <- downscale(
         xyz = climate_id_key,
         which_refmap = "auto",
@@ -117,14 +141,17 @@ getClimateDataForAOI <- function(sim) {
         ssps = (P(sim, "ssp", "climateCastor")),# c("ssp370"),
         max_run = (P(sim, "maxRun", "climateCastor")),
         vars = (P(sim, "vars_aoi", "climateCastor"))) # also need annual CMI (I think) for ignitions
+      }
       
       ds_out<-ds_out[!is.na(RUN),]
       ds_out<-ds_out[order(GCM, SSP, RUN, id, PERIOD)]
       ds_out<-ds_out[, `:=`(CMI = rowMeans(.SD, na.rm=T)), .SDcols=c("CMI_05", "CMI_06","CMI_07","CMI_08")]
       ds_out[ ,CMI3yr := frollsum(.SD, n=3), by = "id", .SDcols = "CMI"]
       
+      browser()
+      
       ### UPDATE THIS ###
-      ds_out<-ds_out[!PERIOD %in% c(2021, 2022), ]
+      #ds_out<-ds_out[!PERIOD %in% c(2021, 2022), ]
       
       message("upload climate data to sqlitedb")
       
@@ -146,35 +173,50 @@ getClimateDataForAOI <- function(sim) {
   return(invisible(sim))
 }
 
-# getClimateDataForProvince <- function(sim) {
-#   
-#   
-#   qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_provincial_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), "';")
-#   
-#   if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
-#     
-#     message(paste0("create climate_provincial_",tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor")))
-#     #"ESM1_2_HR", c("ssp370")
-#     
-#     qry<-paste0("CREATE TABLE IF NOT EXISTS climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor")," (run character, period integer, meanCMI numeric)")
-#     
-#     dbExecute(sim$castordb, qry)
-#     
-#     if(! suppliedElsewhere("ds_out_summary", sim)){
-#     
-#     message("extract climate_id values from raster")
-#   
+ getClimateDataForProvince <- function(sim) {
+   
+   
+  # qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_provincial_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), "';")
+   
+  #if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
+     
+     message(paste0("extract climate_provincial_",tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor")))
+    
+    qry<-paste0("CREATE TABLE IF NOT EXISTS climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor")," (gcm character, ssp character, run character, period integer, ave_cmi numeric)")
+    
+    dbExecute(sim$castordb, qry)
+    
+    
+ #   if (length(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameProvCMITable","climateCastor"), " WHERE gcm = '",P(sim, "gcmname","climateCastor"), "' AND ssp = '", P(sim, "ssp","climateCastor"), "' limit 2"))$gcm)>0) {
+    
+    prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameProvCMITable","climateCastor"), " WHERE gcm = '",P(sim, "gcmname","climateCastor"), "' AND ssp = '", P(sim, "ssp","climateCastor"),"' AND period IN (", paste(P(sim, "climateYears","climateCastor"), collapse = ","),");" )))
+    
+    qry<-paste0("INSERT INTO climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (gcm, ssp, run, period, ave_cmi) VALUES (:gcm,:ssp,:run, :period, :ave_cmi)")
+    
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, qry, prov_cmi)
+    dbClearResult(rs)
+    dbCommit(sim$castordb)
+    
+    
+    
+    # in the case where castor database on Kyles computer does not have the required data go and get it manually from climR.
+    # Note this is slow so should be avoided.
+    #} else {
+
+    #message("extract climate_id values from raster")
+# 
 #   location_table<-getSpatialQuery(paste0("SELECT * FROM ", P(sim, "nameClimateTable","climateCastor"),";"))
 #   setnames(location_table, c("lon", "lat", "id", "elev"))
 #   location_table<-location_table[,c("id", "lon", "lat", "elev")]
-#   
+# 
 #   #get climate data for locations on land i.e. that have an elevation
 #   location_table<-data.table(location_table)
 #   location_table<-location_table[elev!="NA",]
-#   
+# 
 #   # when i try to get climr data it crashes because there are to many locations so Ill split the file up into multiple sections
 #   x<-round(length(location_table$id)/15,0)
-#   
+# 
 #   x1<-location_table[1:x,]
 #   x2<-location_table[(x+1):(x*2),]
 #   x3<-location_table[(x*2+1):(x*3),]
@@ -190,18 +232,18 @@ getClimateDataForAOI <- function(sim) {
 #   x13<-location_table[(x*12+1):(x*13),]
 #   x14<-location_table[(x*13+1):(x*14),]
 #   x15<-location_table[(x*14+1):(length(location_table$id)),]
-#   
+# 
 #   rm(location_table)
 #   gc()
-#   
-#   message("Downloading provincial CMI from climateBC")  
-#   
+# 
+#   message("Downloading provincial CMI from climateBC")
+# 
 #   inputs <- list(x1, x2, x3, x4, x5, x6,x7,x8, x9, x10, x11, x12, x13, x14, x15)
 #   ds_out<-list()
-#   
+# 
 #   for (i in 1:length(inputs)){
 #     print(i)
-#     
+# 
 #     ds_out_prov <- climr_downscale(
 #       xyz = inputs[[i]],
 #       which_normal = "auto",
@@ -212,37 +254,36 @@ getClimateDataForAOI <- function(sim) {
 #       max_run = (P(sim, "maxRun", "climateCastor")),
 #       return_normal = FALSE, ## to return the 1961-1990 normals period
 #       vars = P(sim,"vars_prov", "climateCastor"))
-#     
+# 
 #     setnames(ds_out_prov, old = "id", new="pixelid_climate")
 #     ds_out_prov[,rowmeanCMI:=(CMI05+CMI06+CMI07+CMI08)/4]
 #     ds_out_prov[, c("GCM", "SSP","CMI05", "CMI06", "CMI07", "CMI08"):=NULL]
 #     ds_out_prov<-ds_out_prov[!is.na(RUN), ]
 #     ds_out<-rbind(ds_out, ds_out_prov)
-#     
+# 
 #     rm(ds_out_prov)
 #     gc()
 #   }
-#   
+# 
 #   ds_out<-ds_out[!is.na(rowmeanCMI)]
-#   ds_out[, AveCMI:=mean(rowmeanCMI), by=c("RUN", "PERIOD")]
-#   sim$ds_out_summary<-unique(ds_out, by="AveCMI")
-#   sim$ds_out_summary[, c("pixelid_climate", "rowmeanCMI"):=NULL]
-#   
-#     }
-#   qry<-paste0("INSERT INTO climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (run, period, meanCMI) VALUES (:RUN, :PERIOD, :AveCMI)")
-#   
+#   ds_out[, ave_cmi:=mean(rowmeanCMI), by=c("RUN", "PERIOD")]
+#   prov_cmi<-unique(ds_out, by="ave_cmi")
+#   prov_cmi[, c("pixelid_climate", "rowmeanCMI"):=NULL]
+#     
+#     
+#   qry<-paste0("INSERT INTO climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (gcm, ssp, run, period, ave_cmi) VALUES (:GCM,:SSP,:RUN, :PERIOD, :ave_cmi)")
+# 
 #   dbBegin(sim$castordb)
-#   rs<-dbSendQuery(sim$castordb, qry, sim$ds_out_summary)
+#   rs<-dbSendQuery(sim$castordb, qry, prov_cmi)
 #   dbClearResult(rs)
 #   dbCommit(sim$castordb)
-#   
+# 
 #   rm(ds_out, x1, x2, x3, x4, x5, x6, x7, x8,x9, x10, x11, x12, x13, x14, x15, inputs)
 #   gc()
-#   
-#   } else {
-#     message("climate data already extracted")
-#   }
-#   
-#   return(invisible(sim))
-# }
+#     }
+#     
+#   } else {message ("provincial climate data extracted ")}
+
+  return(invisible(sim))
+}
 
