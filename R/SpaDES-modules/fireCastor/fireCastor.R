@@ -204,7 +204,7 @@ getStaticVariables<-function(sim){
   
   qry<-paste0("SELECT COUNT('frt') as exists_check FROM sqlite_master WHERE type='table' AND name='pixels';")
   
-  if(dbGetQuery(sim$castordb, qry)$exists_check==1) {
+  if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
   
   message("get static raster layers")
   
@@ -464,7 +464,7 @@ createVegetationTable <- function(sim) {
   
   qry<-paste0("SELECT COUNT('bclcs_level_1') as exists_check FROM sqlite_master WHERE type='table' AND name='pixels';")
   
-  if(dbGetQuery(sim$castordb, qry)$exists_check==1) {
+  if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
   
   message("get vegetation data from the VRI")
   
@@ -1355,7 +1355,7 @@ downScaleData<-function(sim){
    
   dat<-merge(dat_veg, agg, by.x="pixelid10km", by.y="pixelid10km")
   
-  dat$avgCMIProv<-Prov_CMI$ave_cmi
+  dat$avgCMIProv<-Prov_CMI$ave_cmi[1]
   print(dat$avgCMIProv)
   
   dat$frt<-as.factor(dat$frt)
