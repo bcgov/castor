@@ -77,7 +77,7 @@ doEvent.forestryCastor = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim) #note target flow is a data.table object-- dont need to get it.
-      if(!is.null(harvestSchedule)){
+      if(!is.null(sim$harvestSchedule)){
         sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCastor", "followSchedule", 3)
         sim <- scheduleEvent(sim, end(sim) , "forestryCastor", "save", 9)
       }else{
@@ -459,7 +459,7 @@ simHarvestQueue <- function(sim) {
   sim$harvestPixelList <- data.table()
   land_pixels <- data.table()
   
-  ras.h.blocks<-harvestSchedule[[paste0("hsq_", time(sim)*sim$updateInterval)]]
+  ras.h.blocks<-sim$harvestSchedule[[paste0("hsq_", time(sim)*sim$updateInterval)]]
   h.blocks<-data.table(blockid = ras.h.blocks[])[, pixelid:=seq_len(.N)]
   setnames(h.blocks, c("blockid", "pixelid"))
   h.blocks<-h.blocks[!is.na(blockid),]
@@ -741,12 +741,16 @@ runCoCela<-function(sim){
 }
 
 .inputObjects <- function(sim) {
-  if(!suppliedElsewhere(harvestSequence)){
+  if(!suppliedElsewhere("harvestSequence", sim)){
     harvestSequence <- NULL
   }
   
   if(!suppliedElsewhere("harvestFlow", sim)){
     harvestFlow <- NULL
+  }
+  
+  if(!suppliedElsewhere("harvestSchedule", sim)){
+    harvestSchedule <- NULL
   }
   return(invisible(sim))
 }
