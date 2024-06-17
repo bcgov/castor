@@ -49,7 +49,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/tests"))
-times <- list(start = 0, end = 0) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 2) # 5 year interval; 200 years = 40 intervals
 parameters <-  list (
         .progress = list (type = NA, interval = NA),
         .globals = list (),
@@ -117,7 +117,7 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                     maxRun = 3, 
                     nameClimateIdnoRast = "rast.climate_prism_base_layer",
                     nameClimateTable = "vat.climate_prism_lat_lon_lookup",
-                    vars_aoi=c("PPT03","PPT04", "PPT05","PPT06","PPT07", "PPT08", "PPT09","Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "Tave03","Tave04", "Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tmin03", "Tmin04", "Tmin05", "Tmin06", "Tmin07", "Tmin08" ,"CMD04", "CMD05", "CMD06", "CMD07", "CMD08", "CMI04", "CMI05", "CMI06", "CMI07", "CMI08", "CMI09"),
+                    vars_aoi=c("PPT03","PPT04", "PPT05","PPT06","PPT07", "PPT08", "PPT09","Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "Tave03","Tave04", "Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tmin03", "Tmin04", "Tmin05", "Tmin06", "Tmin07", "Tmin08" ,"CMD04", "CMD05", "CMD06", "CMD07", "CMD08", "CMI03", "CMI04", "CMI05", "CMI06", "CMI07", "CMI08", "CMI09"),
                     vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
   fireCastor = list(calculateInterval =1,
                     ignitionMethod = 'poissonProcess', # options are poissonProcess, historicalDist, static
@@ -138,20 +138,7 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                     nameForestInventoryTable2 = "castor_stsm_compare.vri",
                     nameForestInventoryKey = "vri_fid",
                     nameForestInventorybclcs_level_1 = "bclcs_lv_1",
-                    nameForestInventorybclcs_level_4 = "bclcs_lv_4",
                     nameForestInventorybec_zone_code = '99999',
-                    nameForestInventoryspecies_cd_1 = "spec_cd_1",
-                    nameForestInventoryspecies_pct_1 = "spec_pct_1",
-                    nameForestInventoryspecies_cd_2 = "spec_cd_2",
-                    nameForestInventoryspecies_pct_2 = "spec_pct_2",
-                    nameForestInventoryspecies_cd_3 = "spec_cd_3",
-                    nameForestInventoryspecies_pct_3 = "spec_pct_3",
-                    nameForestInventoryspecies_cd_4 = "spec_cd_4",
-                    nameForestInventoryspecies_pct_4 = "spec_pct_4",
-                    nameForestInventoryspecies_cd_5 = "spec_cd_5",
-                    nameForestInventoryspecies_pct_5 = "spec_pct_5",
-                    nameForestInventoryspecies_cd_6 = "spec_cd_6",
-                    nameForestInventoryspecies_pct_6 = "spec_pct_6",
                     pixelid_10kmRast = "rast.pixelId10km",
                     nameFirepixel10km = "vat.spatially_varying_10km_vat",
                     numberFireReps = 1,
@@ -162,11 +149,11 @@ modules <- list("dataCastor",
                 "growingStockCastor", 
                 "blockingCastor",
                 "roadCastor",
-                #"forestryCastor" 
+                "forestryCastor", 
                  
-                "disturbanceCastor",
-                "climateCastor",
-                "fireCastor"
+                "disturbanceCastor"
+                #"climateCastor",
+                #"fireCastor"
                 #"uploadCastor",
                 #"volumebyareaReportCastor"
                 )
