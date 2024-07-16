@@ -40,11 +40,11 @@ defineModule(sim, list(
     defineParameter("nameAspectRaster", "numeric", NA, NA, NA, "Raster of aspect across BC"),
     defineParameter("nameSlopeRaster", "numeric", NA, NA, NA, "Raster of slope across BC"),
     defineParameter("nameDistInfrastructureRaster", "numeric", NA, NA, NA, "Raster of distance from any particular pixel to the closest infrastructure. Infrastructure is rail roads, powerlines, urban, oil (wells, pump sites etc), mines"),
-    defineParameter("nameStaticSpreadRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure + b3*spring_wind) in the spread model"),
+    #defineParameter("nameStaticSpreadRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure + b3*spring_wind) in the spread model"),
     defineParameter("nameRoadsRast", "numeric", NA, NA, NA, "Raster of roads across BC. This is here incase roadsCastor is not run"),
     defineParameter("nameElevationRaster", "numeric", NA, NA, NA, "Digital elevation map of BC This is here incase elevation data is not supplied in another module"),
     defineParameter("simStartYear", "numeric", 2020, NA, NA, "The simulation year at which fire spread is first simulated"),
-    defineParameter("simEndYear", "numeric", 2100, NA, NA, "The simulation year at which fire spread is first simulated"),
+    #defineParameter("simEndYear", "numeric", 2100, NA, NA, "The simulation year at which fire spread is first simulated"),
     defineParameter("nameBecRast", "numeric", NA, NA, NA, "Raster of bec zones across BC."),
     defineParameter("nameBecTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the bec zone and bec subzone information"),
     #defineParameter("gcm", "character", '99999', NA, NA, "Global climate model from which to get future climate data e.g. ACCESS-ESM1-5"),
@@ -56,7 +56,7 @@ defineModule(sim, list(
     defineParameter("nameForestInventoryKey", "character", "99999", NA, NA, desc = "Name of the veg comp primary key that links the table to the raster"),
     defineParameter("ignitionMethod", "character", "pre", NA, NA, "This describes the type of method used to determine the number of fire starts"),
     #defineParameter("numberFireReps", "numerical", "99999", NA, NA, desc = "value with the number of fire simulation repetitions needed"),
-    defineParameter("firemodelcoeftbl", "character", "99999", NA, NA, desc = "Table with coefficient values to parameterze models for each fire regime type"),
+    #defineParameter("firemodelcoeftbl", "character", "99999", NA, NA, desc = "Table with coefficient values to parameterze models for each fire regime type"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -67,6 +67,7 @@ defineModule(sim, list(
     expectsInput(objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "SpatRaster", desc = "A raster object created in dataCastor. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
+    expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
     expectsInput(objectName = "simStartYear", objectClass ="numeric", desc = 'The calendar year of the first simulation', sourceURL = NA),
@@ -78,9 +79,8 @@ defineModule(sim, list(
     createsOutput("firedisturbanceTable", "data.table", "Disturbance by fire table for every pixel i.e. every time a pixel is burned it is updated by one so that at the end of the simulation time period we know how many times each pixel was burned"),
     createsOutput("fireReport", "data.table", "Summary per simulation period of the fire indicators i.e. total area burned, number of fire starts"),
     createsOutput("perFireReport", "data.table", "This table provides the pixelid of the ignition location and size reached by each fire."),
-    createsOutput("fire.size.sim","data.table","List of simulated fire sizes"),
+    createsOutput("fire.size","data.table","List of simulated fire sizes"),
     createsOutput("ras.frt", "raster", "Raster of fire regime types (maybe not needed)"),
-    createsOutput("frt_id", "data.table", "List of fire regime types (maybe not needed)"),
     createsOutput("downdat", "data.table", "Table of parameters needed for number of ignitions and area burned at 10km scale."),
     createsOutput("probFireRasts", "data.table", "Table of calculated probability values for escape and spread for every pixel"),
     createsOutput("out", "data.table", "Table of starting location of fires and pixel id's of locations burned during the simulation"),
@@ -109,7 +109,10 @@ doEvent.fireCastor = function(sim, eventTime, eventType, debug = FALSE){
       sim <- scheduleEvent(sim, time(sim), "fireCastor", "areaBurned", 14)
       sim <- scheduleEvent(sim, time(sim), "fireCastor", "calculateProbEscapeSpread", 14)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "simulateFireSpread", 15)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "saveFireRasters", 15)
+      #sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "saveFireRasters", 15)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "saveFireTables", 15)
+      
+      
         },
       
 getStaticFireVariables = {
@@ -169,11 +172,15 @@ simulateFireSpread = {
   sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "simulateFireSpread", 15)
 },
 
-saveFireRasters = {
-  sim<-savefirerast(sim)
-  sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "saveFireRasters", 15)
+# saveFireRasters = {
+#   sim<-savefirerast(sim)
+#   sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "saveFireRasters", 15)
+# },
   
-},
+saveFireTables = {
+    sim<-savefiretable(sim)
+    sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "saveFireTables", 15)
+  },
 
 
 warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -184,25 +191,19 @@ warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FAL
 
 Init <- function(sim) {
   
-  #sim$firedisturbance <- sim$pts
-  #sim$ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
-  sim$fire.size<-data.table(pixelid10km = as.integer(), size= as.numeric())
+  sim$perFireReport<-data.table(timeperiod= integer(),ignition_location=integer(), pixelid10km = integer(), areaburned_estimated = numeric())
   
-  sim$perFireReport<-data.table(timeperiod= integer(), pixelid10km = as.integer(), ignition_location = as.integer(), areaburned = as.integer())
+  sim$firedisturbanceTable<-data.table(scenario = scenario$name, pixelid = sim$pts$pixelid, numberTimesBurned = as.numeric(0))
   
-  sim$firedisturbanceTable<-data.table(scenario = scenario$name, numberFireReps = P(sim, "numberFireReps", "fireCastor"), pixelid = sim$pts$pixelid, numberTimesBurned = as.integer(0))
-  
-  sim$fireReport<-data.table(timeperiod= integer(), numberstarts = integer(), totalareaburned = integer(), thlbburned = integer())
-  
-  #dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN veg_cat numeric;"))
-  
+  sim$fireReport<-data.table(timeperiod= integer(), numberstarts = integer(), totalareaburned = numeric(), thlbburned = numeric())
+ 
   return(invisible(sim))
   
 }
 
 getStaticVariables<-function(sim){
   
-  qry<-paste0("SELECT COUNT('frt') as exists_check FROM sqlite_master WHERE type='table' AND name='pixels';")
+  qry<-paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info ('pixels') WHERE name='frt';")
   
   if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
   
@@ -210,31 +211,20 @@ getStaticVariables<-function(sim){
   
   
   #get static rasters e.g. frt, slope, aspect, spatially varying intercept etc. This gets done once.
-  sim$ras.frt<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+  ras.frt<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                          srcRaster= P(sim, "nameFrtRaster", "fireCastor"), 
                                          clipper=sim$boundaryInfo[1] , 
                                          geom= sim$boundaryInfo[4] , 
                                          where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                                          conn=NULL))
-  if(terra::ext(sim$ras) == terra::ext(sim$ras.frt)){
-    frt_id<-data.table(frt = as.integer(sim$ras.frt[]))
+  if(terra::ext(sim$ras) == terra::ext(ras.frt)){
+    frt_id<-data.table(frt = as.integer(ras.frt[]))
     frt_id[, pixelid := seq_len(.N)][, frt := as.integer(frt)]
     frt_id<-frt_id[frt > 0, ]
     
     gc()
   }else{
     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameFrtRaster", "fireCastor")))
-  }
-  
-  # add frt to pixels table
-  dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN frt numeric;"))
-  message("add frt to pixels table")
-  dbBegin(sim$castordb)
-  rs<-dbSendQuery(sim$castordb, "UPDATE pixels set frt = :frt where pixelid = :pixelid", frt_id)
-  dbClearResult(rs)
-  dbCommit(sim$castordb)
-  gc()
-  
   }
   
    message("get aspect")
@@ -316,22 +306,42 @@ getStaticVariables<-function(sim){
      }
      
      bec_id_key<-unique(bec_id[!(is.na(idkey)), idkey])
-     bec_key<-data.table(getTableQuery(paste0("SELECT idkey, zone, subzone FROM ",P(sim, "nameBecTable","fireCastor"), " WHERE idkey IN (", paste(bec_id_key, collapse = ","),");")))
+     bec_key<-data.table(getTableQuery(paste0("SELECT idkey, zone FROM ",P(sim, "nameBecTable","fireCastor"), " WHERE idkey IN (", paste(bec_id_key, collapse = ","),");")))
      
      bec<-merge(x=bec_id, y=bec_key, by.x = "idkey", by.y = "idkey", all.x = TRUE)
      bec<-bec[, idkey:=NULL] # remove the fid key
+     
+     #print(bec)
+     
+     dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN zone character;"))
+     dbBegin(sim$castordb)
+     rs<-dbSendQuery(sim$castordb, "UPDATE pixels set zone = :zone where pixelid = :pixelid", bec)
+     dbClearResult(rs)
+     dbCommit(sim$castordb)
+     gc()
+     
    } else {
      message("BEC info in VRI")
    }
    
    # Merge the static rasters together and save them as a sim object.
    fire_static <- merge(infra_id, slope_id, by="pixelid")
+   fire_static<-merge(fire_static, aspect_id, by="pixelid")
+   fire_static<-merge(fire_static, frt_id, by="pixelid")
    
-   if (!(P(sim, "nameBecRast", "fireCastor") == "99999")){
-   fire_static <- merge(fire_static, bec, by="pixelid")
-   }
-   sim$fire_static<-merge(fire_static, aspect_id, by="pixelid")
-  
+   # add frt to pixels table
+   dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN frt numeric;"))
+   dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN dist_infra numeric;"))
+   dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN slope numeric;"))
+   dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN aspect_cardinal character;"))
+   message("add static variables to pixels table")
+   dbBegin(sim$castordb)
+   rs<-dbSendQuery(sim$castordb, "UPDATE pixels set frt = :frt, dist_infra = :dist_infra, slope = :slope, aspect_cardinal = :aspect_cardinal where pixelid = :pixelid", fire_static)
+   dbClearResult(rs)
+   dbCommit(sim$castordb)
+   gc()
+   
+  }
     rm(infra_id, slope_id, aspect_id)
     gc()
     
@@ -415,7 +425,7 @@ getClimateVariables <- function(sim) {
    qry<-paste0("SELECT * FROM climate_", P(sim, "gcmname", "climateCastor"),"_", P(sim, "ssp", "climateCastor"), " WHERE period = ", time(sim)*P(sim,"calculateInterval","fireCastor") + P(sim, "simStartYear","fireCastor"), " AND run = '",P(sim, "run", "climateCastor"), "';")
    
    #qry<-paste0("SELECT * FROM climate_MPI_ssp370 WHERE period = 2023 AND run = 'r1i1p1f1';")
-   print(qry)
+   #print(qry)
    
    dat<-data.table(dbGetQuery(sim$castordb, qry))   
    
@@ -462,7 +472,9 @@ getClimateVariables <- function(sim) {
 
 createVegetationTable <- function(sim) {
   
-  qry<-paste0("SELECT COUNT('bclcs_level_1') as exists_check FROM sqlite_master WHERE type='table' AND name='pixels';")
+  qry<-paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info ('pixels') WHERE name='bclcs_level_1';")
+  
+  #qry<-paste0("SELECT COUNT('bclcs_level_1') as exists_check FROM sqlite_master WHERE type='table' AND name='pixels';")
   
   if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
   
@@ -551,7 +563,7 @@ createVegetationTable <- function(sim) {
 
 calcProbEscapeSpread<-function(sim){
   
-  vri<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, frt, age, basalarea, (1-dec_pcnt)*100 AS conifer_pct_cover_total, case when height >=4 and basalarea >= 8 and 1-dec_pcnt >= 0.75 then 1 
+  vri<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, frt, age, dist_infra, slope, aspect_cardinal, zone, basalarea, (1-dec_pcnt)*100 AS conifer_pct_cover_total, case when height >=4 and basalarea >= 8 and 1-dec_pcnt >= 0.75 then 1 
   when height >=4 and basalarea >= 8 and 1-dec_pcnt >= 0.25 then 2 
   when height >=4 and basalarea >= 8 and dec_pcnt >= 0.75 then 3 
   when (height < 4 or basalarea < 8 or basalarea is null or height is null) and 1-dec_pcnt >=0 and bclcs_level_1 = 'V' then 4 
@@ -561,13 +573,13 @@ end as veg_cat FROM pixels"))
   
 # write the vegetation raster to check its updating over time. Veg should change.
   vri<-vri[order(pixelid)]
-  vegRas<-sim$ras
-  vegRas[]<-vri$veg_cat
-  terra::writeRaster(vegRas, file = paste0 ("veg_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
+  #vegRas<-sim$ras
+  #vegRas[]<-vri$veg_cat
+  #terra::writeRaster(vegRas, file = paste0 ("veg_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
   
   dat<-merge(vri, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  dat<-merge(dat,sim$fire_static, all.x=TRUE)
+  
   
   ####elevation data####
   # check if there is elevation data in the pixels table, if not extract.
@@ -701,10 +713,6 @@ end as veg_cat FROM pixels"))
   frt9$scale_climate2<-(frt9$climate2spread-33.65742) / 9.92722
   frt9$scale_dem<-(frt9$elv-906.1805)/251.4938
   frt9$scale_slope<-(frt9$slope-7.330724) / 7.268391
-  #frt9$scale_roads<-(frt9$rds_dist-10128.31) / 7970.11
-  #frt9$scale_infr<-(frt9$dist_infra-27227.51) / 13979.28
-  #frt9$scale_dist_ignit<-(frt9$rast_ignit_dist-20163.07) / 15202.81
- # frt9$scale_pct_conifer<-(frt9$conifer_pct_cover_total-90.92838)/19.79545
   frt9$scale_age<-(frt9$age-136.0173)/72.32967
   frt9$scale_basal_area<-(frt9$basalarea-21.4939)/8.85824
   
@@ -1070,7 +1078,7 @@ end as veg_cat FROM pixels"))
     
     frt14[,zone_escape:=zone] 
     frt14[zone_escape=="ESSF", zone_escape:="ICH"]
-    escape_frt14[veg_cat=="3", veg_cat2:="1"]
+    #frt14[veg_cat=="3", veg_cat2:="1"]
     
     frt14[,zone_escapeICH:=0][zone_escape=="ICH", zone_escapeICH:=1]
     frt14[,zone_escapeIDF:=0][zone_escape=="IDF", zone_escapeIDF:=1]
@@ -1090,6 +1098,7 @@ end as veg_cat FROM pixels"))
    frt14[, logit_P_escape := -3.559506 +
            -0.02194852 * climate2escape +
            -0.139658 * veg_cat2 +
+           -0.139658 * veg_cat3 + # note in the statistical model it made sense to combine veg_cat2 and veg_cat3, hence they have the same intercept
            -0.004426213 * veg_cat4 +
            0.6245107 * veg_cat5 +
            0.0008269012 * elv +
@@ -1106,12 +1115,12 @@ end as veg_cat FROM pixels"))
     
     # Spread
    # spread_14<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt14.rds")   
-    frt14<-dat[frt==14,]
+    #frt14<-dat[frt==14,]
     frt14[zone=="MH", zone:="CWH"]
-    frt14[veg_cat=="3", veg_cat:="2"]
     
+    # to fit the spread model I needed to center the variables. So I use those values here to center these variables
     frt14$scale_climate2<-(frt14$climate2spread-28.3235) / 16.63555
-    frt14$scale_dem<-(frt14$dem-1155.692)/315.0789
+    frt14$scale_dem<-(frt14$elv-1155.692)/315.0789
     frt14$scale_age<-(frt14$age-96.4658)/72.45475
     frt14$scale_basalarea<-(frt14$basalarea-14.18608)/12.95631
     
@@ -1134,6 +1143,7 @@ end as veg_cat FROM pixels"))
            -0.108439 * scale_dem^2 +
            -0.203794 * scale_climate2 +
            -0.374717  * veg_cat2 +
+           -0.374717  * veg_cat3 +
            -0.266459 * veg_cat4 +
            -0.265082 * veg_cat5 +
            0.066755 * scale_age +
@@ -1250,7 +1260,7 @@ end as veg_cat FROM pixels"))
   
   rm(dat)
   gc()
-  print(sim$probFireRast)
+  #print(sim$probFireRast)
   
   return(invisible(sim))
 }
@@ -1356,7 +1366,7 @@ downScaleData<-function(sim){
   dat<-merge(dat_veg, agg, by.x="pixelid10km", by.y="pixelid10km")
   
   dat$avgCMIProv<-Prov_CMI$ave_cmi[1]
-  print(dat$avgCMIProv)
+  #print(dat$avgCMIProv)
   
   dat$frt<-as.factor(dat$frt)
   dat[, frt5:=0][frt==5, frt5:=1]
@@ -1450,7 +1460,8 @@ fireSize <- function(sim) {
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
-occ<-sim$downdat[, fire:= rnbinom(n = 1, size = 0.416, mu =est), by=1:nrow(sim$downdat)][fire>0,]
+occ<-sim$downdat[, fire:= rnbinom(n = 1, size = 0.416, mu = est), by=1:nrow(sim$downdat)][fire>0,]
+
 
 message("determine fire size")
  
@@ -1459,13 +1470,20 @@ message("determine fire size")
    occ<-occ[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
 
 fire.size.sim<-data.table(fire.size = as.numeric(), pixelid10km=as.integer())
+
 for(f in 1:length(occ$fire)){
-  fires<-data.table(pixelid10km = occ$pixelid10km[f], size = exp(gamlss.dist::rWEI(occ$fire[f], mu = occ$mu_sim[f], sigma =occ$sigma_sim[f])))
+
+  fires<-data.table(fire.size = (exp(gamlss.dist::rWEI(occ$fire[f], mu = occ$mu_sim[f], sigma =occ$sigma_sim[f]))), pixelid10km = occ$pixelid10km[f])
   
-  fire.size.sim<- rbindlist(list(fire.size.sim, data.table(fire.size = sum(fires$size), pixelid10km = fires$pixelid10km[1])))
+  #print(fires)
+  
+  fire.size.sim<- rbindlist(list(fire.size.sim, data.table(fire.size = sum(fires$fire.size), pixelid10km = fires$pixelid10km[1])))
 }
 
 sim$fire.size<-fire.size.sim
+print(sim$fire.size)
+
+
  } else {message("no fires simulated")}
 
 return(invisible(sim))
@@ -1476,25 +1494,22 @@ return(invisible(sim))
     
     message("get ignition locations")
     
-    if (length(sim$fire.size$fire.size>0)) {
+    
+    # create empty fire report
+    
+    tempperFireReport<-data.table(timeperiod= integer(),ignition_location=integer(), pixelid10km = integer(), areaburned_estimated = numeric())
+    
+    if (!is.null(sim$fire.size)) {
     sim$fire.size$ignit_location<-0
-    
-    
-    
-    for (g in 1:length(sim$fire.size$pixelid10km)){
-      x<-sim$probFireRast[pixelid10km==sim$fire.size$pixelid10km[g],]
-      pixelid_value<-sample(x$pixelid,size=1, prob=x$prob_ignition_escape)
-      sim$fire.size$ignit_location[g]<-pixelid_value
-    }
- 
-    # create individual fire size report with starting locations   
-    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location=sim$fire.size$ignit_location, pixelid10km = sim$fire.size$pixelid10km, areaburned = sim$fire.size$fire.size)
-    sim$perFireReport<-rbindlist(list(sim$perFireReport,tempperFireReport ))
-    
-    print(sim$perFireReport)
     
     sim$probFireRast[is.na(prob_ignition_spread), prob_ignition_spread:=0]
     sim$probFireRast[is.na(prob_ignition_escape), prob_ignition_escape:=0]
+    
+    for (g in 1:length(sim$fire.size$pixelid10km)){
+      x<-sim$probFireRast[pixelid10km==sim$fire.size$pixelid10km[g],]
+      pixelid_value<-sample(x$pixelid,size=1, prob=as.numeric(x$prob_ignition_escape))
+      sim$fire.size$ignit_location[g]<-pixelid_value
+    }
     
     # create area raster
     sim$probFireRast<-sim$probFireRast[order(pixelid)]
@@ -1524,27 +1539,36 @@ return(invisible(sim))
     
     message("updating firedisturbanceTable")
     
-    sim$firedisturbanceTable[pixelid %in% sim$out$pixels, numberTimesBurned := numberTimesBurned+1]
+    sim$firedisturbanceTable[pixelid %in% sim$out$pixels, numberTimesBurned := numberTimesBurned + 1]
     
     thlbburned = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(sim$out$pixels, sep = "", collapse = ","), ");"))$thlb
     
     totalareaburned=sim$out[,.N]
     
-    # tempperFireReport<-data.table(timeperiod = time(sim), pixelid10km = sim$fire.size$pixelid10km, areaburned = sim$fire.size$fire.size)
-    # sim$perFireReport<-rbindlist(list(sim$perFireReport,tempperFireReport ))
-    # 
+    numberstarts<-length(sim$fire.size$ignit_location)
+    
+    # create temp fire report
+    
+    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location=sim$fire.size$ignit_location, pixelid10km = sim$fire.size$pixelid10km, areaburned_estimated = sim$fire.size$fire.size)
+    
     } else {
       message("no fires simulated")
+      numberstarts = 0
       totalareaburned = 0
       thlbburned = 0
-    }
+    
     
     message("updating fire Report")
+
+    # create individual fire size report with starting locations   
+    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location="NA", pixelid10km = "NA", areaburned_estimated = totalareaburned)
     
-    tempfireReport<-data.table(timeperiod = time(sim), numberstarts = length(sim$fire.size$fire.size), totalareaburned = totalareaburned, thlbburned = thlbburned )
-    sim$fireReport<-rbindlist(list(sim$fireReport,tempfireReport ))
-    print(sim$fireReport)
-  
+    }
+    
+    sim$perFireReport<-rbindlist(list(sim$perFireReport,tempperFireReport ))
+    
+    sim$fireReport<-rbindlist(list(sim$fireReport, data.table(timeperiod= time(sim), numberstarts = numberstarts, totalareaburned = totalareaburned, thlbburned = thlbburned)))
+
   
   return(invisible(sim))
 }
@@ -1561,16 +1585,33 @@ savefirerast<-function(sim){
   
   burnpts<-sim$ras
   burnpts[]<-firepts$burned
-  terra::writeRaster(burnpts, file = paste0 ("burn_polygons_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
+  terra::writeRaster(burnpts, file = paste0 (outputPath(sim), "/burn_polygons_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
   
   sim$probFireRast<-sim$probFireRast[order(pixelid)]
   escapeRas<-sim$ras
   escapeRas[]<-sim$probFireRast$prob_ignition_escape
-  terra::writeRaster(escapeRas, file = paste0 ("Prob_escape_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
+  terra::writeRaster(escapeRas, file = paste0 (outputPath(sim),"/Prob_escape_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
   
   spreadRas<-sim$ras
   spreadRas[]<-sim$probFireRast$prob_ignition_spread
-  terra::writeRaster(spreadRas, file = paste0 ("Prob_spread_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
+  terra::writeRaster(spreadRas, file = paste0 (outputPath(sim),"/Prob_spread_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
+  
+  message ("saving fire reports")
+  
+  return(invisible(sim))
+}
+
+savefiretable <- function(sim) {
+  message ("save fire tables")
+  
+  #print(sim$perFireReport)
+  saveRDS(sim$perFireReport, file = paste0(outputPath(sim), "/perFireReport_test_", time(sim)*sim$updateInterval, ".rds"))
+  
+  #print(sim$firedisturbanceTable)
+  saveRDS(sim$firedisturbanceTable, file = paste0(outputPath(sim), "/firedisturbanceTable_test_", time(sim)*sim$updateInterval, ".rds"))
+  
+  #print(sim$fireReport)
+  saveRDS(sim$fireReport, file = paste0(outputPath(sim), "/fireReport_test_", time(sim)*sim$updateInterval, ".rds"))
   
   return(invisible(sim))
 }
