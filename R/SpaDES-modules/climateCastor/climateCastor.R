@@ -14,7 +14,7 @@
 
 defineModule (sim, list (
   name = "climateCastor",
-  description = "This module grabs the climate data from climateNA using climR for any area within the province",
+  description = "This module gets the climate data from climR for any area within the province",
   keywords = c ("climate", "gcm", "ssp", "future climate"), 
   authors = c (person ("Elizabeth", "Kleynhans", email = "elizabeth.kleynhans@gov.bc.ca", role = c("aut", "cre")),
                person ("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre"))),
@@ -68,7 +68,7 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
 getClimateDataForAOI <- function(sim) {
   
   
-  qry<-paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info('climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"),"') WHERE name='pixelid_climate';")
+  qry<-paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info ('climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"),"') WHERE name='pixelid_climate';")
       
      # qry<-paste0("SELECT COUNT (*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"),"';")
       
@@ -147,8 +147,7 @@ getClimateDataForAOI <- function(sim) {
       ds_out<-ds_out[order(GCM, SSP, RUN, id, PERIOD)]
       ds_out<-ds_out[, `:=`(CMI = rowMeans(.SD, na.rm=T)), .SDcols=c("CMI_05", "CMI_06","CMI_07","CMI_08")]
       ds_out[ ,CMI3yr := frollsum(.SD, n=3), by = "id", .SDcols = "CMI"]
-      
-      browser()
+
       
       ### UPDATE THIS ###
       #ds_out<-ds_out[!PERIOD %in% c(2021, 2022), ]
