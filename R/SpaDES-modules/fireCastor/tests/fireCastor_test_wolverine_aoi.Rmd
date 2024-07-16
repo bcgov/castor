@@ -201,10 +201,11 @@ mySim <- simInit(times = times,
 # outputs to keep; these are tables that get used in the uploader
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport",
-                                             "tableSurvival",
                                              "disturbanceReport",
                                              "volumebyareaReport",
-                                             "tableAbundanceReport"))
+                                             "firedisturbanceTable",
+                                             "fireReport",
+                                             "perFireReport"))
 
 system.time({
 mysimout<-spades(mySim)
