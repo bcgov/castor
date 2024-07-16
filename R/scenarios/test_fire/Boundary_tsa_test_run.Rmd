@@ -1,0 +1,199 @@
+
+<!--
+Copyright 2020 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "Model runs using the experiment function in SpadES for Boundary TSA to test if fireCastor is working"
+author: "Elizabeth Kleynhans"
+date: "20 June 2024"
+output: pdf_document
+---
+
+# Overview
+
+
+# Usage
+Set parameters for creating the database in the code chunk below.
+
+```{r module_usage}
+library (SpaDES)
+library (SpaDES.core)
+library (data.table)
+library (keyring)
+library (terra)
+library(SpaDES.experiment)
+
+source (here::here("R/functions/R_Postgres.R"))
+
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+
+moduleDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules"))
+inputDir <- file.path (paste0 (here::here (), "/R/scenarios/test_fire/inputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here::here (), "/R/scenarios/test_fire/outputs")) %>% reproducible::checkPath (create = TRUE)
+cacheDir <- file.path (paste0 (here::here (), "/R/scenarios/test_fire"))
+
+times <- list (start = 0, end = 1)
+
+parameters <-  list (
+        .progress = list (type = NA, interval = NA),
+        .globals = list (),
+        dataCastor = list(dbName = 'castor',
+                          useCastorDB = "C:/Work/caribou/castor/boundary_tsa_fire_test_20june24_castordb.sqlite",
+                          sqlite_dbname = "boundary_tsa_fire_test_20june24", 
+                          nameBoundaryFile = "boundary_tsa_buff_50km", 
+                          nameBoundaryColumn = "tsa_name", 
+                          nameBoundary = 'Boundary TSA', 
+                          nameBoundaryGeom = 'wkb_geometry',
+                          nameCompartmentRaster = "rast.boundary_tsa_buff_50km", 
+                          nameCompartmentTable = "vat.vat_boundary_tsa_buff_50km", 
+                          nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', 
+                          nameZoneRasters = c ("rast.zone_cond_beo", 
+                                               "rast.zone_cond_vqo", 
+                                               "rast.zone_wha_2021", 
+                                               "rast.zone_uwr_2021",  
+                                               "rast.zone_cond_nharv", 
+                                               "rast.zone_cond_fsw", 
+                                               "rast.zone_cond_cw",
+                                               "rast.zone_cond_pri_old_deferral"), # TAP proposed old growth deferral areas
+                                               
+                          nameZoneTable = "zone.constraints", 
+                          nameYieldsRaster = "rast.ycid_vdyp_2020_adj",
+                          nameYieldTable = "yc_vdyp_2020_adj", 
+                          nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
+                          nameYieldCurrentTable = "tipsy_prov_current_2020",
+                          nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+                          nameYieldTransitionTable = "tipsy_prov_2020",  
+                          nameForestInventoryRaster = "rast.vri2022_id", 
+                          nameForestInventoryKey = "feature_id", 
+                          nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2022",
+                          nameForestInventoryAge = "proj_age_1",  
+                          nameForestInventoryHeight = "proj_height_1",
+                          nameForestInventoryCrownClosure = "crown_closure",                             
+                          nameForestInventoryTreed = "bclcs_level_2",
+                          nameForestInventoryBasalArea= "basal_area",
+                          nameForestInventoryQMD = "quad_diam_125",
+                          nameForestInventorySiteIndex = "site_index" 
+                          ),
+        growingStockCastor = list (periodLength = 1),
+        blockingCastor = list(blockMethod = 'pre', 
+                              patchZone = 'rast.zone_cond_beo',
+                              patchVariation = 6,
+                              nameCutblockRaster ="rast.cns_cutblk_2022",
+                              useLandingsArea = FALSE),
+        roadCastor = list (roadMethod = 'mst',
+                           nameCostSurfaceRas = 'rast.rd_cost_surface',
+                           nameRoads =  'rast.ce_road_2022'
+                           ),
+        survivalCastor = list (caribou_herd_density = 0.05, 
+                               nameRasCaribouHerd = "rast.caribou_herd_20220725", 
+                               tableCaribouHerd = "vat.caribou_herd_20220725"),
+        smcpopCastor = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+                             tableSMCCoeffs = "vat.smc_coeffs"),
+        disturbanceCastor = list(calculateInterval =  1, 
+                                 criticalHabitatTable = "vat.zone_cond_wolverine_crit",
+                                 criticalHabRaster = "rast.zone_cond_wolverine_crit",
+                                 permDisturbanceRaster = "rast.mine_ag_wind_rail",
+                                 recovery = 300), # no road recovery
+        climateCastor = list(calculateInterval = 1,
+                    climateData = "observed", # only put this in if you want observed data
+                    gcm = c("climatena"),
+                    gcmname = "climatena",#c("MPI"), 
+                    ssp = "none",#c("ssp370"),
+                    run = "none",#c("r10i1p1f1"),
+                    climateYears = 2020: 2023, # note the start year needs to be 2 yrs before your year of interest to calculate CMI3yr
+                    maxRun = 3, 
+                    nameClimateIdnoRast = "rast.climate_prism_base_layer",
+                    nameClimateTable = "vat.climate_prism_lat_lon_lookup",
+                    vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
+                   nameProvCMITable = "public.prov_cmi_ave",
+                   vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
+  fireCastor = list(calculateInterval =1,
+                    ignitionMethod = 'poissonProcess', # options are poissonProcess, historicalDist, static
+                    #calendarStartYear = 2020,
+                    nameFrtRaster = "rast.frt",
+                    nameAspectRaster = "rast.bc_ha_aspect",
+                    nameSlopeRaster = "rast.bc_ha_slope",
+                    nameDistInfrastructureRaster = "rast.dist_infrastructure",
+                    nameRoadsRast = "rast.ce_road_2022",
+                    #recovery = 300,
+                    nameElevationRaster = "rast.dem",
+                    #nameClimateIdnoRast="rast.climate_prism_base_layer",
+#                    nameClimateTable = "vat.climate_prism_lat_lon_lookup",
+                    simStartYear = 2022,
+                    nameBecRast = "rast.bec_current",
+                    nameBecTable = "vat.bec_zone_vat",
+                    nameForestInventoryRaster = "rast.vri2022_id",
+                    nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2022",
+                    nameForestInventoryKey = "feature_id",
+                    nameForestInventorybclcs_level_1 = "bclcs_level_1",
+                    nameForestInventorybec_zone_code = '99999',
+                    pixelid_10kmRast = "rast.pixelId10km",
+                    nameFirepixel10km = "vat.spatially_varying_10km_vat",
+                    numberFireReps = 1),
+        volumebyareaReportCastor = list (calculateInterval = 1,
+                                         AreaofInterestRaster = "rast.tsa_aac_boundary",
+                                         AreaofInterestTable = "vat.tsa_aac_boundary"),
+        uploadCastor = list(aoiName = 'boundary_tsa',
+                              dbInfo  = list(keyring::key_get ("vmdbhost", keyring="postgreSQL"),
+                                             keyring::key_get ("vmdbuser", keyring="postgreSQL"),
+                                             keyring::key_get ("vmdbpass", keyring="postgreSQL"), 
+                                             keyring::key_get ("vmdbname", keyring="postgreSQL")))
+        )
+
+scenario = data.table (name = "load_data_May2024", description = "dataCastor output")
+
+#ds_out_summary <- data.table(RUN = "r1i1p1f1", PERIOD = 2020:2030, AveCMI = -1)
+
+modules <- list("dataCastor",
+                "growingStockCastor",
+                "blockingCastor", 
+                "roadCastor",
+                #"survivalCastor",
+                "disturbanceCastor",
+                "climateCastor",
+                "fireCastor"
+                #"volumebyareaReportCastor"
+                #"uploadCastor"
+                )
+
+objects <- list (scenario = scenario
+                 )
+
+paths <- list(cachePath = cacheDir,
+              modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+#inputs <- list()
+#outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+
+# outputs to keep; these are tables that get used in the uploader
+outputs(mySim) <- data.frame (objectName = "growingStockReport",
+                                      "disturbanceReport",
+                                      "perFireReport",
+                                      "firedisturbanceTable",
+                                      "fireReport")
+
+system.time({
+  sims <- experiment(mySim, replicates = 1, saveExperiment = FALSE, clearSimEnv = TRUE, .plotInitialTime = NA) # no plotting
+#mysimout<-spades(mySim)
+})
+
+```
+
