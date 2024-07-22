@@ -16,7 +16,7 @@ source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 ## Description of script
 
-This script creates a table of average CMI values for the entire province for various GCM's, ssp's, run's and time periods. For the number of ignitions and area burned models in fireCastor the average provincial CMI value is required but it takes a long time to generate this value so instead I have decided to pre-calculate this value for a whole sweet of models, runs, and gcm's. Then these values will be stored in a table in the postgres database so taht we can just query the table and get the value quickly. 
+This script creates a table of average CMI values for the entire province for various GCM's, ssp's, run's and time periods. For the number of ignitions and area burned models in fireCastor the average provincial CMI value is required but it takes a long time to generate this value so instead I have decided to pre-calculate this value for a whole sweet of models, runs, and gcm's. Then these values are stored in a table in the postgres database so taht we can just query the table and get the value quickly. 
 
 The script below keeps running out of memmory so Ill split the data collection into two separate chuncks 2015 - 2034 and 2035 - 2050
 
