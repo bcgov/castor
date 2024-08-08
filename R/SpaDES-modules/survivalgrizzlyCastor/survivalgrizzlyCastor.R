@@ -76,11 +76,11 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
                                       clipper=sim$boundaryInfo[1] , 
                                       geom= sim$boundaryInfo[4] , 
                                       where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                      conn=NULL)[])
+                                      spades =1)[])
     gbpubounds [, gbpu_name := as.integer (gbpu_name)] # add the GBPU boundary value from the raster and make the value an integer
     gbpubounds [, pixelid := seq_len(.N)] # add pixelid value
     
-    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableGBPU))) # get the GBPU name attribute table that corresponds to the integer values
+    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableGBPU), spades =1)) # get the GBPU name attribute table that corresponds to the integer values
     gbpubounds <- merge (gbpubounds, vat_table, by.x = "gbpu_name", by.y = "raster_integer", all.x = TRUE) # left join the GBPU name to the integer
     gbpubounds [, gbpu_name := NULL] # drop the integer value 
     

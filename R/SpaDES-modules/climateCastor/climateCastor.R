@@ -83,7 +83,7 @@ getClimateDataForAOI <- function(sim) {
                                                 clipper=sim$boundaryInfo[1] , 
                                                 geom= sim$boundaryInfo[4] , 
                                                 where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                conn=NULL))
+                                                spades =1))
       
       if(terra::ext(sim$ras) == terra::ext(climate_id_rast)){
         climate_id<-data.table(pixelid_climate = as.numeric(climate_id_rast[]))
@@ -103,7 +103,7 @@ getClimateDataForAOI <- function(sim) {
       message("look up lat, lon and elevation of climate_pixels")
       
       climate_id_key<-unique(climate_id[!(is.na(pixelid_climate )), pixelid_climate])
-      climate_id_key<-data.table(getTableQuery(paste0("SELECT pixelid_climate, lat, long, el  FROM ",P(sim, "nameClimateTable","climateCastor"), " WHERE pixelid_climate IN (", paste(climate_id_key, collapse = ","),");")))
+      climate_id_key<-data.table(getTableQuery(paste0("SELECT pixelid_climate, lat, long, el  FROM ",P(sim, "nameClimateTable","climateCastor"), " WHERE pixelid_climate IN (", paste(climate_id_key, collapse = ","),");"), spades =1))
       
       setnames(climate_id_key, c("id", "lat", "lon", "elev"))
       climate_id_key<-climate_id_key[,c("id", "lon", "lat", "elev")]
@@ -188,7 +188,7 @@ getClimateDataForAOI <- function(sim) {
     
  #   if (length(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameProvCMITable","climateCastor"), " WHERE gcm = '",P(sim, "gcmname","climateCastor"), "' AND ssp = '", P(sim, "ssp","climateCastor"), "' limit 2"))$gcm)>0) {
     
-    prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameProvCMITable","climateCastor"), " WHERE gcm = '",P(sim, "gcmname","climateCastor"), "' AND ssp = '", P(sim, "ssp","climateCastor"),"' AND period IN (", paste(P(sim, "climateYears","climateCastor"), collapse = ","),");" )))
+    prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameProvCMITable","climateCastor"), " WHERE gcm = '",P(sim, "gcmname","climateCastor"), "' AND ssp = '", P(sim, "ssp","climateCastor"),"' AND period IN (", paste(P(sim, "climateYears","climateCastor"), collapse = ","),");" ), spades =1))
     
     qry<-paste0("INSERT INTO climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (gcm, ssp, run, period, ave_cmi) VALUES (:gcm,:ssp,:run, :period, :ave_cmi)")
     

@@ -155,7 +155,7 @@ getExistingCutblocks<-function(sim){
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL))
+                           spades =1))
     if(terra::ext(sim$ras) == terra::ext(ras.blk)){
       exist_cutblocks<-data.table(blockid = as.integer(ras.blk[]))
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
@@ -222,7 +222,7 @@ setSpreadProb<- function(sim) {
                                           clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                                           geom = sim$boundaryInfo[[4]], 
                                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                          conn=NULL))
+                                          spades =1))
     sim$ras.spreadProbBlock<-1-(sim$ras.spreadProbBlocks - minValue(sim$ras.spreadProbBlock))/(maxValue(sim$ras.spreadProbBlock)-minValue(sim$ras.spreadProbBlock))
   }else{
     sim$ras.spreadProbBlock<-sim$aoi

@@ -216,7 +216,7 @@ getStaticVariables<-function(sim){
                                          clipper=sim$boundaryInfo[1] , 
                                          geom= sim$boundaryInfo[4] , 
                                          where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                         conn=NULL))
+                                         spades =1))
   if(terra::ext(sim$ras) == terra::ext(ras.frt)){
     frt_id<-data.table(frt = as.integer(ras.frt[]))
     frt_id[, pixelid := seq_len(.N)][, frt := as.integer(frt)]
@@ -233,7 +233,7 @@ getStaticVariables<-function(sim){
                                           clipper=sim$boundaryInfo[1] , 
                                           geom= sim$boundaryInfo[4] , 
                                           where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                          conn=NULL))
+                                          spades =1))
    if(terra::ext(sim$ras) == terra::ext(ras.aspect)){
      aspect_id<-data.table(aspect = as.numeric(ras.aspect[]))
      aspect_id[, pixelid := seq_len(.N)][, aspect := as.numeric(aspect)]
@@ -259,7 +259,7 @@ getStaticVariables<-function(sim){
                                          clipper=sim$boundaryInfo[1] , 
                                          geom= sim$boundaryInfo[4] , 
                                          where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                         conn=NULL))
+                                         spades =1))
    if(terra::ext(sim$ras) == terra::ext(ras.slope)){
      slope_id<-data.table(slope = as.numeric(ras.slope[]))
      slope_id[, pixelid := seq_len(.N)][, slope := as.numeric(slope)]
@@ -275,7 +275,7 @@ getStaticVariables<-function(sim){
                                          clipper=sim$boundaryInfo[1] , 
                                          geom= sim$boundaryInfo[4] , 
                                          where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                         conn=NULL))
+                                         spades =1))
    if(terra::ext(sim$ras) == terra::ext(ras.infr)){
      infra_id<-data.table(dist_infra = as.numeric(ras.infr[]))
      infra_id[, pixelid := seq_len(.N)][, dist_infra := as.numeric(dist_infra)]
@@ -294,7 +294,7 @@ getStaticVariables<-function(sim){
                                         clipper=sim$boundaryInfo[1] ,
                                         geom= sim$boundaryInfo[4] ,
                                         where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                        conn=NULL))
+                                        spades =1))
      
      if(terra::ext(sim$ras) == terra::ext(ras.bec)){ #need to check that each of the extents are the same
        bec_id<-data.table(idkey = as.integer(ras.bec[]))
@@ -306,7 +306,7 @@ getStaticVariables<-function(sim){
      }
      
      bec_id_key<-unique(bec_id[!(is.na(idkey)), idkey])
-     bec_key<-data.table(getTableQuery(paste0("SELECT idkey, zone FROM ",P(sim, "nameBecTable","fireCastor"), " WHERE idkey IN (", paste(bec_id_key, collapse = ","),");")))
+     bec_key<-data.table(getTableQuery(paste0("SELECT idkey, zone FROM ",P(sim, "nameBecTable","fireCastor"), " WHERE idkey IN (", paste(bec_id_key, collapse = ","),");"), spades =1))
      
      bec<-merge(x=bec_id, y=bec_key, by.x = "idkey", by.y = "idkey", all.x = TRUE)
      bec<-bec[, idkey:=NULL] # remove the fid key
@@ -363,7 +363,7 @@ roadDistCalc <- function(sim) {
                                             clipper=sim$boundaryInfo[[1]], 
                                             geom= sim$boundaryInfo[[4]], 
                                             where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                            conn = NULL))
+                                            spades =1))
     
     #Update the pixels table to set the roaded pixels
     roadUpdate<-data.table(V1= as.numeric( sim$road.type[])) #transpose then vectorize which matches the same order as adj
@@ -494,7 +494,7 @@ createVegetationTable <- function(sim) {
                                        clipper=sim$boundaryInfo[[1]], 
                                        geom= sim$boundaryInfo[[4]], 
                                        where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                       conn=NULL))
+                                       spades =1))
     if(terra::ext(sim$ras) == terra::ext(ras.fid)){ #need to check that each of the extents are the same
       inv_id<-data.table(fid = as.integer(ras.fid[]))
       inv_id[, pixelid:= seq_len(.N)]
@@ -524,7 +524,7 @@ createVegetationTable <- function(sim) {
         print(paste0("getting inventory attributes to create fuel types: ", paste(fuel_attributes_castordb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
         attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "fireCastor"), " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",P(sim, "nameForestInventoryTable","fireCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "fireCastor") ," IN (",
-                                                    paste(fids, collapse = ","),");" )))
+                                                    paste(fids, collapse = ","),");" ), spades =1))
         
         
         message("...merging with fid") #Merge this with the raster using fid which gives you the primary key -- pixelid
@@ -591,7 +591,7 @@ end as veg_cat FROM pixels"))
                                          clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                                          geom = sim$boundaryInfo[[4]], 
                                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                         conn = NULL)[])
+                                         spades =1)[])
     elv[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
     #add to the castordb
     dbBegin(sim$castordb)
@@ -1278,7 +1278,7 @@ downScaleData<-function(sim){
                                         srcRaster= P(sim, "pixelid_10kmRast", "fireCastor"), #rast.pixelId10km",
                                         clipper=sim$boundaryInfo[1] , 
                                         geom= sim$boundaryInfo[4] , 
-                                        where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), conn=NULL))
+                                        where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), spades =1))
   
   if(terra::ext(sim$ras) == terra::ext(ras.pixelid_10km)){
     pixelid_10kmtable<-data.table(pixelid10km = as.numeric(ras.pixelid_10km[]))
@@ -1297,7 +1297,7 @@ downScaleData<-function(sim){
   message("look up spatially varying intercept")
   pixelid_10km_red<-unique(pixelid_10kmtable[!(is.na(pixelid10km )), pixelid10km])
   
-  pixelid_10km_red<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameFirepixel10km","fireCastor"), " WHERE pixelid10km IN (", paste(pixelid_10km_red, collapse = ","),");")))
+  pixelid_10km_red<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameFirepixel10km","fireCastor"), " WHERE pixelid10km IN (", paste(pixelid_10km_red, collapse = ","),");"), spades =1))
   
   pixelid_10km_red<- pixelid_10km_red[, c("pixelid10km", "est_rf")]
   
@@ -1410,7 +1410,7 @@ historicalNumberStarts<-function(sim){
     
     message("done")
     
-    study_area<-getSpatialQuery(paste0("SELECT * FROM ", sim$boundaryInfo[[1]], " WHERE ", sim$boundaryInfo[[2]], " in ('", paste(sim$boundaryInfo[[3]], sep = " '", collapse= "', '") ,"')"))
+    study_area<-getSpatialQuery(paste0("SELECT * FROM ", sim$boundaryInfo[[1]], " WHERE ", sim$boundaryInfo[[2]], " in ('", paste(sim$boundaryInfo[[3]], sep = " '", collapse= "', '") ,"')"), spades =1)
     
     #print(study_area)
     ignit <- ignit[study_area, ]

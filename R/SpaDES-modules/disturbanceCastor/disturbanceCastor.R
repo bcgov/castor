@@ -154,11 +154,11 @@ Init <- function(sim) {
                           clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                           geom = sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          conn = NULL)[])
+                          spades =1)[])
     bounds [, pixelid := seq_len(.N)] # make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
       if(!(P(sim, "criticalHabitatTable", "disturbanceCastor") == '99999')){
-        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCastor"))))
+        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCastor")), spades =1))
         bounds<-merge (bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
       }else{
         stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "criticalHabitatTable", "disturbanceCastor")))
@@ -187,7 +187,7 @@ Init <- function(sim) {
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     conn = NULL)[])
+                     spades =1)[])
     perm_dist[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
     #add to the castordb
     dbBegin(sim$castordb)

@@ -78,11 +78,11 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
                                       clipper=sim$boundaryInfo[[1]], 
                                       geom= sim$boundaryInfo[[4]], 
                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                      conn = NULL)[])
+                                      spades =1)[])
     herdbounds [, herd_bounds := as.integer (herd_bounds)] # add the herd boudnary value from the raster and make the value an integer
     herdbounds [, pixelid := seq_len(.N)] # add pixelid value
     
-    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableCaribouHerd))) # get the herd name attribute table that corresponds to the integer values
+    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableCaribouHerd), spades =1)) # get the herd name attribute table that corresponds to the integer values
     # print(vat_table)
     # print(herdbounds)
     herdbounds <- merge (herdbounds, vat_table, by.x = "herd_bounds", by.y = "value", all.x = TRUE) # left join the herd name to the intger

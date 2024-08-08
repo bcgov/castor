@@ -105,7 +105,7 @@ Init <- function(sim) {
 getHistoricalLandings <- function(sim) {
   sim$histLandings <- getTableQuery(paste0("SELECT harvestyr, x, y, areaha from ", P(sim)$queryCutblocks , ", (Select ", sim$boundaryInfo[[4]], " FROM ", sim$boundaryInfo[[1]] , " WHERE ", sim$boundaryInfo[[2]] ," IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '") ,"')", ") as h
               WHERE h.", sim$boundaryInfo[[4]] ," && ",  P(sim)$queryCutblocks, ".point 
-                                         AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) ORDER BY harvestyr"))
+                                         AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) ORDER BY harvestyr"), spades =1)
   
   
   if(length(sim$histLandings)==0){ 
@@ -166,7 +166,7 @@ getExistingCutblocks<-function(sim){
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL))
+                           spades =1))
   
     if(ext(sim$ras) == ext(ras.blk)){
       exist_cutblocks<-data.table(blockid = ras.blk[])
@@ -183,7 +183,7 @@ getExistingCutblocks<-function(sim){
       
       message('...getting age')
       blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvest_year) as age, objectid as blockid from ", P(sim, "nameCutblockTable", "backCastor"), 
-                                       " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"))
+                                       " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"), spades =1)
       
       dbExecute(sim$castordb, "CREATE INDEX index_blockid on pixels (blockid)")
       #Set the age

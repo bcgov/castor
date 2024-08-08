@@ -82,11 +82,11 @@ Init <- function(sim) {
                  clipper = sim$boundaryInfo[[1]],  
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                 conn = NULL)[])
+                 spades =1)[])
     aoi_bounds [, pixelid := seq_len (.N)]
     if(nrow(aoi_bounds[!is.na(V1),]) > 0){
       if(!(P(sim, "AreaofInterestTable", "volumebyareaReportCastor") == '99999')){
-        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) AS zone, attribute FROM ",P(sim, "AreaofInterestTable", "volumebyareaReportCastor"))))
+        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) AS zone, attribute FROM ",P(sim, "AreaofInterestTable", "volumebyareaReportCastor")), spades =1))
         aoi_bounds <- merge(aoi_bounds, aoi_lu, by.x = "V1", by.y = "zone", all.x = TRUE)
       } else {
       stop(paste0(P(sim, "AreaofInterestRaster", "volumebyareaReportCastor"), "- does not overlap with harvest unit"))

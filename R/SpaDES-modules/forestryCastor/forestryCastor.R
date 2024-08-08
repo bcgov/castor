@@ -170,7 +170,7 @@ Init <- function(sim) {
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     conn = NULL)[])
+                     spades =1)[])
     salvage_vol[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
     
     #add to the castordb
