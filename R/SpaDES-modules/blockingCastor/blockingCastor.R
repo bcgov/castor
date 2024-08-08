@@ -150,12 +150,14 @@ getExistingCutblocks<-function(sim){
 
   if(!(P(sim, "nameCutblockRaster", "blockingCastor") == '99999')){
     message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "blockingCastor")))
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     ras.blk<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "nameCutblockRaster", "blockingCastor"), 
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           spades =1))
+                           conn = conn))
+    dbDisconnect(conn)
     if(terra::ext(sim$ras) == terra::ext(ras.blk)){
       exist_cutblocks<-data.table(blockid = as.integer(ras.blk[]))
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
@@ -217,12 +219,14 @@ setSpreadProb<- function(sim) {
   
   if(!P(sim)$spreadProbRas == "99999"){
     #scale the spread probability raster so that the values are [0,1]
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     sim$ras.spreadProbBlock<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                           srcRaster= P(sim, "spreadProbRas", "blockingCastor"), 
                                           clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                                           geom = sim$boundaryInfo[[4]], 
                                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                          spades =1))
+                                          conn=conn))
+    dbDisconnect(conn)
     sim$ras.spreadProbBlock<-1-(sim$ras.spreadProbBlocks - minValue(sim$ras.spreadProbBlock))/(maxValue(sim$ras.spreadProbBlock)-minValue(sim$ras.spreadProbBlock))
   }else{
     sim$ras.spreadProbBlock<-sim$aoi

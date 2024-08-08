@@ -56,7 +56,12 @@ parameters <-  list (
         dataCastor = list(dbName = 'castor',
                           saveCastorDB = TRUE,
                           #useCastorDB=""
-                          sqlite_dbname = "fire_castor_test", 
+                          sqlite_dbname = "fire_castor_test",
+                          dbHost=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                    dbName = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                    dbPort='5432' ,
+                    dbUser=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                    dbPassword= keyring::key_get('dbpass', keyring = 'postgreSQL'),
                           nameBoundaryFile = "castor_stsm_compare.bounds_tsa99", 
                           nameBoundaryColumn = "tsa_name", 
                           nameBoundary = "tsa99", 

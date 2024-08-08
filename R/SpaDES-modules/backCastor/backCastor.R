@@ -103,11 +103,13 @@ Init <- function(sim) {
 
 ### Set the list of the cutblock locations
 getHistoricalLandings <- function(sim) {
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
   sim$histLandings <- getTableQuery(paste0("SELECT harvestyr, x, y, areaha from ", P(sim)$queryCutblocks , ", (Select ", sim$boundaryInfo[[4]], " FROM ", sim$boundaryInfo[[1]] , " WHERE ", sim$boundaryInfo[[2]] ," IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '") ,"')", ") as h
               WHERE h.", sim$boundaryInfo[[4]] ," && ",  P(sim)$queryCutblocks, ".point 
-                                         AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) ORDER BY harvestyr"), spades =1)
+                                         AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) ORDER BY harvestyr"), conn = conn)
   
   
+  dbDisconnect(conn)
   if(length(sim$histLandings)==0){ 
     message("histLandings is NULL")
     sim$histLandings <- NULL
@@ -161,12 +163,13 @@ createBlocksTable<-function(sim){
 getExistingCutblocks<-function(sim){
   if(!(P(sim, "nameCutblockRaster", "backCastor") == '99999')){
     message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "backCastor")))
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     ras.blk<- terra::rast(RASTER_CLIP2(srcRaster= P(sim, "nameCutblockRaster", "backCastor"),
                            tmpRast = paste0('temp_', sample(1:10000, 1)),
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           spades =1))
+                           conn = conn))
   
     if(ext(sim$ras) == ext(ras.blk)){
       exist_cutblocks<-data.table(blockid = ras.blk[])
@@ -183,7 +186,7 @@ getExistingCutblocks<-function(sim){
       
       message('...getting age')
       blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvest_year) as age, objectid as blockid from ", P(sim, "nameCutblockTable", "backCastor"), 
-                                       " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"), spades =1)
+                                       " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"), conn = conn)
       
       dbExecute(sim$castordb, "CREATE INDEX index_blockid on pixels (blockid)")
       #Set the age
@@ -198,6 +201,7 @@ getExistingCutblocks<-function(sim){
     }else{
       stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCutblockRaster", "blockingCastor")))
     }
+    dbDisconnect(conn)
   }
   return(invisible(sim))
 }

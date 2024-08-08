@@ -203,6 +203,17 @@ crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex 
 
 setTablesCastorDB <- function(sim) {
   message('...setting data tables')
+  
+  ###------------------------#
+  #Set the database connection
+  ###------------------------#
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=P(sim, "dbHost", "dataCastor"), 
+                       dbname = P(sim, "dbName", "dataCastor"), 
+                       port=P(sim, "dbPort", "dataCastor"),
+                       user= P(sim, "dbUser", "dataCastor"),
+                       password= P(sim, "dbPass", "dataCastor"))
+  
   ###------------------------#
   #Set the compartment IDs----
   ###------------------------#
@@ -213,7 +224,7 @@ setTablesCastorDB <- function(sim) {
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          spades =1))
+                          conn=conn))
 
     sim$pts <- data.table(terra::xyFromCell(sim$ras,1:ncell(sim$ras))) #Seems to be faster than rasterTopoints
     sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
@@ -223,7 +234,7 @@ setTablesCastorDB <- function(sim) {
     
     #Set V1 to merge in the vat table values so that the column is character
     if(!(P(sim, "nameCompartmentTable", "dataCastor") == "99999")){
-      compart_vat <- data.table(getTableQuery(glue::glue("SELECT * FROM  {P(sim)$nameCompartmentTable};"), spades =1))
+      compart_vat <- data.table(getTableQuery(glue::glue("SELECT * FROM  {P(sim)$nameCompartmentTable};"), conn=conn))
       pixels<- merge(pixels, compart_vat, by.x = "V1", by.y = "value", all.x = TRUE )
       pixels[, V1:= NULL]
       col_name<-data.table(colnames(compart_vat))[!V1 == "value"]
@@ -284,7 +295,7 @@ setTablesCastorDB <- function(sim) {
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           spades =1))
+                           conn=conn))
     
     if(aoi == terra::ext(ras.own)){#need to check that each of the extents are the same
       pixels <- cbind(pixels, data.table(own = as.integer(ras.own[]))) # add the ownership to the pixels table
@@ -312,7 +323,7 @@ setTablesCastorDB <- function(sim) {
                              clipper=sim$boundaryInfo[[1]], 
                              geom= sim$boundaryInfo[[4]], 
                              where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                             spades =1))
+                             conn=conn))
       if(aoi == terra::ext(ras.zone)){#need to check that each of the extents are the same
         pixels<-cbind(pixels, data.table(V1 = as.integer(ras.zone[])))
         setnames(pixels, "V1", paste0('zone',i))#SET zone NAMES to RASTER layer
@@ -352,7 +363,7 @@ setTablesCastorDB <- function(sim) {
                              clipper=sim$boundaryInfo[[1]], 
                              geom= sim$boundaryInfo[[4]], 
                              where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                             spades =1)
+                             conn=conn)
       if(aoi == extent(ras.zone.priority)){#need to check that each of the extents are the same
         pixels<-cbind(pixels, data.table(V1=ras.zone.priority[]))
         zone.priority<-paste0("zone", as.character(nrow(dbGetQuery(sim$castordb, "SELECT * FROM zone;")) + 1)) #find the max zone number
@@ -380,7 +391,7 @@ setTablesCastorDB <- function(sim) {
                             clipper=sim$boundaryInfo[[1]], 
                             geom= sim$boundaryInfo[[4]], 
                             where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                            spades =1))
+                            conn=conn))
     if(aoi == terra::ext(ras.thlb)){#need to check that each of the extents are the same
       pixels<-cbind(pixels, data.table(thlb=as.numeric(ras.thlb[])))
       rm(ras.thlb)
@@ -404,7 +415,7 @@ setTablesCastorDB <- function(sim) {
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           spades =1))
+                           conn=conn))
     if(aoi == terra::ext(ras.ylds)){ #need to check that each of the extents are the same
       pixels <- cbind(pixels, data.table(yieldid=as.integer(ras.ylds[])))
       rm(ras.ylds)
@@ -421,13 +432,13 @@ setTablesCastorDB <- function(sim) {
     yld.ids<-paste( unique(pixels[!is.na(yieldid),"yieldid"])$yieldid, sep=" ", collapse = ", ") #get the yieldids from pixels table
     
     #Check to see what yields are available
-    testColumnNames<-getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameYieldTable} LIMIT 1;"), spades =1)
+    testColumnNames<-getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameYieldTable} LIMIT 1;"), conn=conn)
     colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
     colNamesYieldid <-colNames
     colNamesYieldid[colNamesYieldid=='ycid']<-"yieldid"
       
     #Set the yields table with yield curves that are only in the study area
-    yields<-getTableQuery(glue::glue("SELECT ", glue::glue_collapse(colNames, sep = ", ")," FROM {P(sim)$nameYieldTable} where ycid IN ({yld.ids});"), spades =1)
+    yields<-getTableQuery(glue::glue("SELECT ", glue::glue_collapse(colNames, sep = ", ")," FROM {P(sim)$nameYieldTable} where ycid IN ({yld.ids});"), conn=conn)
     dbBegin(sim$castordb)
     rs<-dbSendQuery(sim$castordb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
                       values (:",glue::glue_collapse(colNames, sep = ", :"),");"), yields)
@@ -464,7 +475,7 @@ setTablesCastorDB <- function(sim) {
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           spades =1))
+                           conn=conn))
     if(aoi == terra::ext(ras.ylds.current)){#need to check that each of the extents are the same
       updateToCurrent<-data.table(yieldid=as.integer(ras.ylds.current[]))
       pixels$current_yieldid <- updateToCurrent$yieldid
@@ -490,7 +501,7 @@ setTablesCastorDB <- function(sim) {
     colNamesYieldid[colNamesYieldid=='ycid']<-"yieldid"
     
     #Set the yields table with yield curves that are only in the study area
-    yields.current<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldCurrentTable , " where ycid IN (", yld.ids.current , ");"), spades =1)
+    yields.current<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldCurrentTable , " where ycid IN (", yld.ids.current , ");"), conn=conn)
     
     dbBegin(sim$castordb)
     rs<-dbSendQuery(sim$castordb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
@@ -510,7 +521,7 @@ setTablesCastorDB <- function(sim) {
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           spades =1))
+                           conn=conn))
     if(aoi == terra::ext(ras.ylds_trans)){#need to check that each of the extents are the same
       pixels<-cbind(pixels, data.table(yieldid_trans= as.integer(ras.ylds_trans[])))
       rm(ras.ylds_trans)
@@ -526,13 +537,13 @@ setTablesCastorDB <- function(sim) {
     yld.ids.trans<-paste( as.integer(unique(pixels[!is.na(yieldid_trans),"yieldid_trans"])$yieldid_trans), sep=" ", collapse = ", ")    
   
     #Check to see what yields are available
-    testColumnNames<-getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameYieldTransitionTable} LIMIT 1;"), spades =1)
+    testColumnNames<-getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameYieldTransitionTable} LIMIT 1;"), conn=conn)
     colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
     colNamesYieldid <-colNames
     colNamesYieldid[colNamesYieldid=='ycid']<-"yieldid"
     
     #Set the yields table with yield curves that are only in the study area
-    yields.trans<-getTableQuery(paste0("SELECT ", paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"), spades =1)
+    yields.trans<-getTableQuery(paste0("SELECT ", paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"), conn=conn)
     
     dbBegin(sim$castordb)
     rs<-dbSendQuery(sim$castordb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
@@ -558,7 +569,7 @@ setTablesCastorDB <- function(sim) {
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           spades =1))
+                           conn=conn))
     if(aoi == terra::ext(ras.fid)){ #need to check that each of the extents are the same
       inv_id<-data.table(fid = as.integer(ras.fid[]))
       inv_id[, pixelid:= seq_len(.N)]
@@ -619,7 +630,7 @@ setTablesCastorDB <- function(sim) {
         fids<-unique(inv_id[!(is.na(fid)), fid])
         attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataCastor"), " as fid, ", paste(forest_attributes_castordb, collapse = ","), " FROM ",
                                                     P(sim, "nameForestInventoryTable","dataCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "dataCastor") ," IN (",
-                                                    paste(fids, collapse = ","),");" ), spades =1))
+                                                    paste(fids, collapse = ","),");" ), conn=conn))
         
         print("...merging with fid") #Merge this with the raster using fid which gives you the primary key -- pixelid
         inv<-merge(x=inv_id, y=attrib_inv, by.x = "fid", by.y = "fid", all.x = TRUE) 
@@ -663,7 +674,7 @@ setTablesCastorDB <- function(sim) {
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          spades =1))
+                          conn=conn))
     if(aoi == terra::ext(ras.treed)){ # need to check that each of the extents are the same
       pixels<-cbind(pixels, data.table(treed=as.numeric(ras.treed[])))
       rm(ras.treed)
@@ -688,7 +699,7 @@ setTablesCastorDB <- function(sim) {
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          spades =1))
+                          conn=conn))
     if(aoi == terra::ext(ras.age)){ # need to check that each of the extents are the same
       pixels<-cbind(pixels, data.table(age=as.numeric(ras.age[])))
       setnames(pixels, "V1", "age")
@@ -714,7 +725,7 @@ setTablesCastorDB <- function(sim) {
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                         spades =1))
+                         conn=conn))
     if(aoi == terra::ext(ras.cc)){ # need to check that each of the extents are the same
       pixels<-cbind(pixels, data.table(crownclosure=as.numeric(ras.cc[])))
       rm(ras.cc)
@@ -738,7 +749,7 @@ setTablesCastorDB <- function(sim) {
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                         spades =1))
+                         conn=conn))
     if(aoi == terra::ext(ras.ht)){ # need to check that each of the extents are the same
       pixels<-cbind(pixels, data.table(height=as.numeric(ras.ht[])))
       rm(ras.ht)
@@ -762,7 +773,7 @@ setTablesCastorDB <- function(sim) {
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                         spades =1))
+                         conn=conn))
     if(aoi == terra::ext(ras.si)){ # need to check that each of the extents are the same
       pixels<-cbind(pixels, data.table(siteindex= as.numeric(ras.si[])))
       rm(ras.si)
@@ -807,6 +818,7 @@ setTablesCastorDB <- function(sim) {
     dbClearResult(rs)
   dbCommit(sim$castordb)
   
+  dbDisconnect(conn)
   rm(pixels)
   gc()
   return(invisible(sim))
@@ -829,11 +841,12 @@ setIndexesCastorDB <- function(sim) { # making indexes helps with query speed fo
 setZoneConstraints<-function(sim){
   message("... setting ZoneConstraints table")
   if(!P(sim)$nameZoneTable == '99999' && is.na(sim$extent[[1]])){ # zone_constraint table
-    
     zone<-dbGetQuery(sim$castordb, "SELECT * FROM zone;") # select the name of the raster and its column name in pixels
     zone_const<-rbindlist(lapply(split(zone, seq(nrow(zone))) , function(x){
       if(nrow(dbGetQuery(sim$castordb, glue::glue("SELECT distinct({x$zone_column}) from pixels where {x$zone_column} is not null;")))>0){
-        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZoneTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$castordb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null;"))$zoneid, sep ="", collapse ="," ),");"), spades =1)
+        conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
+        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZoneTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$castordb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null;"))$zoneid, sep ="", collapse ="," ),");"), conn=conn)
+        dbDisconnect(conn)#exit from the user specified postgresql database
       }
     })
     )
@@ -877,7 +890,8 @@ setZoneConstraints<-function(sim){
                       values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area, :start, :stop);", zones[,c('zoneid', 'zone_column', 'reference_zone', 'ndt','variable', 'threshold', 'type', 'percentage', 'multi_condition', 't_area', 'start', 'stop')])
         dbClearResult(rs)
         dbCommit(sim$castordb)
-      }
+    }
+    
   }else{
     paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied. WARNING: your simulation has no zone constraints")
   }
@@ -906,11 +920,12 @@ setZoneConstraints<-function(sim){
 
 setZonePrescriptions<-function(sim){
   if(!(P(sim, "nameZonePrescriptionTable", "dataCastor") == "99999")){
-    
     zone<-dbGetQuery(sim$castordb, "SELECT * FROM zone;") # select the name of the raster and its column name in pixels
     zone_rx<-rbindlist(lapply(split(zone, seq(nrow(zone))) , function(x){
       if(nrow(dbGetQuery(sim$castordb, glue::glue("SELECT distinct({x$zone_column}) from pixels where {x$zone_column} is not null;")))>0){
-        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZonePrescriptionTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$castordb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null;"))$zoneid, sep ="", collapse ="," ),");"), spades =1)
+        conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
+        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZonePrescriptionTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$castordb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null;"))$zoneid, sep ="", collapse ="," ),");"), conn=conn)
+        dbDisconnect(conn)
       }
     })
     )
@@ -921,6 +936,8 @@ setZonePrescriptions<-function(sim){
                       values (:zoneid, :zone_column, :reference_zone,:minharvestvariable, :minharvestthreshold, :start, :stop);", rx_list[,c('zoneid', 'zone_column', 'reference_zone', 'minharvestvariable', 'minharvestthreshold', 'start', 'stop')])
     dbClearResult(rs)
     dbCommit(sim$castordb)
+    
+    dbDisconnect(conn)#exit from the user specified postgresql database
   }
   return(invisible(sim))
 }
@@ -1017,5 +1034,4 @@ randomRaster<-function(extent, clusterLevel){
   
   return(terra::setValues(ras, data.rv))
 }
-
 

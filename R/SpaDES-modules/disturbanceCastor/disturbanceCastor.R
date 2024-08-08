@@ -149,16 +149,17 @@ Init <- function(sim) {
     sim$disturbance[, compartment:= dbGetQuery(sim$castordb, "SELECT compartid FROM pixels order by pixelid")$compartid]
     sim$disturbance[, treed:= dbGetQuery(sim$castordb, "SELECT treed FROM pixels order by pixelid")$treed]
   }else{
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     bounds <- data.table (V1 = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster = P (sim, "criticalHabRaster", "disturbanceCastor"), 
                           clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                           geom = sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          spades =1)[])
+                          conn = conn)[])
     bounds [, pixelid := seq_len(.N)] # make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
       if(!(P(sim, "criticalHabitatTable", "disturbanceCastor") == '99999')){
-        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCastor")), spades =1))
+        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCastor")), conn = conn))
         bounds<-merge (bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
       }else{
         stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "criticalHabitatTable", "disturbanceCastor")))
@@ -170,6 +171,8 @@ Init <- function(sim) {
     sim$disturbance[, critical_hab:= bounds$attribute]
     sim$disturbance[, compartment:= dbGetQuery(sim$castordb, "SELECT compartid FROM pixels order by pixelid")$compartid]
     sim$disturbance[, treed:= dbGetQuery(sim$castordb, "SELECT treed FROM pixels order by pixelid")$treed]
+    
+    dbDisconnect(conn)
   }
   
   #get the permanent disturbance raster
@@ -182,12 +185,13 @@ Init <- function(sim) {
       message("WARNING: No permanent disturbance raster specified ... defaulting to no permanent disturbances")
       dbExecute(sim$castordb, "Update pixels set perm_dist = 0;")
     }else{
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     perm_dist <- data.table(perm_dist = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                      srcRaster = P(sim, "permDisturbanceRaster", "disturbanceCastor"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     spades =1)[])
+                     conn = conn)[])
     perm_dist[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
     #add to the castordb
     dbBegin(sim$castordb)
@@ -196,6 +200,7 @@ Init <- function(sim) {
     dbCommit(sim$castordb)
     
     #clean up
+    dbDisconnect(conn)
     rm(perm_dist)
     gc()
     }

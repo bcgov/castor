@@ -66,7 +66,7 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
 }
     
 getClimateDataForAOI <- function(sim) {
-  
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
   
   qry<-paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info ('climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"),"') WHERE name='pixelid_climate';")
       
@@ -83,7 +83,7 @@ getClimateDataForAOI <- function(sim) {
                                                 clipper=sim$boundaryInfo[1] , 
                                                 geom= sim$boundaryInfo[4] , 
                                                 where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                spades =1))
+                                                conn= conn))
       
       if(terra::ext(sim$ras) == terra::ext(climate_id_rast)){
         climate_id<-data.table(pixelid_climate = as.numeric(climate_id_rast[]))
@@ -168,12 +168,12 @@ getClimateDataForAOI <- function(sim) {
       } else {
         message("climate data already extracted")
       }
-      
+   dbDisconnect(conn)   
   return(invisible(sim))
 }
 
  getClimateDataForProvince <- function(sim) {
-   
+   conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
    
   # qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_provincial_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), "';")
    
@@ -282,7 +282,7 @@ getClimateDataForAOI <- function(sim) {
 #     }
 #     
 #   } else {message ("provincial climate data extracted ")}
-
+  dbDisconnect(conn)
   return(invisible(sim))
 }
 

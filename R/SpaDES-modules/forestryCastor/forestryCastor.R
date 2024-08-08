@@ -164,13 +164,15 @@ Init <- function(sim) {
     message("...getting salvage opportunities")
     sim$salvageReport<-data.table(scenario = character(), compartment = character(), 
                                     timeperiod= integer(), salvage_area = numeric(), salvage_vol = numeric() )
-      
+    
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     salvage_vol<- data.table (salvage_vol =  RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                      srcRaster = P(sim, "salvageRaster", "forestryCastor"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     spades =1)[])
+                     conn=conn)[])
+    dbDisconnect(conn)
     salvage_vol[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
     
     #add to the castordb

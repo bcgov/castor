@@ -11,33 +11,19 @@ library(rpostgis)
 #Uses keyring to set the credentials
 
 #Simple database connectivity functions
-getSpatialQuery<-function(sql, spades = 0){
-  if(spades ==1){
-    conn<-getDbConn()
-  }else{
-     conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,
-                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
-                       password= keyring::key_get('dbpass', keyring = 'postgreSQL')
-                       )
+getSpatialQuery<-function(sql, conn = NULL){
+  if (is.null(conn)){
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
   }
- 
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
 }
 
-getTableQuery<-function(sql, spades =0){
-  if(spades ==1){
-    conn<-getDbConn()
-  }else{
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                         host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,
-                         user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
-                         password= keyring::key_get('dbpass', keyring = 'postgreSQL')
-    )
-  }on.exit(dbDisconnect(conn))
+getTableQuery<-function(sql, conn = NULL){
+  if (is.null(conn)){
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  }
+  on.exit(dbDisconnect(conn))
   dbGetQuery(conn, sql)
 }
 
@@ -62,31 +48,13 @@ GetPolygonText<-function(coords){
   txtPoly = paste(txtPoly, '))') 
 }
 
-getDbConn<-function(){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                         host=P(sim, "dbName","dataCastor"), 
-                         dbname = P(sim, "dbName","dataCastor"), 
-                         port=P(sim, "dbPort","dataCastor") ,
-                         user=P(sim, "dbUser","dataCastor") ,
-                         password= P(sim, "dbPass","dataCastor")
-    )
-  return(conn)  
-}
 
-RASTER_CLIP2 <- function(tmpRast, srcRaster, clipper, geom, where_clause, spades =0){
-  
+RASTER_CLIP2 <- function(tmpRast, srcRaster, clipper, geom, where_clause, conn = NULL){
   #tmpRast = 'FAIB_RCL_TEMPRAST_'
-  if(spades == 1){
-    conn<-getDbConn()
-  }else{
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                         host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,
-                         user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
-                         password= keyring::key_get('dbpass', keyring = 'postgreSQL')
-    )
+  if (is.null(conn)){
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
   }
-    #--Build the query string to execute the function to generate temporary Raster
+      #--Build the query string to execute the function to generate temporary Raster
     qry = sprintf("select public.faib_raster_clip2('%s', '%s', '%s', '%s', '%s');", tmpRast, srcRaster, clipper, geom, where_clause)
     #--Execute the query
     r<-dbGetQuery(conn, qry)
