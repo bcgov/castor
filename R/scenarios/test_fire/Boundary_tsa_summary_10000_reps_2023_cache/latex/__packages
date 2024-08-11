@@ -1,0 +1,15 @@
+data.table
+RSQLite
+terra
+sp
+raster
+dplyr
+bcdata
+ggplot2
+sf
+DBI
+RPostgreSQL
+proto
+gsubfn
+sqldf
+rpostgis

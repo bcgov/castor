@@ -1,0 +1,273 @@
+---
+title: "01_Fire_ignition_data_prep"
+author: "Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests"
+        "Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests"  
+date: "2024-07-24"
+output: html_document
+---
+
+<!-- # Copyright 2024 Province of British Columbia -->
+<!-- #  -->
+<!-- # Licensed under the Apache License, Version 2.0 (the "License"); -->
+<!-- # you may not use this file except in compliance with the License. -->
+<!-- # You may obtain a copy of the License at -->
+<!-- #  -->
+<!-- # http://www.apache.org/licenses/LICENSE-2.0 -->
+<!-- #  -->
+<!-- # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, -->
+<!-- # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. -->
+<!-- # See the License for the specific language governing permissions and limitations under the License. -->
+
+##Overview -->
+
+The aim of this script is to get fire ignition data for all lightning caused fires. Then I join this fire ignition data to all the associated covariate data to run analyses on. The covariates that I use in the analysis include fire regime type, elevation, slope, aspect, climate data, distance to roads and infrastructure, and vegetation data.
+
+The analysis investiages what variables best predict whether a fire will grow larger than 1ha i.e. escapes or whether it will not i.e. the fire never reaches 1ha in size. Its a simple logistic regression analysis. 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(bcdata)
+require (dplyr)
+require (RPostgreSQL)
+require (rpostgis)
+library(ggplot2)
+library(terra)
+library(climr)
+library(data.table)
+
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+##Get ignition data off the the BC data catalogue (https://catalogue.data.gov.bc.ca/dataset/bc-wildfire-fire-incident-locations-historical)
+```{r}
+ignit<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    filter(FIRE_YEAR > 2008) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    collect()
+)
+
+#get FRT
+FRT<-getSpatialQuery("SELECT * FROM public.frt_canada")
+
+#get provincial boundary for clipping the layers to the area of interest
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+crs(prov.bnd)# this one needs to be transformed to 3005
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
+
+#Clip FRT to BC boundary
+frt_clipped<-st_intersection(bc.bnd, FRT)
+#plot(st_geometry(frt_clipped), col=sf.colors(10,categorical=TRUE))
+length(unique(frt_clipped$Cluster))
+frt_sf<-st_as_sf(frt_clipped)
+
+# note clipping the fire locations to the BC boundary removes a few ignition points in several of the years
+fire.ignition.clipped<-ignit[bc.bnd,] # making sure all fire ignitions have coordinates within BC boundary
+table(ignit$FIRE_YEAR)
+table(fire.ignition.clipped$FIRE_YEAR) #We have lost a few but its not many.
+
+fire.ignition_sf<-st_as_sf(fire.ignition.clipped) #convert to sf object
+# join the ignition points to frt
+fire.ignt.frt <- st_join(fire.ignition_sf, frt_sf)
+fire.ignt.frt$ig_mnth<-stringi::stri_sub(fire.ignt.frt$IGNITION_DATE,6,7)
+fire.ignt.frt <- fire.ignt.frt %>% dplyr::select(id:FIRE_TYPE,LATITUDE:CURRENT_SIZE, geometry, Cluster, ig_mnth) %>% filter(FIRE_CAUSE =="Lightning")
+table(is.na(fire.ignt.frt$Cluster))
+
+
+```
+
+look at the size of the fires by year and frt
+```{r}
+ggplot(data=fire.ignt.frt, (aes(x=CURRENT_SIZE))) +  
+  geom_histogram()+
+  facet_wrap(~FIRE_YEAR, scales="free")+
+  labs(x = "Fire size", y = "Number")
+
+ggplot(data=fire.ignt.frt, (aes(x=CURRENT_SIZE))) +  
+  geom_histogram()+
+  facet_wrap(~Cluster, scales="free")+
+  labs(x = "fire size", y = "Number")
+```
+
+
+## Extract distance to road and infrastructure and get elevation, slope, aspect
+```{r}
+# bring distance rasters back in
+# import roads distance raster
+roads_dist <- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+crs(roads_dist)
+
+# import infrastructure data
+dist_rail<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+
+##Slope
+DEM_slope <- rast("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+##Aspect
+DEM_aspect <- rast("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+#Elevation
+DEM <- rast("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+
+rasStack = rast(list(DEM_slope, DEM_aspect, DEM, roads_dist, dist_rail, dist_power, dist_oil, dist_mines, dist_urban))
+crs(rasStack)<- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs" # EPSG 9001. Hmm should probably change to 3005
+res(rasStack)
+
+##Try this first
+test<-cbind(fire.ignt.frt, st_coordinates(fire.ignt.frt))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+
+##Extract  values from stacked layer
+rasValue2=terra::extract(rasStack, pointCoordinates)
+head(rasValue2)
+dim(rasValue2) 
+dim(fire.ignt.frt)
+
+fire.ignt.frt<-cbind(fire.ignt.frt, rasValue2)
+
+#Get value for infrastructure that is closest
+fire.ignt.frt$dist_infrastructure_m<-0
+fire.ignt.frt$dist_infrastructure_m<-
+  ifelse(fire.ignt.frt$dist_rail < fire.ignt.frt$dist_power, fire.ignt.frt$dist_rail, fire.ignt.frt$dist_power)
+
+fire.ignt.frt$dist_infrastructure_m<-
+  ifelse(fire.ignt.frt$dist_oil < fire.ignt.frt$dist_infrastructure, fire.ignt.frt$dist_oil, fire.ignt.frt$dist_infrastructure)
+
+fire.ignt.frt$dist_infrastructure_m<-
+  ifelse(fire.ignt.frt$dist_mines < fire.ignt.frt$dist_infrastructure, fire.ignt.frt$dist_mines, fire.ignt.frt$dist_infrastructure)
+
+fire.ignt.frt$dist_infrastructure_m<-
+  ifelse(fire.ignt.frt$dist_urban < fire.ignt.frt$dist_infrastructure, fire.ignt.frt$dist_urban, fire.ignt.frt$dist_infrastructure)
+
+# change distance from the scale of ha to m
+fire.ignt.frt$dist_infrastructure_m<-fire.ignt.frt$dist_infrastructure_m*100
+fire.ignt.frt$dist_roads_m<-fire.ignt.frt$dist_roads*100
+
+rm(DEM_slope, DEM_aspect, DEM, roads_dist, dist_rail, dist_power, dist_oil, dist_mines, dist_urban, rasStack, test, rasValue2, frt_clipped, frt_sf, ignit, FRT, fire.ignition.clipped, fire.ignition_sf, prov.bnd, pointCoordinates, bc.bnd)
+gc()
+
+```
+
+## Get climate data
+
+```{r}
+
+years<-min(fire.ignt.frt$FIRE_YEAR):max(fire.ignt.frt$FIRE_YEAR)
+clim_dat<-list()
+
+for (i in 1:length(years)){
+fire_clim<-fire.ignt.frt %>% 
+  filter(FIRE_YEAR == years[i]) %>% 
+  dplyr::select(ID, LATITUDE, LONGITUDE, dem_ha_bc) %>%
+  rename(id=ID,
+         lon=LONGITUDE,
+         lat = LATITUDE,
+         elev = dem_ha_bc)
+fire_clim<-data.table::data.table(fire_clim)
+fire_clim[, geometry:=NULL]
+
+ds_out <- downscale(
+          xyz = fire_clim,
+          which_refmap = "auto",
+          obs_years = years[i],
+          obs_ts_dataset = "climatena",
+          vars = c("PAS_01", "PAS_02", "PAS_03", "PAS_04", "PAS_05","PPT_02","PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_02", "Tmax_03","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_02","Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_02","Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08", "Tmin_09" ,"CMD_02", "CMD_03","CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMD_09", "CMI_02","CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"))
+
+ds_out<-ds_out[DATASET == "climatena",]
+
+clim_dat<-rbind(clim_dat, ds_out)
+rm(ds_out, fire_clim)
+}
+
+fire.ignt.frt$FIRE_YEAR<-as.numeric(fire.ignt.frt$FIRE_YEAR)
+clim_dat$PERIOD<-as.numeric(clim_dat$PERIOD)
+fire.ignt.frt.clim<-left_join(fire.ignt.frt, clim_dat, join_by(id==id, FIRE_YEAR == PERIOD))
+
+#check I did not loose any data.
+table(fire.ignt.frt.clim$FIRE_YEAR)
+table(fire.ignt.frt$FIRE_YEAR)
+
+rm(clim_dat, fire.ignt.frt)
+gc()
+
+```
+
+## Get VRI data
+This next section takes a long time to run. there may be a more efficient way to do it but for now this is how ill go about it. 
+
+```{r}
+#Get dummy layer for projection (too lazy to write it) 
+lyr<-getSpatialQuery(paste("SELECT geom FROM public.forest_tenure limit 1") )
+
+#Make an empty provincial raster aligned with hectares BC
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lyr)$proj4string, resolution = c(100, 100), vals = 0
+)
+
+year_vri<-min(fire.ignt.frt.clim$FIRE_YEAR):max(fire.ignt.frt.clim$FIRE_YEAR)
+#use the vri layer from the year before the fire because e.g. 2022 vri data is the vegetation represeted up till the end of 2022 
+
+vri_layers<-c("vri.veg_comp_lyr_r1_poly2008", "vri.veg_comp_lyr_r1_poly2009", "vri.veg_comp_lyr_r1_poly2010", "vri.veg_comp_lyr_r1_poly2011", "vri.veg_comp_lyr_r1_poly2012", "vri.veg_comp_lyr_r1_poly2013", "vri.veg_comp_lyr_r1_poly2014", "vri.veg_comp_lyr_r1_poly2015", "vri.veg_comp_lyr_r1_poly2016", "vri.veg_comp_lyr_r1_poly2017", "vri.veg_comp_lyr_r1_poly2018", "vri.veg_comp_lyr_r1_poly2019", "vri.veg_comp_lyr_r1_poly2020", "vri.veg_comp_lyr_r1_poly2021", "vri.veg_comp_lyr_r1_poly2022")
+
+#create empty sf object to rbind data too
+dat_joined<-st_sf(geometry = st_sfc(crs=3005))
+
+for (i in 12:length(vri_layers)) {
+  
+  print(year_vri[i])
+#get feature id for the year of interest
+layer<-getSpatialQuery(paste0("SELECT feature_id, shape FROM ", vri_layers[i], ";"))
+#create a raster out of the feature id
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature_id")
+rm(layer)
+gc()
+#get the fire data for year of interest
+dat<-fire.ignt.frt.clim %>% filter(FIRE_YEAR == years[i])
+#get coordintes of fire locations
+test<-cbind(dat, st_coordinates(dat))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+##Extract feature_id values from raster for the fire locations using the coordinates
+rasValue2=terra::extract(layer.ras, pointCoordinates)
+dat<-cbind(dat, rasValue2)
+
+dat2<-dat %>% dplyr::select(rasValue2)
+dat2<-data.table(dat2)
+dat2<-dat2[!is.na(rasValue2), ]
+dat2<-unique(dat2$rasValue2)
+# query the vri layer using the feature id
+attrib_inv<-data.table::data.table(getTableQuery(paste0("SELECT feature_id AS fid, bclcs_level_1, bclcs_level_4, basal_area, proj_height_1, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3, species_pct_3, species_cd_4, species_pct_4, species_cd_5, species_pct_5, species_cd_6, species_pct_6 FROM ", vri_layers[i], " WHERE feature_id IN (", paste(dat2, collapse = ","),");" )))
+
+#join the vri data to the fire data
+dat<-left_join(dat, attrib_inv, join_by(rasValue2==fid))
+#add all the data to a new dataframe
+dat_joined<-rbind(dat_joined, dat)
+#clean up to reduce memory ussage
+rm(dat, attrib_inv, rasValue2, pointCoordinates, test)
+gc()
+}
+
+head(dat_joined)
+dat_joined<-st_as_sf(dat_joined)
+drops <- c("ID") # list of col names
+dat_joined2 <- dat_joined[,!(names(dat_joined) %in% drops)] #remove column
+```
+
+## save the data file for use in the analysis
+```{r}
+st_write(dat_joined2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\ignition_2009_2023.gpkg")
+```
+
+
