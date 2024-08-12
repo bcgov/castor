@@ -1692,13 +1692,13 @@ savefiretable <- function(sim) {
   message ("save fire tables for multiple reps within a year")
   
   #print(sim$perFireReport)
-  saveRDS(sim$perFireReportForReps, file = paste0(outputPath(sim), "/perFireReportForReps_test_", time(sim)*sim$updateInterval, ".rds"))
+  saveRDS(sim$perFireReportForReps, file = paste0(outputPath(sim), "/perFireReportForReps_",P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"),"_",P(sim, "run", "climateCastor"),"_", time(sim)*sim$updateInterval, ".rds"))
   
   #print(sim$firedisturbanceTable)
-  saveRDS(sim$firedisturbanceTableForReps, file = paste0(outputPath(sim), "/firedisturbanceTableForReps_", time(sim)*sim$updateInterval, ".rds"))
+  saveRDS(sim$firedisturbanceTableForReps, file = paste0(outputPath(sim), "/firedisturbanceTableForReps_",P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"),"_",P(sim, "run", "climateCastor"),"_", time(sim)*sim$updateInterval, ".rds"))
   
   #print(sim$fireReport)
-  saveRDS(sim$fireReportForReps, file = paste0(outputPath(sim), "/fireReportForReps_test_", time(sim)*sim$updateInterval, ".rds"))
+  saveRDS(sim$fireReportForReps, file = paste0(outputPath(sim), "/fireReportForReps_",P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"),"_",P(sim, "run", "climateCastor"),"_", time(sim)*sim$updateInterval, ".rds"))
   
   return(invisible(sim))
 }
