@@ -487,7 +487,7 @@ setTablesCastorDB <- function(sim) {
     yld.ids.current<-paste( unique(updateToCurrent[!is.na(yieldid),]$yieldid), sep=" ", collapse = ", ")
    
     #Check to see what yields are available
-    testColumnNames<-getTableQuery(paste0("SELECT * FROM ",P(sim)$nameYieldCurrentTable , " LIMIT 1"), spades=1)
+    testColumnNames<-getTableQuery(paste0("SELECT * FROM ",P(sim)$nameYieldCurrentTable , " LIMIT 1"), conn= sim$dbCreds)
     colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
     colNamesYieldid <-colNames
     colNamesYieldid[colNamesYieldid=='ycid']<-"yieldid"
