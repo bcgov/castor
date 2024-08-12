@@ -188,14 +188,12 @@ getExistingRoads <- function(sim) {
     dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN roadstatus integer;")
   
     if(!is.null(sim$boundaryInfo)){
-      conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
       sim$road.type<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                             srcRaster= P(sim, "nameRoads", "roadCastor"), 
                             clipper=sim$boundaryInfo[[1]], 
                             geom= sim$boundaryInfo[[4]], 
                             where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                            conn=conn))
-      dbDisconnect(conn)
+                            conn=sim$dbCreds))
       sim$road.type[sim$road.type[] < 0]<-NA
       #Update the pixels table to set the roaded pixels
       roadUpdate<-data.table(V1= as.numeric(sim$road.type[])) #transpose then vectorize which matches the same order as adj
@@ -251,14 +249,12 @@ getCostSurface<- function(sim){
     age[is.na(age)]<-0
     age[]<-(1-(1/(age + 1)))*1000
     
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     costSurf<-terra::rast(RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
                            srcRaster=P(sim, "nameCostSurfaceRas", "roadCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom=sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=conn)) 
-    dbDisconnect(conn)
+                           conn=sim$dbCreds)) 
     sim$costSurface<-rds*((terra::resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) + age) #multiply the cost surface by the existing roads
     sim$costSurface[sim$costSurface == 0]<- 0.00000000001 #giving some weight to roaded areas
     #writeRaster(sim$costSurface, file="cost.tif", format="GTiff", overwrite=TRUE)
@@ -382,10 +378,8 @@ setGraph<- function(sim){
   #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
   #step 3: Label the edges with the correct vertex name
   if(!is.null(sim$boundaryInfo)){
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
-    ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"), conn=conn)
-    dbDisconnect(conn)
+    ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"), conn=sim$dbCreds)
     #A velox workaround. Testing below
     step.one<-terra::extract(sim$ras, terra::vect(bound.line), cells=TRUE, xy=FALSE, ID = FALSE)$lyr.1
     

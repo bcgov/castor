@@ -14,6 +14,8 @@ library(rpostgis)
 getSpatialQuery<-function(sql, conn = NULL){
   if (is.null(conn)){
     conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  }else{
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=conn["host"], dbname = conn["dbname"], port=conn["port"] ,user=conn["user"],password= conn["pass"])
   }
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
@@ -22,6 +24,8 @@ getSpatialQuery<-function(sql, conn = NULL){
 getTableQuery<-function(sql, conn = NULL){
   if (is.null(conn)){
     conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  }else{
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=conn["host"], dbname = conn["dbname"], port=conn["port"] ,user=conn["user"],password= conn["pass"])
   }
   on.exit(dbDisconnect(conn))
   dbGetQuery(conn, sql)
@@ -53,6 +57,8 @@ RASTER_CLIP2 <- function(tmpRast, srcRaster, clipper, geom, where_clause, conn =
   #tmpRast = 'FAIB_RCL_TEMPRAST_'
   if (is.null(conn)){
     conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  }else{
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=conn["host"], dbname = conn["dbname"], port=conn["port"] ,user=conn["user"],password= conn["pass"])
   }
       #--Build the query string to execute the function to generate temporary Raster
     qry = sprintf("select public.faib_raster_clip2('%s', '%s', '%s', '%s', '%s');", tmpRast, srcRaster, clipper, geom, where_clause)

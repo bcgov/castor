@@ -81,11 +81,10 @@ Init <- function(sim) {
     
       getFisherTerritory[,zone:= paste0("zone", as.integer(dbGetQuery(sim$castordb, "SELECT count(*) as num_zones FROM zone;")$num_zones) + 1)] #assign zone name as the last zone number plus the new zones
       dbExecute (sim$castordb, paste0("ALTER TABLE pixels ADD COLUMN ", getFisherTerritory$zone, " integer")) # add a column to the pixel table that will define the fisher territory  
-      conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
       feta.ras <- terra::rast(RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = P(sim, "nameFetaRaster", "fisherCastor") , # 
                                 clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
                                 where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                conn = conn))
+                                conn = sim$dbCreds))
       ras.territory <- data.table (V1 = as.integer(feta.ras[]))
       ras.territory[, V1 := as.integer (V1)] # add the herd boudnary value from the raster and make the value an integer
       ras.territory[, pixelid := seq_len(.N)] # add pixelid value
@@ -111,7 +110,7 @@ Init <- function(sim) {
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          conn=conn))[]))
+                          conn=sim$dbCreds))[]))
           ras.wetland[, V1 := as.integer (V1)] # add the wetlands value from the raster and make the value an integer
           ras.wetland[, pixelid := seq_len(.N)] # add pixelid value
           
@@ -124,37 +123,34 @@ Init <- function(sim) {
       }else{
         message("Using prevsiouly declared wetlands raster")
       }
-      dbDisconnect(conn)
     }else{
       stop("Specify a new fisher habitat raster. The fisher zone is already specified as another zone")
     }
 
     message("creating permanent habitat table")
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     hab_p <- data.table(
                     pixelid = 1:ncell(feta.ras),
                     fetaid = as.integer(feta.ras[]),
                     den_p= as.integer(terra::rast(RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_denning_p" , # 
                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                      conn = conn))[]),
+                      conn = sim$dbCreds))[]),
                     rus_p = as.integer(terra::rast(RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_rust_p" , # 
                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                      conn = conn))[]),
+                      conn = sim$dbCreds))[]),
                     cwd_p = as.integer(terra::rast(RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cwd_p" , # 
                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                      conn = conn))[]),
+                      conn = sim$dbCreds))[]),
                     cav_p = as.integer(terra::rast(RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cavity_p" , # 
                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                      conn = conn))[]),
+                      conn = sim$dbCreds))[]),
                     mov_p = as.integer(terra::rast(RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_movement_p" , # 
                                           clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
                                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                          conn = conn))[]))
-    dbDisconnect(conn)
+                                          conn = sim$dbCreds))[]))
     hab_p<-hab_p[!is.na(fetaid) & mov_p > 0,] #Remove the non contributing pixels
     
     

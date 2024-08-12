@@ -70,19 +70,17 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
   if(nrow(data.table(dbGetQuery(sim$castordb, "PRAGMA table_info(pixels)"))[name == 'gbpu_name',])== 0){
     dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN gbpu_name character") # add a column to the pixel table that will define the GBPU
     # clip caribou herd raster by the 'study area' set in dataLoader
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     gbpubounds <- data.table (gbpu_name =
                                     RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                       srcRaster = P (sim, "rasterGBPU", "survivalgrizzlyCastor") , # clip the GBPU boundary raster; defined in parameters, above
                                       clipper=sim$boundaryInfo[1] , 
                                       geom= sim$boundaryInfo[4] , 
                                       where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                      conn=conn)[])
+                                      conn=sim$dbCreds)[])
     gbpubounds [, gbpu_name := as.integer (gbpu_name)] # add the GBPU boundary value from the raster and make the value an integer
     gbpubounds [, pixelid := seq_len(.N)] # add pixelid value
     
-    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableGBPU), conn=conn)) # get the GBPU name attribute table that corresponds to the integer values
-    dbDisconnect(conn)
+    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableGBPU), conn=sim$dbCreds)) # get the GBPU name attribute table that corresponds to the integer values
     gbpubounds <- merge (gbpubounds, vat_table, by.x = "gbpu_name", by.y = "raster_integer", all.x = TRUE) # left join the GBPU name to the integer
     gbpubounds [, gbpu_name := NULL] # drop the integer value 
     

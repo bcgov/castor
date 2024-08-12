@@ -72,18 +72,16 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
   #Added a condition here in those cases where the dataCastor has already ran
   if(nrow(data.table(dbGetQuery(sim$castordb, "PRAGMA table_info(pixels)"))[name == 'herd_bounds',])== 0){
     dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN herd_bounds character") # add a column to the pixel table that will define the caribou herd area   
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
     herdbounds <- data.table (herd_bounds=RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                       srcRaster = P (sim, "nameRasCaribouHerd", "survivalCastor") , # clip the herd boundary raster; defined in parameters, above
                                       clipper=sim$boundaryInfo[[1]], 
                                       geom= sim$boundaryInfo[[4]], 
                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                      conn=conn)[])
+                                      conn=sim$dbCreds)[])
     herdbounds [, herd_bounds := as.integer (herd_bounds)] # add the herd boudnary value from the raster and make the value an integer
     herdbounds [, pixelid := seq_len(.N)] # add pixelid value
     
-    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableCaribouHerd), conn=conn)) # get the herd name attribute table that corresponds to the integer values
-    dbDisconnect(conn)
+    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableCaribouHerd), conn=sim$dbCreds)) # get the herd name attribute table that corresponds to the integer value
     # print(vat_table)
     # print(herdbounds)
     herdbounds <- merge (herdbounds, vat_table, by.x = "herd_bounds", by.y = "value", all.x = TRUE) # left join the herd name to the intger

@@ -66,8 +66,6 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
 }
     
 getClimateDataForAOI <- function(sim) {
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
-  
   qry<-paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info ('climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"),"') WHERE name='pixelid_climate';")
       
      # qry<-paste0("SELECT COUNT (*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"),"';")
@@ -83,7 +81,7 @@ getClimateDataForAOI <- function(sim) {
                                                 clipper=sim$boundaryInfo[1] , 
                                                 geom= sim$boundaryInfo[4] , 
                                                 where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                conn= conn))
+                                                conn= sim$dbCreds))
       
       if(terra::ext(sim$ras) == terra::ext(climate_id_rast)){
         climate_id<-data.table(pixelid_climate = as.numeric(climate_id_rast[]))
@@ -103,7 +101,7 @@ getClimateDataForAOI <- function(sim) {
       message("look up lat, lon and elevation of climate_pixels")
       
       climate_id_key<-unique(climate_id[!(is.na(pixelid_climate )), pixelid_climate])
-      climate_id_key<-data.table(getTableQuery(paste0("SELECT pixelid_climate, lat, long, el  FROM ",P(sim, "nameClimateTable","climateCastor"), " WHERE pixelid_climate IN (", paste(climate_id_key, collapse = ","),");"), spades =1))
+      climate_id_key<-data.table(getTableQuery(paste0("SELECT pixelid_climate, lat, long, el  FROM ",P(sim, "nameClimateTable","climateCastor"), " WHERE pixelid_climate IN (", paste(climate_id_key, collapse = ","),");"), conn = sim$dbCreds))
       
       setnames(climate_id_key, c("id", "lat", "lon", "elev"))
       climate_id_key<-climate_id_key[,c("id", "lon", "lat", "elev")]
@@ -168,13 +166,10 @@ getClimateDataForAOI <- function(sim) {
       } else {
         message("climate data already extracted")
       }
-   dbDisconnect(conn)   
   return(invisible(sim))
 }
 
  getClimateDataForProvince <- function(sim) {
-   conn<-DBI::dbConnect(dbDriver("PostgreSQL"),host=P(sim, "dbHost", "dataCastor"), dbname = P(sim, "dbName", "dataCastor"), port=P(sim, "dbPort", "dataCastor"), user= P(sim, "dbUser", "dataCastor"), password= P(sim, "dbPass", "dataCastor"))
-   
   # qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_provincial_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), "';")
    
   #if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
@@ -188,7 +183,7 @@ getClimateDataForAOI <- function(sim) {
     
  #   if (length(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameProvCMITable","climateCastor"), " WHERE gcm = '",P(sim, "gcmname","climateCastor"), "' AND ssp = '", P(sim, "ssp","climateCastor"), "' limit 2"))$gcm)>0) {
     
-    prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameProvCMITable","climateCastor"), " WHERE gcm = '",P(sim, "gcmname","climateCastor"), "' AND ssp = '", P(sim, "ssp","climateCastor"),"' AND period IN (", paste(P(sim, "climateYears","climateCastor"), collapse = ","),");" ), spades =1))
+    prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "nameProvCMITable","climateCastor"), " WHERE gcm = '",P(sim, "gcmname","climateCastor"), "' AND ssp = '", P(sim, "ssp","climateCastor"),"' AND period IN (", paste(P(sim, "climateYears","climateCastor"), collapse = ","),");" ), conn = sim$dbCreds))
     
     qry<-paste0("INSERT INTO climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (gcm, ssp, run, period, ave_cmi) VALUES (:gcm,:ssp,:run, :period, :ave_cmi)")
     
@@ -282,7 +277,6 @@ getClimateDataForAOI <- function(sim) {
 #     }
 #     
 #   } else {message ("provincial climate data extracted ")}
-  dbDisconnect(conn)
   return(invisible(sim))
 }
 
