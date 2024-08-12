@@ -35,6 +35,7 @@ defineModule (sim, list (
   ),
   inputObjects = bind_rows(
     expectsInput (objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the roadyear variable from the pixels table in the castordb.', sourceURL = NA),
+    expectsInput(objectName ="dbCreds", objectClass ="list", desc = 'Credentials used to connect to users postgresql database', sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="roads", objectClass ="RasterLayer", desc = 'A raster of the roads; note I put this here to make sure this module is run AFTER the roadCastor module', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)

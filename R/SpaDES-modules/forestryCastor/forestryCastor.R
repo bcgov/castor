@@ -44,6 +44,7 @@ defineModule(sim, list(
     ),
   inputObjects = bind_rows(
     expectsInput(objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
+    expectsInput(objectName ="dbCreds", objectClass ="list", desc = 'Credentials used to connect to users postgresql database', sourceURL = NA),
     expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "extent", objectClass ="list", desc = NA, sourceURL = NA),
     expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA),

@@ -42,6 +42,7 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
+    expectsInput(objectName ="dbCreds", objectClass ="list", desc = 'Credentials used to connect to users postgresql database', sourceURL = NA),
     expectsInput(objectName ="ras", objectClass ="SpatRaster", desc = NA, sourceURL = NA),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataCastor", sourceURL = NA),

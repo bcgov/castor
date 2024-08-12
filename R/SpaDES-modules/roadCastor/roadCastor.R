@@ -41,10 +41,11 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
+    expectsInput(objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
     expectsInput(objectName = "roadMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "extent", objectClass ="list", desc = NA, sourceURL = NA),
     expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="dbCreds", objectClass ="list", desc = 'Credentials used to connect to users postgresql database', sourceURL = NA),
     expectsInput(objectName = "nameRoads", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "nameCostSurfaceRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
