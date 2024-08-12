@@ -27,11 +27,10 @@ defineModule(sim, list(
   reqdPkgs = list(),
   parameters = rbind(
     
-   defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
-    defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
-    defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
-   defineParameter("seedRandomLandscape", "integer", 123, 1, 100000, "The seed for building random landscapes"),
-   defineParameter("maxAgeRandomLandscape", "integer", 250, 1, 400, "The maximum age for building random landscapes"),
+   defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
+   defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
+   defineParameter("seedRandomLandscape", "integer", 123L, 1L, 100000L, "The seed for building random landscapes"),
+   defineParameter("maxAgeRandomLandscape", "integer", 250L, 1L, 400L, "The maximum age for building random landscapes"),
    defineParameter("buffer_aoi", "numeric", 0, 0, 1000000, "Buffer the area of interest in metres"),
     defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
     defineParameter("dbHost", "character", 'localhost', NA, NA, "The name of the postgres host"),
@@ -40,7 +39,7 @@ defineModule(sim, list(
     defineParameter("dbPass", "character", 'postgres', NA, NA, "The name of the postgres user password"),
     defineParameter("randomLandscape", "list", NA, NA, NA, desc = "The exent in a list ordered by: nrows, ncols, xmin, xmax, ymin, ymax"),
     defineParameter("randomLandscapeClusterLevel", "numeric", 1, 0.001, 1.999,"This describes the alpha parameter in RandomFields. alpha is [0,2]"),
-    defineParameter("randomLandscapeZoneNumber", "integer", 1, 0, 10,"The number of zones using spades spread function"),
+    defineParameter("randomLandscapeZoneNumber", "integer", 1L, 0L, 10L,"The number of zones using spades spread function"),
     defineParameter("randomLandscapeZoneConstraint", "data.table", NA, NA, NA, desc = "The constraint to be applied"),
     defineParameter("nameBoundaryFile", "character", "public.gcbp_carib_polygon", NA, NA, desc = "Name of the boundary file. Here we are using caribou herd boudaries, could be something else (e.g., TSA)."),
     defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name. Here we are using the herd name column in the caribou herd spatial polygon file."),
@@ -100,6 +99,7 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = { # initialization event
+      message(paste0("Running:", sim$scenario))
       #Set database credentials
       sim$dbCreds <-list(host = P(sim, "dbHost", "dataCastor"),dbname = P(sim, "dbName", "dataCastor"),user = P(sim, "dbUser", "dataCastor"),pass = P(sim, "dbPass", "dataCastor"), port = P(sim, "dbPort", "dataCastor") )
       #set Boundaries information object
@@ -1003,6 +1003,10 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("updateZoneConstraints", sim)){ # this object adjusts the zone constraints before the sim is run
     sim$updateZoneConstraints<-NULL
+  }
+  if(!suppliedElsewhere("scenario", sim)){ 
+    message("WARNING: scenario not defined, defaulting to 'build_castordb'")
+    sim$scenario<-'build_castordb'
   }
 
   return(invisible(sim))

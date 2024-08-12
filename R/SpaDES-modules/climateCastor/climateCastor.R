@@ -32,7 +32,7 @@ defineModule (sim, list (
     defineParameter("gcm", "character", '99999', NA, NA, "Global climate model from which to get future climate data e.g. ACCESS-ESM1-5"),
     defineParameter("ssp", "character", '99999', NA, NA, "Climate projection from which to get future climate data e.g. ssp370"),
     defineParameter("climateYears", "character", '99999', NA, NA, "Years to get the climate data for. Can be specified as a single year e.g. 2020, for specific years e.g. c(2020, 2025, 2030) (I think) or as a range e.g. 2020:2060"),
-    defineParameter("maxRun", "integer", '99999', NA, NA, "Maximum number of model runs to include. A value of 0 is ensembleMean only."),
+    defineParameter("maxRun", "integer", 99999L, 0L, 99999L, "Maximum number of model runs to include. A value of 0 is ensembleMean only."),
     defineParameter("run", "character", '99999', NA, NA, "The run of the climate projection from which to get future climate data e.g. r1i1p1f1"),
     defineParameter("nameClimateIdnoRast","numeric", NA, NA, NA, "Raster of climate_id numbers"),
     defineParameter("nameClimateTable","character", "99999", NA, NA, desc = "This table has the lat, long coordiantes and elevation of each climate_id.")

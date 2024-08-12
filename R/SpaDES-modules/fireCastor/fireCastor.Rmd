@@ -93,8 +93,7 @@ parameters <-  list (
                           nameForestInventoryQMD = "quad_diam_125",
                           nameForestInventorySiteIndex = "site_index" 
                           ),
-  forestryCastor = list(harvestBlockPriority = " age DESC ", 
-                        reportHarvestConstraints = F,
+  forestryCastor = list(harvestBlockPriority = " age DESC ",
                         activeZoneConstraint = c("rast.zone_cond_beo", 
                                                  "rast.zone_cond_vqo", 
                                                  "rast.zone_wha_2021", 

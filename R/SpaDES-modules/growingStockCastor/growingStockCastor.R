@@ -32,10 +32,9 @@ defineModule(sim, list(
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
-    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
-    defineParameter("periodLength", "integer", 5, NA, NA, "The length of the time period. Ex, 1 year, 5 year"),
-    defineParameter("vacuumInterval", "integer", 5, NA, NA, "The interval when the database should be vacuumed"),
-    defineParameter("maxYieldAge", "integer", 350, 0, 500, "Maximum age of the yield curves.")
+    defineParameter("periodLength", "integer", 5L, 1L, 20L, "The length of the time period. Ex, 1 year, 5 year"),
+    defineParameter("vacuumInterval", "integer", 5L, 0L, 20L, "The interval when the database should be vacuumed"),
+    defineParameter("maxYieldAge", "integer", 350L, 0L, 500L, "Maximum age of the yield curves.")
     ),
   inputObjects = bind_rows(
     expectsInput(objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
