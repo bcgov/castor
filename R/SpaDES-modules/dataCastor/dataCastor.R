@@ -26,12 +26,11 @@ defineModule(sim, list(
   documentation = list("README.txt", "dataCastor.Rmd"),
   reqdPkgs = list(),
   parameters = rbind(
-    
-   defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
-   defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
-   defineParameter("seedRandomLandscape", "integer", 123L, 1L, 100000L, "The seed for building random landscapes"),
-   defineParameter("maxAgeRandomLandscape", "integer", 250L, 1L, 400L, "The maximum age for building random landscapes"),
-   defineParameter("buffer_aoi", "numeric", 0, 0, 1000000, "Buffer the area of interest in metres"),
+    defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
+    defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
+    defineParameter("seedRandomLandscape", "integer", 123L, 1L, 100000L, "The seed for building random landscapes"),
+    defineParameter("maxAgeRandomLandscape", "integer", 250L, 1L, 400L, "The maximum age for building random landscapes"),
+    defineParameter("buffer_aoi", "numeric", 0, 0, 1000000, "Buffer the area of interest in metres"),
     defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
     defineParameter("dbHost", "character", 'localhost', NA, NA, "The name of the postgres host"),
     defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
@@ -198,7 +197,7 @@ createCastorDB <- function(sim) {
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom text, multi_condition text, t_area numeric, start integer, stop integer);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zonePrescription ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, minHarvestVariable text, minHarvestThreshold numeric, start integer default 0, stop integer default 500);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, cvol numeric DEFAULT 0, dist numeric DEFAULT 0,
+own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex numeric, dec_pcnt numeric, eca numeric, salvage_vol numeric default 0, dual numeric, priority numeric default 0);")
   return(invisible(sim))
 }

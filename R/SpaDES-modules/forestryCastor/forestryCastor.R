@@ -151,6 +151,14 @@ Init <- function(sim) {
   #Set the yield uncertainty covariate string to a blank
   sim$yieldUncertaintyCovar<-""
   
+  #Set the culmination priority
+  if(dbGetQuery (sim$castordb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='culvar';")$exists_check == 0){
+    # add in the column
+    dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN culvar numeric DEFAULT 0")
+    dbExecute(sim$castordb, "create table culvar as  select yieldid, max(tvol/age) as cmai, tvol, age from yields group by yieldid;")
+    dbExecute(sim$castordb, "Update pixels set culvar = culvar.tvol from culvar where culvar.yieldid = pixels.yieldid;")
+  }
+  
   #Set the salvage opportunities
   ##get the salvage volume raster
   ##check it a field already in sim$castordb?
@@ -619,6 +627,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCastor"), "
               dbClearResult(rs)
               dbCommit(sim$castordb)
               
+              dbExecute(sim$castordb, paste0("Update pixels set culvar = culvar.tvol from culvar where culvar.yieldid = pixels.yieldid AND pixelid in(",paste(out$pixelid, collapse = ", "),");"))
               
               temp.harvestBlockList<-out[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
               setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
@@ -637,6 +646,8 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCastor"), "
               rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
               dbClearResult(rs)
               dbCommit(sim$castordb)
+              
+              dbExecute(sim$castordb, paste0("Update pixels set culvar = culvar.tvol from culvar where culvar.yieldid = pixels.yieldid AND pixelid in(",paste(out$pixelid, collapse = ", "),");"))
               
               temp.harvestBlockList<-out[, list(sum(salvage_vol), mean(height), mean(elv)), by = c("blockid", "compartid")]
               setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
@@ -657,6 +668,8 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCastor"), "
            dbClearResult(rs)
            dbCommit(sim$castordb)
            
+           dbExecute(sim$castordb, paste0("Update pixels set culvar = culvar.tvol from culvar where culvar.yieldid = pixels.yieldid AND pixelid in(",paste(queue$pixelid, collapse = ", "),");"))
+           
             temp.harvestBlockList<-queue[, list(sum(salvage_vol), mean(height), mean(elv)), by = c("blockid", "compartid")]
             setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
             sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
@@ -672,6 +685,8 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCastor"), "
             rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
             dbClearResult(rs)
             dbCommit(sim$castordb)
+            
+            dbExecute(sim$castordb, paste0("Update pixels set culvar = culvar.tvol from culvar where culvar.yieldid = pixels.yieldid AND pixelid in(",paste(queue$pixelid, collapse = ", "),");"))
             
             temp.harvestBlockList<-queue[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
             setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
@@ -693,7 +708,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCastor"), "
                                 paste(unique(queue$blockid), collapse = ", "), ");")))))
         
         
-
+        message(paste0(compart, " harvest Achieved: ", temp_harvest_report$volume, " "))
         #clean up
         rm(queue, temp_harvest_report, temp.harvestBlockList)
       }
