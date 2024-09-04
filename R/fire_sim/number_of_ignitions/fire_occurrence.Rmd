@@ -19,14 +19,14 @@ In this script we model the occurrence of lightning cause wildfires. This includ
 
 ## Data
 ```{r}
-data.lightning<-readRDS("data.lightning.rds")
+data.lightning<-readRDS("data_lightning_5k.rds")
 occ.model.data<-data.lightning[!is.na(CMI3yr),][,dCMI3yr:=CMI-(CMI3yr/3)][, coast:=0][frt==15, coast:=1][,flammable:=con + mix + dec + young + veg][flammable >0, ][, year:= as.factor(FIRE_YEAR)][!is.na(fire_centre),]
 
 occ.model.data<-occ.model.data[, avgCMIProv:=sum(CMI)/.N, by = c("FIRE_YEAR")][,dry:=0][avgCMIProv < -0.47, dry :=1]
 
 # Determine threshold
-threshold<-occ.model.data[, .(count = sum(count), avgCMIProv = min(avgCMIProv) ), by = FIRE_YEAR]
-saveRDS(threshold, "avgCMIProv.rds")
+#threshold<-occ.model.data[, .(count = sum(count), avgCMIProv = min(avgCMIProv) ), by = FIRE_YEAR]
+#saveRDS(threshold, "avgCMIProv.rds")
 ```
 
 ## Model

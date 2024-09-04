@@ -21,7 +21,7 @@ In this script we model the occurrence of lightning cause wildfires. This includ
 ## Data
 ```{r, data_capture}
 # Create a grid
-restest = c(10000, 10000)
+restest = c(5000, 5000)
 prov.rast <- raster::raster ( # standardized provincial raster with no data in it
   nrows = 15744, ncols = 17216,
   xmn = 159587.5, xmx = 1881187.5,
@@ -36,14 +36,14 @@ prov.rast[]<-pixel.grid$pixelid
 
 #Get veg_comp information using the previous year
 #Note pre 2010 veg comp doesn't not contain information to assign fuel type classification
-pixel.table<-rbindlist(lapply(as.list(seq(2009,2022,1)), function(x){
-  data.table(FIRE_YEAR =x, haz= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/hazard_{x-1}_10k.tif"))[])
-}))
-pixel.table<-cbind(pixel.grid ,pixel.table)
+#pixel.table<-rbindlist(lapply(as.list(seq(2009,2022,1)), #function(x){
+#  data.table(FIRE_YEAR =x, haz= #rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/num#ber_of_ignitions/hazard_{x-1}_10k.tif"))[])
+#}))
+#pixel.table<-cbind(pixel.grid ,pixel.table)
 
 
 # Get the Fire Regime Types
-ndt<-getSpatialQuery("SELECT case when natural_disturbance = 'NDT1' then 1 when natural_disturbance = 'NDT2' then 2 when natural_disturbance = 'NDT3' then 3 when natural_disturbance = 'NDT4' then 4 when natural_disturbance = 'NDT5' then 5 end as ndt, wkb_geometry FROM public.bec_zone")
+ndt<-getSpatialQuery("SELECT case when ntrldstrbn = 'NDT1' then 1 when ntrldstrbn = 'NDT2' then 2 when ntrldstrbn = 'NDT3' then 3 when ntrldstrbn = 'NDT4' then 4 when ntrldstrbn = 'NDT5' then 5 end as ndt, wkb_geometry FROM public.bec_zone")
 ras.ndt <- fasterize::fasterize (ndt, prov.rast, field = "ndt")
 
 frt<-getSpatialQuery("SELECT * FROM frt_canada")
@@ -68,16 +68,16 @@ if(FALSE){
 ras.wet <- fasterize::fasterize (wet, prov.rast, field = "wetland")
 writeRaster(ras.wet, "ebm_wetland.tif")
 }
-ras.wet <-terra::rast("ebm_wetland.tif")
-ras.wet[is.na(ras.wet[])]<-0
-ras.wet <-terra::crop(terra::aggregate(ras.wet, fact = 100, fun = sum ), prov.rast)
-if(terra::ext(prov.rast) == terra::ext(ras.wet)){ # need to check that each of the extents are the same
-  pixel.wet <-cbind(pixel.grid , data.table(wetland= as.numeric(ras.wet[])))
-  rm(ras.wet)
-  gc()
-}else{
-  stop(paste0("ERROR: extents are not the same check -"))
-}
+#ras.wet <-terra::rast("ebm_wetland.tif")
+#ras.wet[is.na(ras.wet[])]<-0
+#ras.wet <-terra::crop(terra::aggregate(ras.wet, fact = 100, fun = sum ), prov.rast)
+#if(terra::ext(prov.rast) == terra::ext(ras.wet)){ # need to check that each of the extents are the same
+ # pixel.wet <-cbind(pixel.grid , data.table(wetland= #as.numeric(ras.wet[])))
+ # rm(ras.wet)
+ # gc()
+#}else{
+#  stop(paste0("ERROR: extents are not the same check #-"))
+#}
 
 #Get the climate data
 bc_grid <- data.table::fread("C:/Data/localApps/Climatebc_v730/bc_dem_frt_Kyle.csv")
@@ -85,7 +85,7 @@ bc_sf <- st_transform(st_as_sf(bc_grid, coords = c("lon", "lat"), crs = 4326, ag
 bc_dem <- terra::rasterize(bc_sf, prov.rast, field = "el")
 
 #note using 2005 climate to get the 5 year prior average
-climateData<-rbindlist(lapply(seq(2005, 2022, 1), function(x){
+climateData<-rbindlist(lapply(seq(2005, 2023, 1), function(x){
   message(x)
   data<-data.table::fread(paste0("C:/Data/localApps/Climatebc_v730/test", x, ".csv"))
   
@@ -134,7 +134,7 @@ ignition2 <- sf::st_transform (ignit, 3005)
 pixelid <- terra::extract(prov.rast, ignition2)
 ignition2<-data.table(cbind(ignition2, pixelid))
 
-ignit_unknown<-rbindlist(lapply(seq(2009,2022,1), function(y){
+ignit_unknown<-rbindlist(lapply(seq(2009,2023,1), function(y){
   yearx<-st_as_sf(ignition2[FIRE_YEAR == y,])
   test<-rbindlist(lapply(st_as_text(yearx$geometry), function(x){
     out<-getTableQuery(glue::glue("select bclcs_level_1 from vri.veg_comp_lyr_r1_poly{y-1} 
@@ -157,30 +157,30 @@ lightning<-ignit_unknown[FIRE_CAUSE=="Lightning" & bclcs_level_1 != 'U', .(count
 #human<-ignition2[FIRE_CAUSE=="Person", .(count=.N), by = c("pixelid", "FIRE_YEAR")]
 
 #FIRE SIZE
-data.lightning.size<-merge(pixel.table, ignit_unknown[FIRE_CAUSE=="Lightning" & bclcs_level_1 != 'U', ], by.x = c("pixelid", "FIRE_YEAR"), by.y =c("pixelid", "FIRE_YEAR"), all.x = T)
+data.lightning.size<- ignit_unknown[FIRE_CAUSE=="Lightning" & bclcs_level_1 != 'U', ]
 data.lightning.size<-merge(data.lightning.size, pixel.frt, by = "pixelid")
 data.lightning.size<-data.lightning.size[!is.na(frt),]
 
 #Add wetland
-data.lightning.size<-merge(data.lightning.size, pixel.wet, by = "pixelid")
+#data.lightning.size<-merge(data.lightning.size, pixel.wet, by = "pixelid")
 #Add simple fuel typing
-pixel.simple_fueltype<-data.table(read.csv( "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/fuel_type2009to2022.csv"))
+pixel.simple_fueltype<-data.table(read.csv( "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/fuel_type_5k_2009to2023.csv"))
 data.lightning.size<-merge(data.lightning.size, pixel.simple_fueltype, by = c("pixelid", "FIRE_YEAR"))
 
 XYs<-xyFromCell(prov.rast, data.lightning.size$pixelid)
 data.lightning.size$x<-XYs[,1]/1000 #make units of kilometers
 data.lightning.size$y<-XYs[,2]/1000
-saveRDS(data.lightning.size, "data.lightning.size.rds")
+saveRDS(data.lightning.size, "data_lightning_size_5k.rds")
 
 
 #FIRE OCCURENCE
-data.lightning<-merge(pixel.table, lightning, by.x = c("pixelid", "FIRE_YEAR"), by.y =c("pixelid", "FIRE_YEAR"), all.x = T)
+data.lightning<-lightning
 data.lightning<-data.lightning[is.na(count), count :=0]
 
 data.lightning<-merge(data.lightning, pixel.frt, by="pixelid")
 data.lightning<-data.lightning[!is.na(frt),]
-data.lightning<-merge(data.lightning, pixel.wet, by = "pixelid")
-data.lightning<-merge(data.lightning, pixel.simple_fueltype, by = c("pixelid", "FIRE_YEAR"))
+#data.lightning<-merge(data.lightning, pixel.wet, by = "pixelid")
+data.lightning<-merge(data.lightning, pixel.simple_fueltype, by = c("pixelid", "FIRE_YEAR"), all.y =TRUE)
 
 XYs<-xyFromCell(prov.rast, data.lightning$pixelid)
 data.lightning$x<-XYs[,1]/1000 #make units of kilometers
@@ -190,6 +190,6 @@ data.lightning<-merge(data.lightning, climateData, by.x =c("pixelid", "FIRE_YEAR
 
 data.lightning<-data.lightning[!is.na(CMI),] # remove the banner voxels
 
-saveRDS(data.lightning, "data.lightning.rds")
+saveRDS(data.lightning, "data_lightning_5k.rds")
 ```
 

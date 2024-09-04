@@ -41,8 +41,9 @@ data.size<-merge(data.size, threshold, by = "FIRE_YEAR")
 m8<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
 
 #get the random spatial effect
-data.size<-predict(m8, type = "link", newdata = data.size, re_form = NULL)
-data.size<-cbind(data.size, model.matrix( ~ 0 + frt, data=data.size )) 
+data.size2<-predict(m8, data = data.size, type = "link", re_form = NULL)
+data.size<-data.size[,frt:=as.factor(frt)]
+data.size<-cbind(data.size, model.matrix( ~ 0+frt, data=data.size )) 
 data.size<-data.size[ ,est:= exp(-17.0 -0.0576*CMI_MIN-0.124*dCMI3yr-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
 
 ```
@@ -50,9 +51,9 @@ data.size<-data.size[ ,est:= exp(-17.0 -0.0576*CMI_MIN-0.124*dCMI3yr-0.363*avgCM
 ## Adjust some covariates
 ```{r}
 
-data.size[, duration := FIRE_OUT_DATE - IGNITION_DATE]
-data.size[duration<0, duration:=0][is.na(duration), duration:=0]
-data.size[, ignit_month:= month(IGNITION_DATE)]
+#data.size[, duration := FIRE_OUT_DATE - IGNITION_DATE]
+#data.size[duration<0, duration:=0][is.na(duration), duration:=0]
+#data.size[, ignit_month:= month(IGNITION_DATE)]
 
 model.size <- data.size[!is.na(est),][, size:= log(CURRENT_SIZE)]
 

@@ -21,17 +21,17 @@ require (scales)
 
 
 ```{r, harvest fig}
-schema<-"whitesail_morice_patchworks"
+schema<-"whitesail_morice_patchworks_pc"
 conn <- dbConnect (RPostgreSQL::PostgreSQL(),
 				          host = keyring::key_get("vmdbhost", keyring="postgreSQL"),
                   user = keyring::key_get("vmdbuser", keyring="postgreSQL"),
                   password = keyring::key_get("vmdbpass", keyring="postgreSQL"),
                   dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
 				          port = "5432")
-data.harvest <- data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.harvest where scenario in ('bau_rr21', 'gfa_mod_rr21', 'hbea_mod_rr21', 'no_harv_wha_v1_rr21', 'smz_wetlands_mod_rr21', 'steventon_modelled_mod_rr21', 'steventon_observed_mod_rr21', 'conditional_rr21', 'alternative_smz_rr21')") ))
-data.volumebyarea<-data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.volumebyarea where scenario in ('bau_rr21', 'gfa_mod_rr21', 'hbea_mod_rr21', 'no_harv_wha_v1_rr21', 'smz_wetlands_mod_rr21', 'steventon_modelled_mod_rr21', 'steventon_observed_mod_rr21', 'conditional_rr21', 'alternative_smz_rr21')") ))
-data.disturb <- data.table(dbGetQuery (conn, glue::glue("SELECT scenario, compartment, timeperiod, critical_hab, total_area, cut40, road50, c40r50, c40r500 FROM {schema}.disturbance where scenario in ('bau_rr21', 'gfa_mod_rr21', 'hbea_mod_rr21', 'no_harv_wha_v1_rr21', 'smz_wetlands_mod_rr21', 'steventon_modelled_mod_rr21', 'steventon_observed_mod_rr21', 'conditional_rr21', 'alternative_smz_rr21')")) )
-data.seral <- data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.survival where scenario in ('bau_rr21', 'gfa_mod_rr21', 'hbea_mod_rr21', 'no_harv_wha_v1_rr21', 'smz_wetlands_mod_rr21', 'steventon_modelled_mod_rr21', 'steventon_observed_mod_rr21', 'conditional_rr21', 'alternative_smz_rr21')")))
+data.harvest <- data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.harvest where scenario in ('basecase','no_harv_wha_v1', 'smz_wetlands_mod','smz_wetlands_no_rot', 'steventon_observed_mod',  'alternative_smz')") ))
+data.volumebyarea<-data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.volumebyarea where scenario in ('basecase','no_harv_wha_v1', 'smz_wetlands_mod','smz_wetlands_no_rot', 'steventon_observed_mod',  'alternative_smz')") ))
+data.disturb <- data.table(dbGetQuery (conn, glue::glue("SELECT scenario, compartment, timeperiod, critical_hab, total_area, cut40, road50, c40r50, c40r500 FROM {schema}.disturbance where scenario in ('basecase','no_harv_wha_v1', 'smz_wetlands_mod','smz_wetlands_no_rot', 'steventon_observed_mod',  'alternative_smz')")) )
+data.seral <- data.table(dbGetQuery (conn, glue::glue("SELECT * FROM {schema}.survival where scenario in ('basecase','no_harv_wha_v1', 'smz_wetlands_mod','smz_wetlands_no_rot', 'steventon_observed_mod',  'alternative_smz')")))
 dbDisconnect (conn)
 
 data.volumebyarea<-data.volumebyarea[scenario == 'bau', scenario := 'benchmark']
@@ -56,24 +56,24 @@ ggplot (data.volumebyarea[!is.na(area_name) & timeperiod <= 100], aes (x = timep
 
 #data.disturb <- data.disturb[scenario == 'bau_og_def', scenario := 'benchmark_og_def'][scenario == 'bau_og_def_road30', scenario := 'benchmark_og_def_road30'][scenario == 'prot_crithab_og_def_road30', scenario := 'prot_core_og_def_road30'][scenario == 'prot_crithab_og_def', scenario := 'prot_core_og_def']
 
-plot.seral<- ggplot (data.seral[timeperiod <= 50, ], 
+plot.seral<- ggplot (data.seral[timeperiod <= 50 & herd_bounds == 'Tweedsmuir', ], 
                                aes (x = timeperiod, y = (prop_age * 100), 
                                     color = scenario, linetype = scenario)) +
                             geom_line (position = position_dodge (width = 1), size = 1) + 
-  labs(y="Early Seral (<40 years) Percentage (%)")+
-  facet_wrap (. ~herd_bounds, ncol = 2, scales="free_y") 
+  labs(y="Early Seral (<40 years) Percentage (%)")
+ # facet_wrap (. ~herd_bounds, ncol = 2, scales="free_y") 
                             #theme (legend.position = c (0.15, 0.15), legend.title = element_text(size = 10),legend.text = element_text( size = 8)) +
                               
                             #scale_x_continuous (limits = c(0, 80), breaks = seq(0,60,20)) +
                            #scale_y_continuous (label = comma, breaks = seq(0,50,2)) +
                             #theme_classic ()
        
-  plot.survival<- ggplot (data.seral[timeperiod <= 50, ], 
+  plot.survival<- ggplot (data.seral[timeperiod <= 50 & herd_bounds == 'Tweedsmuir', ], 
                                aes (x = timeperiod, y = survival_rate, 
                                     color = scenario, linetype = scenario)) +
-                            geom_line (position = position_dodge (width = 1), size = 1) +
-  facet_wrap (. ~herd_bounds, ncol = 2, scales="free_y") + geom_hline(yintercept = 0.85) +
-  labs(y="Adult Female Survival Rate")
+                            geom_line (position = position_dodge (width = 1), size = 1)+ #facet_wrap (. ~herd_bounds, ncol = 2, scales="free_y") 
+  geom_hline(yintercept = 0.85) +
+  labs(y="Adult Female Survival Rate") +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
                                    legend.text = element_text( size = 8)) +
@@ -82,10 +82,10 @@ plot.seral<- ggplot (data.seral[timeperiod <= 50, ],
                             theme_classic ()  
                             
         data.disturb<-data.disturb[, dist500:= (c40r500/total_area)*100][dist500 > 100, dist500:=100]
- plot.disturbed<-ggplot (data.disturb[timeperiod <= 50, ], 
+ plot.disturbed<-ggplot (data.disturb[timeperiod <= 50 & critical_hab == 'Core', ], 
                                aes (x = timeperiod, y = dist500, 
                                     color = scenario, linetype = scenario)) +
-   facet_wrap(~critical_hab, scales="free_y")+
+   #facet_wrap(~critical_hab, scales="free_y")+
                             geom_line (position = position_dodge (width = 1), size = 1)+
                               geom_hline(yintercept = 35) + 
   labs(y="Disturbance (500m) Percentage (%)")

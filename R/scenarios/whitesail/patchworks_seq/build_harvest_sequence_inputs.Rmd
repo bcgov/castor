@@ -16,13 +16,14 @@ forestryCastor needs a raster stack of harvest units in each time period
 ```{r}
 library(sf)
 library(terra)
-spatial.hsq<-"C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/scenario50yrs/conditional.gpkg"
+name <- "conditional"
+spatial.hsq<-paste0("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/scenario50yrs/",name,".gpkg")
 setwd('C:/Users/klochhea/castor/R/scenarios/whitesail/patchworks_seq')
 
 harvest<-st_read(spatial.hsq) #the outputs from pathworks
 
 #Connect to the Castordb to get the raster information
-con = dbConnect(RSQLite::SQLite(), dbname = "morice_whitesail_castordb.sqlite")
+con = dbConnect(RSQLite::SQLite(), dbname = "morice_whitesail_castordb_pre20240820.sqlite")
 ras.info<-dbGetQuery(con, "SELECT * FROM raster_info where name = 'ras';")
 print(ras.info)
 ras<-rast(xmin= ras.info$xmin, xmax=ras.info$xmax, ymin=ras.info$ymin, ymax=ras.info$ymax, nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow)
@@ -36,5 +37,9 @@ ras.hseq<-lapply(seq(from = 5, to= 50, by=5), function(x){
 })
 
 out<-rast(ras.hseq)
-writeRaster(out, "conditional_hsq.tif")
+writeRaster(out, paste0(name, "_hsq.tif"), overwrite = TRUE)
+
+silvsystem<-terra::rasterize(harvest, ras, field = "treatment")
+silvsystem[silvsystem[] == 1] <-2
+writeRaster(silvsystem, paste0(name, "_silvsystem.tif"))
 ```

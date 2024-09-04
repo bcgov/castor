@@ -27,7 +27,7 @@ prov.rast <- raster( # standardized provincial raster with no data in it
   resolution = restest,
   vals = 0)
 
-lapply(seq(2021, 2022, 1), function(x) {
+lapply(seq(2023, 2023, 1), function(x) {
   year_vri <- x
   geom_column <- 'shape'
   
@@ -43,35 +43,35 @@ lapply(seq(2021, 2022, 1), function(x) {
   
   ras1<-ras.haz
   ras1[ras1[] > 1 ]<-0
-  ras.fuel1<-terra::crop(terra::aggregate(ras1, fact = 100, fun = sum ),prov.rast) 
+  ras.fuel1<-terra::crop(terra::aggregate(ras1, fact = 10, fun = sum ),prov.rast) 
 
   ras2<-ras.haz
   ras2[ras2[] != 2 ]<-0
   ras2[ras2[] == 2 ]<-1
-  ras.fuel2<-terra::crop(terra::aggregate(ras2, fact = 100, fun = sum ),prov.rast)
+  ras.fuel2<-terra::crop(terra::aggregate(ras2, fact = 10, fun = sum ),prov.rast)
   
   ras3<-ras.haz
   ras3[ras3[] != 3 ]<-0
   ras3[ras3[] == 3 ]<-1
-  ras.fuel3<-terra::crop(terra::aggregate(ras3, fact = 100, fun = sum ),prov.rast)
+  ras.fuel3<-terra::crop(terra::aggregate(ras3, fact = 10, fun = sum ),prov.rast)
   
   ras4<-ras.haz
   ras4[ras4[] != 4 ]<-0
   ras4[ras4[] == 4 ]<-1
-  ras.fuel4<-terra::crop(terra::aggregate(ras4, fact = 100, fun = sum ),prov.rast)
+  ras.fuel4<-terra::crop(terra::aggregate(ras4, fact = 10, fun = sum ),prov.rast)
   
   ras5<-ras.haz
   ras5[ras5[] != 5 ]<-0
   ras5[ras5[] == 5 ]<-1
-  ras.fuel5<-terra::crop(terra::aggregate(ras5, fact = 100, fun = sum ),prov.rast)
+  ras.fuel5<-terra::crop(terra::aggregate(ras5, fact = 10, fun = sum ),prov.rast)
   
   ras6<-ras.haz
   ras6[ras6[] != 6 ]<-0
   ras6[ras6[] == 6 ]<-1
-  ras.fuel6<-terra::crop(terra::aggregate(ras6, fact = 100, fun = sum ),prov.rast)
+  ras.fuel6<-terra::crop(terra::aggregate(ras6, fact = 10, fun = sum ),prov.rast)
   
   out<-data.table(con = ras.fuel1[], mix = ras.fuel2[], dec = ras.fuel3[] , young = ras.fuel4[], veg = ras.fuel5[], noflame = ras.fuel6[] )[,pixelid := seq_len(.N)]
-  write.csv(out, glue::glue("fueltype_{year_vri}.csv"))
+  write.csv(out, glue::glue("fueltype_1k_{year_vri}.csv"))
   rm(ras1, ras2, ras3, ras4, ras5, ras6, ras.fuel1, ras.fuel2, ras.fuel3, ras.fuel4, ras.fuel5, ras.fuel6, out)
   gc()
   x
@@ -82,10 +82,10 @@ lapply(seq(2021, 2022, 1), function(x) {
 ### Compile
 ```{r}
 fuel_type<-rbindlist(
-  lapply(seq(2009, 2022, 1), function(x){
-    data<-data.table(read.csv(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/fueltype_{x}.csv")))
+  lapply(seq(2009, 2023, 1), function(x){
+    data<-data.table(read.csv(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/fueltype_1k_{x}.csv")))
     data$FIRE_YEAR<-x
     data
 }))
-write.csv(fuel_type, "fuel_type2009to2022.csv")
+write.csv(fuel_type, "fuel_type_1k_2009to2023.csv")
 ```

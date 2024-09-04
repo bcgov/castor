@@ -43,7 +43,10 @@ times <- list (start = 0, end = 0)
 parameters <-  list (
         .progress = list (type = NA, interval = NA),
         .globals = list (),
-        dataCastor = list(dbName = 'castor',
+        dataCastor = list(dbName = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                    dbPort='5432' ,
+                    dbUser=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                    dbPass= keyring::key_get('dbpass', keyring = 'postgreSQL'),
                          saveCastorDB = TRUE,
                           sqlite_dbname = "morice_whitesail", 
                           nameBoundaryFile = "public.tsa_aac_bounds", 
@@ -175,9 +178,23 @@ graph.df<-cppRouting::to_df(g)
 dbDisconnect(castordb)
 
 base.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/basecase_v1_250year_schedule.shp")
+smz.wetlnds.no.rot.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/smz_wetlands_no_rot_250year_schedule.shp")
+smz.wetlnds.mod.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/smz_wetlands_mod_250year_schedule.shp")
+smz.wetlnds.v1.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/smz_wetlands_v1_250year_schedule.shp")
+steventon_modelled_mod.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/steventon_modelled_mod_250year_schedule.shp")
+steventon_modelled_v1.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/steventon_modelled_v1_250year_schedule.shp")
+steventon_obs_mod.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/steventon_observed_mod_250year_schedule.shp")
+steventon_obs_v1.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/steventon_observed_v1_250year_schedule.shp")
+hbea_mod.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/hbea_mod_250year_schedule.shp")
+hbea_v1.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/hbea_v1_250year_schedule.shp")
+gfa_mod.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/gfa_mod_250year_schedule.shp")
+gfa_v1.blocks<-st_read("C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/external/gfa_v1_250year_schedule.shp")
 
+test<-rbind(gfa_v1.blocks,gfa_mod.blocks,hbea_mod.blocks,hbea_v1.blocks,steventon_modelled_mod.blocks,steventon_modelled_v1.blocks, steventon_obs_mod.blocks,steventon_obs_v1.blocks, base.blocks,smz.wetlnds.mod.blocks,smz.wetlnds.no.rot.blocks,smz.wetlnds.v1.blocks)
+test2<-test[,c("stand", "geometry")]
+blocks<-unique(test2)
 #rasterize all blockids
-ras.blocks<-terra::rasterize(base.blocks, ras, field = 'stand')
+ras.blocks<-terra::rasterize(blocks, ras, field = 'stand')
 
 #get the landings
 base.blocks.tab<-data.table(blockid = ras.blocks[], pixelid = landing.info$pixelid, dist = landing.info$dist, thlb = landing.info$thlb)[ blockid.stand > 0, ]

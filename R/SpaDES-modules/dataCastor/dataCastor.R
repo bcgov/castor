@@ -49,6 +49,7 @@ defineModule(sim, list(
     defineParameter("sqlite_dbname", "character", "test", NA, NA, desc = "Name of the castordb"),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
     defineParameter("nameZonePriorityRaster", "character", "99999", NA, NA, desc = "Boundary of zones where harvesting should be prioritized"),
+    defineParameter("nameSilvSystemRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents the type of harvesting system such that its values are decribed in the harvestingSystem table"),
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents a compartment or supply block. Not currently in the pgdb?"),
     defineParameter("nameCompartmentTable", "character", "99999", NA, NA, desc = "Name of the table in a pg db that represents a compartment or supply block value attribute look up. CUrrently 'study_area_compart'?"),
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
@@ -58,7 +59,6 @@ defineModule(sim, list(
     defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/"),
     defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Raster containing pixel height. EX. Canopy height model"),
     defineParameter("nameZoneTable", "character", "99999", NA, NA, desc = "Name of the table documenting the zone types"),
-    defineParameter("nameZonePrescriptionTable", "character", "99999", NA, NA, desc = "Name of the table documenting the prescriptions to apply for each zone"),
     defineParameter("nameYieldsRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
     defineParameter("nameYieldsCurrentRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
     defineParameter("nameYieldsTransitionRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables that transition to a new table"),
@@ -119,7 +119,6 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
         #populate castordb tables
         sim <- setTablesCastorDB(sim)
         sim <- setZoneConstraints(sim)
-        sim <- setZonePrescriptions(sim)
         sim <- setIndexesCastorDB(sim) # creates index to facilitate db querying?
         #sim <- updateGS(sim) # update the forest attribute. Removing this so that blockingCastor can run even though yield curves may not have basal area or height
         sim <- scheduleEvent(sim, eventTime = 0,  "dataCastor", "forestStateNetdown", eventPriority=90)
@@ -195,10 +194,18 @@ createCastorDB <- function(sim) {
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS raster_info (name text, xmin numeric, xmax numeric, ymin numeric, ymax numeric, ncell integer, nrow integer, crs text);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom text, multi_condition text, t_area numeric, start integer, stop integer);")
-  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zonePrescription ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, minHarvestVariable text, minHarvestThreshold numeric, start integer default 0, stop integer default 500);")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS silvSystem ( id integer PRIMARY KEY, silvsystem integer, entry_var text, entry_req numeric, transition_silv integer, reset_age integer, description text,start integer default 0, stop integer default 500);")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS transitions ( id integer PRIMARY KEY, pixelid integer, silvsystem integer, yieldid_from integer, yieldid_to integer);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
+own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric, silvsystem integer default 0, elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex numeric, dec_pcnt numeric, eca numeric, salvage_vol numeric default 0, dual numeric, priority numeric default 0);")
+  
+  #Populate the silvicutural system table
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, "INSERT INTO silvSystem (silvsystem, entry_var, entry_req, transition_silv, reset_age, description, start, stop) values (:silvsystem, :entry_var, :entry_req, :transition_silv, :reset_age, :description, :start, :stop)", sim$silvSystem)
+  dbClearResult(rs)
+  dbCommit(sim$castordb)
+  
   return(invisible(sim))
 }
 
@@ -242,7 +249,7 @@ setTablesCastorDB <- function(sim) {
     #Add the raster_info
     ras.extent<-terra::ext(sim$ras)
     
-    #TODO: Hard coded for epsg 3005 need to convert to terra?
+    #Hard coded for epsg 3005 need to convert to terra?
     dbExecute(sim$castordb, glue::glue("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras', {ras.extent[1]}, {ras.extent[2]}, {ras.extent[3]}, {ras.extent[4]}, {ncell(sim$ras)}, {nrow(sim$ras)}, '3005');"))
     
   }else{ #Set the empty table for values not supplied in the parameters
@@ -298,6 +305,30 @@ setTablesCastorDB <- function(sim) {
   }else{
     message('.....ownership: default 1')
     pixels[, own := 1] #every pixel gets ownership of 1
+  }
+  
+  #----------------------------#
+  #Set the Harvesting System----
+  #----------------------------#
+  if(!(P(sim, "nameSilvSystemRaster", "dataCastor") == "99999")){
+    message(paste0('.....Silvicultural System: ',P(sim, "nameSilvSystemRaster", "dataCastor")))
+    ras.silv<- terra::rast(RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
+                                       srcRaster= P(sim, "nameSilvSystemRaster", "dataCastor"), 
+                                       clipper=sim$boundaryInfo[[1]], 
+                                       geom= sim$boundaryInfo[[4]], 
+                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                       conn=sim$dbCreds))
+    
+    if(aoi == terra::ext(ras.silv)){#need to check that each of the extents are the same
+      pixels <- cbind(pixels, data.table(silvsystem = as.integer(ras.silv[]))) # add the silv system to the pixels table
+      rm(ras.silv)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameSilvSystemRaster", "dataCastor")))
+    }
+  }else{
+    message('.....silvicultural system: default 0')
+    pixels[, silvsystem := 0] #every pixel gets clearcut
   }
   
   #-------------------#
@@ -549,12 +580,26 @@ setTablesCastorDB <- function(sim) {
     pixels[!is.na(compartid), yieldid_trans := 1]
   }
   
+  
+  #Add in the default clear cutting silv system to the transition table
+  cc_last<-pixels[!is.na(yieldid_trans) ,c("pixelid", "yieldid_trans")][!(yieldid_trans == 0),][, yieldid:= yieldid_trans]
+  cc_transition<-rbindlist(list(cc_last, 
+                                data.table(unique(pixels[!(yieldid == 0) | !is.na(yieldid),c("pixelid", "yieldid", "yieldid_trans")]))), use.names=TRUE)
+  cc_transition$silvsystem <-0
+  cc_transition<-cc_transition[!(yieldid == 0), ]
+  
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, glue::glue("INSERT INTO transitions (pixelid, silvsystem, yieldid_from, yieldid_to) 
+                      values (:pixelid, :silvsystem, :yieldid, :yieldid_trans);"), cc_transition)
+  dbClearResult(rs)
+  dbCommit(sim$castordb)
+  
   #**************FOREST INVENTORY - VEGETATION VARIABLES*******************#
   #----------------------------#
   #----Set forest attributes----
   #----------------------------#
   if(!P(sim, "nameForestInventoryRaster","dataCastor") == '99999'){
-    print("clipping inventory key")
+    #print("clipping inventory key")
     ras.fid<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "nameForestInventoryRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
@@ -617,13 +662,13 @@ setTablesCastorDB <- function(sim) {
         }
       
       if(length(forest_attributes_castordb) > 0){
-        print(paste0("getting inventory attributes: ", paste(forest_attributes_castordb, collapse = ",")))
+        #print(paste0("getting inventory attributes: ", paste(forest_attributes_castordb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
         attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataCastor"), " as fid, ", paste(forest_attributes_castordb, collapse = ","), " FROM ",
                                                     P(sim, "nameForestInventoryTable","dataCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "dataCastor") ," IN (",
                                                     paste(fids, collapse = ","),");" ), conn=sim$dbCreds))
         
-        print("...merging with fid") #Merge this with the raster using fid which gives you the primary key -- pixelid
+        #print("...merging with fid") #Merge this with the raster using fid which gives you the primary key -- pixelid
         inv<-merge(x=inv_id, y=attrib_inv, by.x = "fid", by.y = "fid", all.x = TRUE) 
         
         #Merge to pixels using the pixelid
@@ -795,10 +840,10 @@ setTablesCastorDB <- function(sim) {
   #-----------------------------#
   #Load the pixels in RSQLite----
   #-----------------------------#
-  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, treed, age, crownclosure, height, siteindex, basalarea, qmd, dec_pcnt, zone',
+  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, silvsystem, treed, age, crownclosure, height, siteindex, basalarea, qmd, dec_pcnt, zone',
               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),
               paste(multiVars, sep="' '", collapse=", "),' ) 
-               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :treed, :age, :crownclosure, :height, :siteindex, :basalarea, :qmd, 0, :zone', 
+               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :silvsystem, :treed, :age, :crownclosure, :height, :siteindex, :basalarea, :qmd, 0, :zone', 
               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),
               paste(multiVars2, sep="' '", collapse=", :"),')')
   
@@ -906,27 +951,6 @@ setZoneConstraints<-function(sim){
   return(invisible(sim))
 }
 
-setZonePrescriptions<-function(sim){
-  if(!(P(sim, "nameZonePrescriptionTable", "dataCastor") == "99999")){
-    zone<-dbGetQuery(sim$castordb, "SELECT * FROM zone;") # select the name of the raster and its column name in pixels
-    zone_rx<-rbindlist(lapply(split(zone, seq(nrow(zone))) , function(x){
-      if(nrow(dbGetQuery(sim$castordb, glue::glue("SELECT distinct({x$zone_column}) from pixels where {x$zone_column} is not null;")))>0){
-        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZonePrescriptionTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$castordb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null;"))$zoneid, sep ="", collapse ="," ),");"), conn=sim$dbCreds)
-      }
-    })
-    )
-    
-    rx_list<-merge(zone_rx, zone, by.x = 'reference_zone',by.y = 'reference_zone')
-    dbBegin(sim$castordb)
-    rs<-dbSendQuery(sim$castordb, "INSERT INTO zonePrescription (zoneid, zone_column, reference_zone, zone_column,minHarvestVariable, minHarvestThreshold, start, stop) 
-                      values (:zoneid, :zone_column, :reference_zone,:minharvestvariable, :minharvestthreshold, :start, :stop);", rx_list[,c('zoneid', 'zone_column', 'reference_zone', 'minharvestvariable', 'minharvestthreshold', 'start', 'stop')])
-    dbClearResult(rs)
-    dbCommit(sim$castordb)
-    
-  }
-  return(invisible(sim))
-}
-
 setForestState<-function(sim){ #Basic information about the state of the forest. TODO: modify this to make a more complete netdown
   sim$foreststate<- data.table(dbGetQuery(sim$castordb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
            sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
@@ -1007,7 +1031,17 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
     message("WARNING: scenario not defined, defaulting to 'build_castordb'")
     sim$scenario<-'build_castordb'
   }
-
+  if(!suppliedElsewhere("silvSystem", sim)){ 
+    message("NOTICE: Silvicutural system table set to default")
+    #rest_age is a boolean but sqlite doesn't have boolean operators as of 2024. TRUE and FALSE are simply 1 and 0 respectively.
+    sim$silvSystem<-rbindlist(list(
+      data.table(silvsystem = 0, entry_var = 'age', entry_req = 0, reset_age = 1, transition_silv =0, description = "clearcut, then plant then clearcut", start = 0, stop = 500),
+      data.table(silvsystem = 1, entry_var = 'age', entry_req = 0, reset_age = 1, transition_silv =0, description = "stand replacing fire, then natural regen then clearcut", start = 0, stop = 500),
+      data.table(silvsystem = 2, entry_var = 'age', entry_req = 70, reset_age = 0, transition_silv =0, description = "partial-cut at 80 years, then advanced regen then clearcut", start = 0, stop = 500),
+      data.table(silvsystem = 3, entry_var = 'height', entry_req = 19, reset_age = 0, transition_silv =0, description = "partial-cut at 19 metres, then advanced regen then clearcut", start = 0, stop = 500),
+      data.table(silvsystem = 4, entry_var = 'basalarea', entry_req = 24, reset_age = 0,transition_silv =4, description = "partial-cut when basal area >= 24 m2/ha, then advanced regen then partial-cut when basal area >= 24 m2/ha", start = 0, stop = 500)
+      ))
+  }
   return(invisible(sim))
 }
 

@@ -125,8 +125,10 @@ Init <- function(sim) {
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()) # , harvest_type = character()
  
   #Remove zones as a scenario
-  dbExecute(sim$castordb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "activeZoneConstraint", "forestryCastor"), sep= ' ', collapse = "', '"),"')"))
-  
+  if(!(P(sim, "activeZoneConstraint", "forestryCastor")[1] == '99999')){
+     dbExecute(sim$castordb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "activeZoneConstraint", "forestryCastor"), sep= ' ', collapse = "', '"),"')"))
+  }
+ 
  
   #Create the zoneManagement table used for reporting the harvesting constraints throughout the simulation
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zoneManagement (scenario text, zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric, denom text, start integer, stop integer, percent numeric, timeperiod integer)")
@@ -155,9 +157,10 @@ Init <- function(sim) {
   if(dbGetQuery (sim$castordb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='culvar';")$exists_check == 0){
     # add in the column
     dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN culvar numeric DEFAULT 0")
-    dbExecute(sim$castordb, "create table culvar as  select yieldid, max(tvol/age) as cmai, tvol, age from yields group by yieldid;")
-    dbExecute(sim$castordb, "Update pixels set culvar = culvar.tvol from culvar where culvar.yieldid = pixels.yieldid;")
+    dbExecute(sim$castordb, "create table IF NOT EXISTS culvar as  select yieldid, max(tvol/age) as cmai, tvol, age from yields group by yieldid;")
   }
+  dbExecute(sim$castordb, "Update pixels set culvar = culvar.tvol from culvar where culvar.yieldid = pixels.yieldid;")
+  
   
   #Set the salvage opportunities
   ##get the salvage volume raster
@@ -212,30 +215,12 @@ setConstraints<- function(sim) {
   nhConstraints<-data.table(merge(dbGetQuery(sim$castordb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh' and start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval)),
                                   dbGetQuery(sim$castordb, "SELECT zone_column, reference_zone FROM zone"), 
                                   by.x = "reference_zone", by.y = "reference_zone"))
+  #For stands that are going to be partially cut
+  dbExecute(sim$castordb, "UPDATE pixels SET zone_const = 1 WHERE silvsystem > 1")
   
   if(nrow(nhConstraints) > 0 ){
     nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
     dbExecute(sim$castordb, paste0("UPDATE pixels SET zone_const = 1 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
-  }
-  
-  if(nrow(dbGetQuery(sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='zonePrescription'")) > 0){
-    nhPrescriptions<-data.table(merge(dbGetQuery(sim$castordb, paste0("SELECT  zoneid, reference_zone, minHarvestVariable, minHarvestThreshold FROM zonePrescription WHERE start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval)),
-                                    dbGetQuery(sim$castordb, "SELECT zone_column, reference_zone FROM zone"), 
-                                    by.x = "reference_zone", by.y = "reference_zone"))#For each zone, zoneid, variable
-    
-    nhPrescriptions<-nhPrescriptions[complete.cases(nhPrescriptions),]#Remove rows that have NA
-    if(nrow(nhPrescriptions) > 0 ){
-      #set up a parameterized query need a list by zone_column, minHarvestVariable
-      nhPrescriptions[, id:= paste0(zone_column, minHarvestVariable)]
-      setPrescriptions<-split(nhPrescriptions, nhPrescriptions$id)
-      rs_batch<-lapply(setPrescriptions, function(x){
-        sql <- paste0("UPDATE pixels SET zone_const = 1 where ", x$zone_column[1], " = :zoneid and ", x$minHarvestVariable[1], " < :minHarvestThreshold")
-        dbBegin(sim$castordb)
-        rs<-dbSendQuery(sim$castordb, sql, x[,c("zoneid", "minHarvestThreshold")])
-        dbClearResult(rs)
-        dbCommit(sim$castordb)
-      })
-    }
   }
   
   #Get the zones that are listed for this specific scenario
@@ -467,13 +452,13 @@ simHarvestQueue <- function(sim) {
   #Objects that need appending 
   sim$harvestPixelList <- data.table()
   land_pixels <- data.table()
-  
+  #browser()
   ras.h.blocks<-sim$harvestSchedule[[paste0("hsq_", time(sim)*sim$updateInterval)]]
   h.blocks<-data.table(blockid = ras.h.blocks[])[, pixelid:=seq_len(.N)]
   setnames(h.blocks, c("blockid", "pixelid"))
   h.blocks<-h.blocks[!is.na(blockid),]
   
-  h.blocks.attributes<-merge(h.blocks, data.table(dbGetQuery(sim$castordb, paste0("select compartid, pixelid, vol as vol_h, height, thlb, age, dist, elv from pixels where pixelid in (", paste(unique(h.blocks$pixelid), collapse = ", "), ");"))), by.x = "pixelid", by.y ="pixelid", all.x=T)
+  h.blocks.attributes<-merge(h.blocks, data.table(dbGetQuery(sim$castordb, paste0("select compartid, pixelid, vol as vol_h, height, thlb, age, dist, elv, silvsystem from pixels where pixelid in (", paste(unique(h.blocks$pixelid), collapse = ", "), ");"))), by.x = "pixelid", by.y ="pixelid", all.x=T)
   sim$harvestPixelList <-  rbindlist(list(sim$harvestPixelList, h.blocks.attributes[,c("blockid", "pixelid", "dist", "vol_h")]), use.names = TRUE ) 
   
   h.blocks.attributes[ ,tot_thlb:=sum(thlb), by= "compartid"]
@@ -496,8 +481,15 @@ simHarvestQueue <- function(sim) {
   sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
   
   
+  #Resetting the age to zero - clear cutting prescriptions
   dbBegin(sim$castordb)
-  rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", h.blocks[, "pixelid"])
+  rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", h.blocks.attributes[silvsystem <= 1, "pixelid"])
+  dbClearResult(rs)
+  dbCommit(sim$castordb)
+  
+  #NOT resetting the age to zero - alternative prescriptions
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET yieldid = yieldid_trans WHERE pixelid = :pixelid", h.blocks.attributes[silvsystem > 1, "pixelid"])
   dbClearResult(rs)
   dbCommit(sim$castordb)
   
@@ -541,8 +533,34 @@ getHarvestQueue <- function(sim) {
         partition_sql<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
         partition_case<-""
       }
+      browser()
+      #Queue pixels for silvicultural treatments that are committed
+      silv_candidates<-data.table(dbGetQuery(sim$castordb, paste0("WITH cte as (SELECT pixelid, thlb, vol, blockid, age, height, basalarea, silvsystem from pixels where silvSystem > 1) 
+      select pixelid, thlb*vol as hvol, blockid, age, height, basalarea, cte.silvsystem, entry_var, entry_req, 
+                                                         reset_age, transition_silv, (case when entry_var = 'age' and age >= entry_req then 1 
+                                                         when entry_var = 'basalarea' and basalarea >= entry_req then 1 
+                                                         when entry_var = 'height' and height >= entry_req then 1 else 0 end) as entry 
+                                                         from cte 
+                                                         left join silvSystem s on cte.silvsystem =s.silvsystem 
+                                                         where start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval," and entry =1;")))
+      if(nrow(silv_candidates) > 0){
+        #TODO:
+        #Add to harvest volume bin and make a landing for roads
+        
+        partcut_queue<-silv_candidates
+        #Update pixels forest attribution, silvsystem and yieldid_trans
+        dbBegin(sim$castordb)
+        rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET yieldid = yieldid_trans, silvsystem = :transition_silv WHERE pixelid = :pixelid", silv_candidates[, c("pixelid", "transition_silv")])
+        dbClearResult(rs)
+        dbCommit(sim$castordb)
+        
+        dbExecute(sim$castordb, paste0("Update pixels set yieldid_trans = transitions.yieldid_to from transitions where transitions.yieldid_from = pixels.yieldid_trans AND pixels.pixelid in(",paste(silv_candidates$pixelid, collapse = ", "),");"))
+
+      }else{
+        partcut_queue<-NULL
+      }
       
-      #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
+      #Queue pixels for clear-cut harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
       if(!P(sim, "harvestZonePriority","forestryCastor")== '99999'){
         message(paste0("Using zone priority: ",P(sim, "harvestZonePriority","forestryCastor") ))
         name.zone.priority<-dbGetQuery(sim$castordb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "nameZonePriorityRaster", "dataCastor"),"'"))$zone_column

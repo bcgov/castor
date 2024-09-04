@@ -183,6 +183,12 @@ return(invisible(sim))
 
 setBlocksTable <- function(sim) {
   message("set the blocks table")
+  if(dbGetQuery (sim$castordb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='culvar';")$exists_check == 0){
+    # add in the column
+    dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN culvar numeric DEFAULT 0")
+    dbExecute(sim$castordb, "create table IF NOT EXISTS culvar as  select yieldid, max(tvol/age) as cmai, tvol, age from yields group by yieldid;")
+  }
+  
   dbExecute(sim$castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
   dbExecute(sim$castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL")) 
   # Use "(CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing" to get set landing as pixel
@@ -290,7 +296,6 @@ preBlock <- function(sim) {
   islands<-list() #create an empty list to add pixels that are islands and don't connect to the graph
 
   for(zone in zones){
-    
     message(paste0("loading--", zone))
     vertices<-data.table(dbGetQuery(sim$castordb,
           paste0("SELECT pixelid FROM pixels where thlb > 0 AND blockid = 0 and ", patchSizeZone, " = ", zone, ";")))
@@ -315,9 +320,12 @@ preBlock <- function(sim) {
     
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
       paths.matrix[, V1 := as.integer(V1)][, V2 := as.integer(V2)]
-      
+
       #get patch size distribution by natural disturbance type
       natDT <- dbGetQuery(sim$castordb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "patchZone", "blockingCastor"), "' AND zoneid = ", zone))
+      if(nrow(natDT) == 0) {
+        stop(message("patchZone is not in the zoneContraints table"))
+      }
       targetNum <- sim$patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
   
