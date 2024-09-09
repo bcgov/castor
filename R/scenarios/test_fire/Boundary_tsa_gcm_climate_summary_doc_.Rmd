@@ -1,5 +1,5 @@
 ---
-title: Comparison between fireCastor results from actual and predicted climate and actual number of fires in the Boundary TSA for the year 2023
+title: Results from 10 000 reps of fireCastor when run using actual and predicted climate for the year 2023 in the Boundary TSA
 author: "Elizabeth Kleynhans"
 date: "2024-07-16"
 output:
@@ -16,8 +16,8 @@ knitr::opts_chunk$set(echo = FALSE,
                       warning = FALSE,
                       message = FALSE,
                       fig.align = "left",
-                      fig.width = 4, 
-                      fig.height = 4, 
+                      #fig.width = 5, 
+                      #fig.height = 4, 
                       dev = "png",
                       cache = TRUE)
 ```
@@ -27,78 +27,106 @@ knitr::opts_chunk$set(echo = FALSE,
 
 library(data.table)
 library(RSQLite)
-library(terra)
-library(raster)
-require (dplyr)
-library(bcdata)
 library(ggplot2)
+library(cowplot)
+library(dplyr)
 source (here::here("R/functions/R_Postgres.R"))
 ```
 
 ## Introduction
-To test whether fireCastor is performing accurately we used fireCastor to simulate fires started by lightning in the Boundary TSA for the year 2023. Vegetation data from the 2022 VRI and climate data from climr for the year 2023 were used as inputs into fireCastor. Then 10 000 simulations were performed to get distributions of the number of ignitions and total area burned in the Boundary TSA. These simulation results we compare to actual burn data from lightning caused fires for the year 2023 in the same area. 
+We used fire Castor to predict number of ignitions, fire size, and areas burned when climate data was extracted from two different runs of two different GCM's (MPI-ESM1-2-HR and CanESM2) at SSP 2-4.5 and compared these results to simulations run on the actual climate data for the year 2023. This comparison give us an idea of how different the predicted climate is from the observed climate and how different each GCM run is to the others as well as to the actual observed climate. Lastly, it also helps us understand how climate impacts fireCastor and the prediction of fires. As before vegetation data from the 2022 VRI was used as inputs into fireCastor. 10 000 simulations were performed to get distributions of the number of ignitions and total area burned in the Boundary TSA. These simulation results were also compared to actual burn data from lightning caused fires for the year 2023 in the same area. 
 
-## Actual fire data for the Boundary TSA in 2023
-
-In 2023 there were only three fires larger than 1ha that were started by lightning in the Boundary TSA. These three fires were all small (1.7ha, 1.8ha, and 3.3ha). Figure 1 is a map of the actual locations of the three fires. 
-```{r boundary_map, echo=FALSE, fig.cap = "**Figure 1.** Map of Boundary TSA with the locations of actual fires caused by lightning in 2023"}
-# get latest data off BCGW
-
-study_area<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM public.boundary_tsa where tsa_name in ('Boundary TSA')")
-
-study_area<-st_transform (study_area, 3005)
-
-perimeters<-try(
-  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_FIRE_POLYS_SP") %>%
-    filter(FIRE_YEAR > 2022) %>%
-    collect()
-)
-perimeters<-st_transform (perimeters, 3005)
-perimeters<-perimeters %>% filter( FIRE_SIZE_HECTARES > 1 & FIRE_CAUSE == "Lightning")
-perim_subset <- perimeters[study_area, ]
-#hist(perim_subset$FIRE_SIZE_HECTARES)
-perim_subset_total<-sum(perim_subset$FIRE_SIZE_HECTARES)
+## Observed and predicted climate data for 2023
 
 
-ignitions<- try(
-  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-    filter(FIRE_YEAR > 2022) %>%
-    collect()
-)
+```{r, climate_data, fig.cap = "**Figure 1.** Climate data obtained from ClimR for two runs of two GCM's and compared to the observed climate data for the year 2023 in the Boundary TSA."}
+# plot the number of times burned on the landscap
 
-ignit<-st_transform (ignitions, 3005)
-ignit<-ignit %>% filter( FIRE_CAUSE == "Lightning" & FIRE_NUMBER %in% c("N52826","N60465", "N62590"))
+sqlite <- dbDriver("SQLite")
 
-# get study area
-#ignit_subset <- ignit[study_area, ]
-#hist(ignit_subset$CURRENT_SIZE)
+castordb1 <- dbConnect(sqlite,"C:/Work/caribou/castor/R/scenarios/test_fire/boundary_climate_canesm_ssp245_r1_2023_castordb.sqlite")
+climatedat1<-dbGetQuery(castordb1, "SELECT * from climate_canesm_ssp245")
+climatedat1<-data.table(climatedat1)
+climatedat1<-climatedat1[period==2023,]
+canesm<-climatedat1[,c("gcm", "run", "cmi", "cmi3yr", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "ppt_04", "ppt_05", "ppt_06","ppt_07", "ppt_08")]
+canesm<- canesm[run %in% c("r1i1p1f1", "r2i1p1f1"),]
 
-ggplot() +
-  geom_sf(data=study_area) + 
-  geom_sf(data=ignit) +
-  geom_sf(data = perim_subset, col = "red")
+castordb2 <- dbConnect(sqlite,"C:/Work/caribou/castor/R/scenarios/test_fire/boundary_tsa_fire_test_12July24_castordb.sqlite")
+#dbListTables(castordb2)
+climatedat2<-dbGetQuery(castordb2, "SELECT * from climate_climatena_none")
+climatedat2<-data.table(climatedat2)
+climatedat2<-climatedat2[period==2023,]
+climatedat2$gcm<-"observed"
+
+observed<-climatedat2[,c("gcm", "run", "cmi", "cmi3yr", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "ppt_04", "ppt_05", "ppt_06","ppt_07", "ppt_08")]
+
+castordb3 <- dbConnect(sqlite,"C:/Work/caribou/castor/R/scenarios/test_fire/boundary_climate_mpi_ssp245_r2_2023_castordb.sqlite")
+climatedat3<-dbGetQuery(castordb3, "SELECT * from climate_mpi_ssp245")
+climatedat3<-data.table(climatedat3)
+climatedat3<-climatedat3[period==2023,]
+mpi<-climatedat3[,c("gcm", "run", "cmi", "cmi3yr", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "ppt_04", "ppt_05", "ppt_06","ppt_07", "ppt_08")]
+mpi<- mpi[run %in% c("r1i1p1f1", "r2i1p1f1"),]
+
+dat<-rbind(canesm, mpi)
+dat<-rbind(dat, observed)
+#table(dat$gcm)
+dat$cmi<-as.numeric(dat$cmi)
+
+
+p1 <- ggplot(dat, aes(x=gcm, y=cmi, fill=run)) + 
+  geom_boxplot()+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank()) + ylab("cmi") +
+  theme(legend.position="none")
+
+p2 <- ggplot(dat, aes(x=gcm, y=cmi3yr, fill=run)) + 
+  geom_boxplot()+theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank()) + ylab("cmi3yr") 
+#+
+ # theme(legend.position="none")
+
+dat[, tmax_07_08:=(tmax_07+tmax_08)/2]
+p3 <- ggplot(dat, aes(x=gcm, y=tmax_07_08,  fill=run)) + 
+  geom_boxplot()+
+  labs(x = "GCM", y = "Tmax 07_08") +
+  theme(legend.position="none")
+
+dat[, ppt_07_08:=(ppt_07+ppt_08)/2]
+p4 <- ggplot(dat, aes(x=gcm, y=ppt_07_08, fill=run)) + 
+  geom_boxplot()+
+  labs(x = "GCM", y = "ppt_07_08") +
+  theme(legend.position="none")
+
+dat[, tmax_04_05_06:=(tmax_04+tmax_05+tmax_06)/3]
+p5 <- ggplot(dat, aes(x=gcm, y=tmax_04_05_06, fill=run)) + 
+  geom_boxplot()+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank()) +
+  ylab("Tmax 04_05_06") +
+  theme(legend.position="none")
+
+dat[, ppt_04_05_06:=(ppt_04+ppt_05+ppt_06)/3]
+p6 <- ggplot(dat, aes(x=gcm, y=ppt_04_05_06, fill=run)) + 
+  geom_boxplot()+theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank()) + ylab ("ppt_04_05_06") +
+  theme(legend.position="none")
+
+plot_grid(p1,p2,p5,p6,p3,p4, labels="AUTO",ncol = 2, align = 'v')
+
 
 ```
+
+
+
 ## FireCastor results
 
-Using the observed climate data fireCastor simulated on average 4.5 ignitions per run although this number varied between 1 and 14 ignitions across all reps (figure 2).  
+In general number of ignitions was predicted to be low in the Boundary TSA and was moderately well predicted by fireCastor with all climate model inputs (figure 2). Interestingly, area burned was best predicted by CanESM_r1 (figure 3). When you look at the climate data for this model (figure 1) i looks like this model predicted lower temperatures and more precipitation than was geneally observed in this year. This may suggest that climate castor is slightly over estimating 
 
-```{r fireCastor_number_ignitions, fig.cap = "**Figure 2.** Number of ignitions simulated by fireCastor using the observed climate as input in the Boundary TSA for the year 2023. The the actual number of ignitions observed is represented by the black dashed line."}
+```{r fireCastor_number_ignitions, fig.cap = "**Figure 2.** Number of ignitions simulated by fireCastor when using climate data obtained from two different runs of two different GCMs and the observed climate relative to the actual number of ignitions observed (black dashed) in the Boundary TSA for the year 2023"}
 fireReportForReps_test <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/outputs/fireReportForReps_test_1.rds")
 fireReportForReps_test<-data.table(fireReportForReps_test)
 fireReportForReps_test[, gcm:="observed"]
 
-fireReportForReps_test$numberstarts<-as.numeric(fireReportForReps_test$numberstarts)
-
-ggplot(fireReportForReps_test, (aes(x=numberstarts, y = ..density..))) +
-  geom_histogram(bins = 14, fill = "#B3E4F7")+
-  geom_density(  adjust = 5) + 
-  #xlim(0,10000)+
-  geom_vline(aes(xintercept=3), color="black", linetype="dashed", size=0.75) +
-  labs(x = "Number of ignitions", y = "Density")
-```
-
-```{r fireCastor_number_ignitions, fig.cap = "**Figure 2.** Number of ignitions simulated by fireCastor relative to the actual number of ignitions observed (black dashed) in the Boundary TSA for the year 2023"}
 fireReportForReps_test_1 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/CanESM_ssp245_boundaryTSA/outputs/fireReportForReps_CanESM_ssp245_r1i1p1f1_1.rds")
 
 fireReportForReps_test_2 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/CanESM_ssp245_boundaryTSA/outputs/fireReportForReps_CanESM_ssp245_r2i1p1f1_1.rds")
@@ -108,124 +136,66 @@ fireReportForReps_test_3 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fir
 fireReportForReps_test_4 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/mpi_ssp245_boundaryTSA/outputs/fireReportForReps_MPI_ssp245_r1i1p1f1_1.rds")
 
 fireReportForReps_test_1<-data.table(fireReportForReps_test_1)
-fireReportForReps_test_1[, gcm:="CanESM_ssp245_r1"]
+fireReportForReps_test_1[, gcm:="CanESM_r1"]
 fireReportForReps_test_2<-data.table(fireReportForReps_test_2)
-fireReportForReps_test_2[, gcm:="CanESM_ssp245_r2"]
+fireReportForReps_test_2[, gcm:="CanESM_r2"]
 fireReportForReps_test_3<-data.table(fireReportForReps_test_3)
-fireReportForReps_test_3[, gcm:="MPI_ssp245_r2"]
+fireReportForReps_test_3[, gcm:="MPI_r2"]
 fireReportForReps_test_4<-data.table(fireReportForReps_test_4)
-fireReportForReps_test_4[, gcm:="MPI_ssp245_r1"]
+fireReportForReps_test_4[, gcm:="MPI_r1"]
 
 dat1<-bind_rows(list(fireReportForReps_test, fireReportForReps_test_1, fireReportForReps_test_2, fireReportForReps_test_3, fireReportForReps_test_4))
 
 
 dat1$numberstarts<-as.numeric(dat1$numberstarts)
 
-ggplot(dat1, aes(x=numberstarts,y = ..density.., color=gcm, fill=gcm)) +
-  geom_density(adjust=5, alpha=0.2) + 
-  #xlim(0,10000)+
-  geom_vline(aes(xintercept=3), color="black", linetype="dashed", size=0.75) +
-  labs(x = "Number of ignitions", y = "Density")
+# Basic box plot
+p <- ggplot(dat1, aes(x=gcm, y=numberstarts)) + 
+  geom_boxplot()+
+  geom_hline(aes(yintercept = 3),colour = "blue", linetype="dashed", size=0.5) +
+  labs(x = "climate data", y = "Number of ignitions")
+p
 
 
 ```
 
-The fire sizes simulated by fire castor ranged between 1ha and 1 238 677 ha with the median being 23 ha. The average fire size observed in Boundary in 2023 was 2.3h which is essentially the same as the most commonly simulated fire size (2ha) by fireCastor (figure 3).
-```{r individual_firesize, fig.cap = "**Figure 3.** Distribution of fire sizes simulated by fireCastor. The average actual fire size observed in Boundary TSA in 2023 is represented by the dashed black line. Note the x-axis was cut off at 150 ha so that the distribution of smaller fire sizes could be more clearly seen."}
+```{r individual_firesize, fig.cap = "**Figure 3.** Distribution of fire sizes simulated by fireCastor. The average actual fire size observed in Boundary TSA in 2023 is represented by the dashed black line. Note that area burned in on a log  scale"}
 firesize<-readRDS("C:\\Work\\caribou\\castor\\R\\scenarios\\test_fire\\outputs\\perFireReportForReps_test_1.rds")
 
-#summary(firesize$areaburned_estimated)
-#hist(firesize$areaburned_estimated, breaks = 100)
+firesize_can_esm_r1 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/CanESM_ssp245_boundaryTSA/outputs/perFireReportForReps_CanESM_ssp245_r1i1p1f1_1.rds")
 
-ggplot(data=firesize, (aes(x=areaburned_estimated, y=..density..))) +  
-  geom_histogram(bins = 150, fill = "#B3E4F7")+
-  geom_density() + 
-  xlim(0,150)+
-  geom_vline(aes(xintercept=2.3), color="black", linetype="dashed", size=0.75) +
-  labs(x = "Simulated size of individual fires", y = "Density")
+firesize_can_esm_r2 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/CanESM_ssp245_boundaryTSA/outputs/perFireReportForReps_CanESM_ssp245_r2i1p1f1_1.rds")
 
-```
+firesize_mpi_r1 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/mpi_ssp245_boundaryTSA/outputs/perFireReportForReps_MPI_ssp245_r1i1p1f1_1.rds")
 
-Similar to fire size the total area burned during a single simulation of fireCastor varied significantly with the minimum area burned being 1ha, the maximum being 1 240 711 ha and the median being 818ha (figure 4).  
-```{r, fig.cap="**Figure 4.** Simulated total area burned during a single rep with actual area burned represented by the dashed black line."}
+firesize_mpi_r2 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/mpi_ssp245_boundaryTSA/outputs/perFireReportForReps_MPI_ssp245_r2i1p1f1_1.rds")
+
+firesize<-data.table(firesize)
+firesize[, gcm:="observed"]
+firesize_can_esm_r1<-data.table(firesize_can_esm_r1)
+firesize_can_esm_r1[, gcm:="CanESM_r1"]
+firesize_can_esm_r2<-data.table(firesize_can_esm_r2)
+firesize_can_esm_r2[, gcm:="CanESM_r2"]
+firesize_mpi_r2<-data.table(firesize_mpi_r2)
+firesize_mpi_r2[, gcm:="MPI_r2"]
+firesize_mpi_r1<-data.table(firesize_mpi_r1)
+firesize_mpi_r1[, gcm:="MPI_r1"]
+
+dat1<-bind_rows(list(firesize, firesize_can_esm_r1, firesize_can_esm_r2, firesize_mpi_r2, firesize_mpi_r1))
 
 
-total_area_burned<- fireReportForReps_test[ ,list(sum=sum(areaburned_estimated)), by=rep]
+dat1$areaburned_estimated<-as.numeric(dat1$areaburned_estimated)
+dat1$log_areaburned<-log(dat1$areaburned_estimated)
 
-ggplot(data=total_area_burned, (aes(x=sum, y=..density..))) +  
-  geom_histogram(bins = 150, fill = "#B3E4F7")+
-  geom_density() + 
-  xlim(0,2000)+
-  geom_vline(aes(xintercept=perim_subset_total), color="black", linetype="dashed", size=0.75) +
-  labs(x = "Simulated total area burned in 2023", y = "Density")
-
-# summary(fireReportForReps_test_1$totalareaburned)
-# 
-# 
-# 
-# total_area_burned<- firesize[ ,list(sum=sum(areaburned_estimated)), by=rep]
-# summary(meanAreaBurned)
-# 
-# hist(total_area_burned$sum, breaks = 100)
-# plot(
-#   density(total_area_burned$sum ), 
-#   main="Density Plot of Total Area burned",
-#   xlab="Area (ha)", ylab="Density",
-#   xlim=c(0, 30000)
-#   )
-# 
-# ggplot(data=total_area_burned) +    
-#   geom_histogram(aes(x=sum), fill = "grey70", boundary =0, binwidth = 20) + 
-#   xlim(0,5000)+
-#   geom_vline(aes(xintercept=perim_subset_total), color="black", linetype="dashed", size=0.75)
-# 
-# ggplot(data=total_area_burned) +    
-#   geom_density(aes(x=sum), fill = "grey70", boundary =0, binwidth = 20) + 
-#   xlim(0,10000)+
-#   geom_vline(aes(xintercept=perim_subset_total), color="black", linetype="dashed", size=0.75) +
-#   labs(x = "Total area burned", y = "Y-axis title")
-# 
-# ggplot(data=meanAreaBurned) +    
-#   geom_histogram(aes(x=mean), fill = "grey70", boundary =0, binwidth = 20) + 
-#   xlim(0,3000)+
-#   geom_vline(aes(xintercept=perim_subset_total), color="black", linetype="dashed", size=0.75)
-#   
-# 
-# plot(
-#   density(meanAreaBurned$mean ), 
-#   main="Density Plot of mean Area burned",
-#   xlab="Area (ha)", ylab="Density",
-#   xlim = c(0,8000)
-#   )
-# 
-# mean(total_area_burned$sum)
-# sd(total_area_burned$sum)
+# Basic box plot
+p <- ggplot(dat1, aes(x=gcm, y=log_areaburned)) + 
+  geom_boxplot()+
+  #ylim(0,10)+
+  geom_hline(aes(yintercept = log(3)),colour = "blue", linetype="dashed", size=0.5) +
+  labs(x = "climate data", y = "Log area burned")
+p
 
 
 ```
 
 
-Because the simulation is repeated 10 000 times we can examine which areas on the landscape have a higher probability of burning because they burned more frequently across all the simulations. 
-
-```{r, fig.cap= "**Figure 5.** Location of areas with highest probability of burning from 10 000 simulations of fire in the Boundary TSA for the year 2023"}
-#import RDS file
-y<-readRDS("C:\\Work\\caribou\\castor\\R\\scenarios\\test_fire\\outputs\\firedisturbanceTableForReps_1.rds")
-y<-data.table(y)
-y<-y[order(pixelid)]
-
-# plot the number of times burned on the landscap
-
-sqlite <- dbDriver("SQLite")
-
-castordb <- dbConnect(sqlite,"C:/Work/caribou/castor/R/scenarios/test_fire/boundary_tsa_fire_test_12July24_castordb.sqlite")
-ras.info<-dbGetQuery(castordb, "Select * from raster_info limit 1;")
-areaBurned<-raster::raster(xmn=ras.info$xmin, xmx =ras.info$xmax, ymn=ras.info$ymin, ymx=ras.info$ymax, nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow,crs="+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs", vals =0)
-    
-areaBurned[]<-(y$numberTimesBurned/y$reps)
-#ignit_subset2<-ignit_subset[,c("CURRENT_SIZE", "geometry")]
-
-plot(areaBurned)
-plot(study_area,  col=NA, add=TRUE)
-plot(ignit, add=TRUE, col="black", pch=1,type="p", bg=1)
-
-```
