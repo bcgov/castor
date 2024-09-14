@@ -57,29 +57,50 @@ parameters <- list(FLEX = list (female_max_age = 9,
 modules <- list ("FLEX")
 #female_hr_table <- data.table (fisher_pop = c (1:4),  hr_mean = c (1500, 1500, 2100, 1500),hr_sd = c (500, 500, 500, 500))
 survival_rate_table<-rbindlist(list(
-      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
+      data.table (fisher_pop = c (1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4),
                   type = "Established",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.95, 0.9, 0.95, 0.2,  0.95, 0.9, 0.95, 0.2, 0.95, 0.9, 0.95, 0.2, 0.95, 0.9, 0.95,0.2),
-                  SD = c (0.1,0.1,0.1,0.1,0.01,0.01,0.01,0.01,0.01, 0.0,0.01,0.01,0.1,0.1,0.1,0.1)), 
-      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
+                  Mean = c (0.86, 0.50, 0.8, 0.2,  
+                            0.79, 0.41, 0.7, 0.2, 
+                            0.79, 0.41, 0.7, 0.2, 
+                            0.79, 0.41, 0.7, 0.2),
+                  SD = c (0.1,0.2,0.1,0.1, 
+                          0.1,0.2,0.1,0.1, 
+                          0.1,0.2,0.1,0.1, 
+                          0.1,0.2,0.1,0.1)), 
+      data.table (fisher_pop = c (1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4),
                   type = "Disperser",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.95, 0.9, 0.95, 0.2,  0.95, 0.9, 0.95, 0.2, 0.95, 0.9, 0.95, 0.2, 0.95, 0.9, 0.95, 0.2),
-                  SD = c (0.1,0.1,0.1,0.1,0.01,0.01,0.01,0.01,0.01, 0.01,0.01,0.01,0.1,0.1,0.1,0.1))
+                  Mean = c (0.76, 0.40, 0.7, 0.1,  
+                            0.69, 0.31, 0.6, 0.1, 
+                            0.69, 0.31, 0.6, 0.1, 
+                            0.69, 0.31, 0.6, 0.1),
+                  SD = c (0.1,0.2,0.1,0.1, 
+                          0.1,0.2,0.1,0.1, 
+                          0.1,0.2,0.1,0.1, 
+                          0.1,0.2,0.1,0.1)) 
                                 ))
 
 female_hr_table <- data.table (fisher_pop = c (1:4), 
-                                     hr_mean = c (3000, 3000, 3500, 3000),
-                                     hr_sd = c (500, 500, 500, 500)) 
+                                     # hr_mean = c (3000, 3000, 4500, 3000), 
+                                     hr_mean = c (2880, 2920, 4340, 4530), # actual mean
+                                     # hr_sd = c (500, 500, 500, 500),
+                                     hr_sd = c (482, 460, 1120, 571)) # actual SE
+
+repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
+                                      Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
+                                      Mean = c(0.75,2.6, 0.54,1.7, 0.54,1.7, 0.54,1.7),
+                                      SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+
 mySim <- SpaDES.core::simInit(times = times, 
                  params = parameters, 
                  modules = modules,
-                 objects = list(scenario = data.table(name = "test"),survival_rate_table=survival_rate_table,female_hr_table=female_hr_table),
+                 objects = list(scenario = data.table(name = "test"),survival_rate_table=survival_rate_table,female_hr_table=female_hr_table, repro_rate_table=repro_rate_table),
                  paths = paths)
 
 SpaDES.core::outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
 mySimOut <- SpaDES.core::spades(mySim)
+mySimOut$fisherABMReport
 #experiment(mySim, replicates = 2)
 ```
 
