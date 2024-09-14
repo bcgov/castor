@@ -981,8 +981,10 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
   }
   if(!suppliedElsewhere("female_hr_table", sim)){
     sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
-                                     hr_mean = c (3000, 3000, 4500, 3000),
-                                     hr_sd = c (500, 500, 500, 500)) # updating to more realistic SD (higher for SBD but then crashes)
+                                     # hr_mean = c (3000, 3000, 4500, 3000), 
+                                     hr_mean = c (2880, 2920, 4340, 4530), # actual mean
+                                     # hr_sd = c (500, 500, 500, 500),
+                                     hr_sd = c (482, 460, 1120, 571)) # actual SE
   }
   if(!suppliedElsewhere("mahal_metric_table", sim)){
   sim$mahal_metric_table <- data.table (FHE_zone = c ("Boreal", "Sub-Boreal moist", "Sub-Boreal dry", "Dry Forest"),
