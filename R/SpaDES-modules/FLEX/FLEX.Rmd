@@ -40,7 +40,7 @@ paths <- list(
 
 times <- list (start = 0, end = 3)
 
-parameters <- list(FLEX = list (female_max_age = 9,
+parameters <- list(FLEX = list (female_max_age = 12, # updating to make max age more dependent on survival rates
                                 reproductive_age = 2,
                                 burnInLength = 5,
                                 sex_ratio = 0.5,
@@ -60,25 +60,17 @@ survival_rate_table<-rbindlist(list(
       data.table (fisher_pop = c (1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4),
                   type = "Established",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.86, 0.50, 0.8, 0.2,  
-                            0.79, 0.41, 0.7, 0.2, 
-                            0.79, 0.41, 0.7, 0.2, 
-                            0.79, 0.41, 0.7, 0.2),
-                  SD = c (0.1,0.2,0.1,0.1, 
-                          0.1,0.2,0.1,0.1, 
-                          0.1,0.2,0.1,0.1, 
-                          0.1,0.2,0.1,0.1)), 
+                  # Mean = c (0.86, 0.50, 0.8, 0.2,  0.79, 0.41, 0.7, 0.2,  0.79, 0.41, 0.7, 0.2,  0.79, 0.41, 0.7, 0.2), #Lofroth 2022
+                  # Mean = c (0.95, 0.55, 0.88, 0.22,
+                  # 0.87, 0.45, 0.77, 0.22,  0.87, 0.45, 0.77, 0.22,  0.87, 0.45, 0.77, 0.22), #Fogarty 2022 - no trap
+                  Mean = c (0.95, 0.55, 0.88, 0.22,
+                  0.95, 0.50, 0.85, 0.24,  0.95, 0.50, 0.85, 0.24,  0.95, 0.50, 0.85, 0.24), #Fogarty 2022 - no trap + 10% for Columbian
+                  SD = c (0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1)), 
       data.table (fisher_pop = c (1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4),
                   type = "Disperser",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.76, 0.40, 0.7, 0.1,  
-                            0.69, 0.31, 0.6, 0.1, 
-                            0.69, 0.31, 0.6, 0.1, 
-                            0.69, 0.31, 0.6, 0.1),
-                  SD = c (0.1,0.2,0.1,0.1, 
-                          0.1,0.2,0.1,0.1, 
-                          0.1,0.2,0.1,0.1, 
-                          0.1,0.2,0.1,0.1)) 
+                  Mean = c (0.76, 0.40, 0.7, 0.1,   0.69, 0.31, 0.6, 0.1, 0.69, 0.31, 0.6, 0.1, 0.69, 0.31, 0.6, 0.1),
+                  SD = c (0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1)) 
                                 ))
 
 female_hr_table <- data.table (fisher_pop = c (1:4), 
@@ -88,9 +80,11 @@ female_hr_table <- data.table (fisher_pop = c (1:4),
                                      hr_sd = c (482, 460, 1120, 571)) # actual SE
 
 repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
-                                      Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
-                                      Mean = c(0.75,2.6, 0.54,1.7, 0.54,1.7, 0.54,1.7),
-                                      SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+                                Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
+                                # Mean = c(0.75,2.6, 0.54,1.7, 0.54,1.7, 0.54,1.7), # Lofroth 2022
+                                Mean = c(0.75,2.6, 0.59,1.9, 0.59,1.9, 0.59,1.9), # Fograty 2022 (+10% for Columbian)
+                                # Mean = c(0.75,2.6, 0.65,2.0, 0.65,2.0, 0.65,2.0), # Fograty 2022 (20% for Columbian)
+                                SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
 
 mySim <- SpaDES.core::simInit(times = times, 
                  params = parameters, 
