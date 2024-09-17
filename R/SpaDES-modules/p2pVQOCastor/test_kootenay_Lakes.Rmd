@@ -109,4 +109,6 @@ ras.percentage<-ras
 ras.threshold<-ras
 ras.percentage[cs_rs$pixelid]<-cs_rs$percentage
 ras.threshold[cs_rs$pixelid]<-cs_rs$threshold
+writeRaster(ras.percentage, "koots_vqo_pct_allowable.tif")
+writeRaster(ras.threshold, "koots_vqo_veg.tif")
 ```
