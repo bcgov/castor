@@ -44,7 +44,7 @@ doEvent.p2pVQOCastor = function(sim, eventTime, eventType) {
     eventType,
     init = {
       #Checks
-      if(nrow(dbGetQuery(sim$castordb, glue::glue("Select * from zone where reference_zone =", P(sim, "nameVQORaster","p2pVQOCastor")))) == 0){
+      if(nrow(dbGetQuery(sim$castordb, glue::glue("Select * from zone where reference_zone ='", P(sim, "nameVQORaster","p2pVQOCastor"), "';"))) == 0){
         stop(paste0("ERROR: The raster:", P(sim, "nameVQORaster","p2pVQOCastor"), " is not listed in the zone table"))
       }
       
@@ -57,6 +57,7 @@ doEvent.p2pVQOCastor = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
+  
   if(!(P(sim, "nameSlopeRaster", "p2pVQOCastor") == '99999')){
     message(paste0('..getting slope for VQO adjustment: ',P(sim, "nameSlopeRaster", "p2pVQOCastor")))
     ras.slope <- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
@@ -72,25 +73,33 @@ Init <- function(sim) {
   if(terra::ext(sim$ras) == terra::ext(ras.slope)){
     #get the slopes for each pixels
     slope_vqo<-data.table(slope = ras.slope[])
+    names(slope_vqo) <- "slope" 
     slope_vqo[, pixelid := seq_len(.N)]
     
-    nameVqoColumn<-dbGetQuery(sim$castordb, glue::glue("Select zone_column from zone where reference_zone =", P(sim, "nameVQORaster","p2pVQOCastor")))
-    vqo_pixels<-data.table(dbGetQuery(sim$castordb, glue::glue("select pixelid, ",nameVqoColumn ," as zoneid from pixels where ", nameVqoColumn," is not null;")))
+    
+    nameVqoColumn<-dbGetQuery(sim$castordb, glue::glue("Select zone_column from zone where reference_zone = '", P(sim, "nameVQORaster","p2pVQOCastor"), "';"))
+    vqo_pixels<-data.table(dbGetQuery(sim$castordb, glue::glue("select pixelid, ",nameVqoColumn$zone_column ," as zoneid from pixels where ", nameVqoColumn$zone_column," is not null;")))
     
     #get the ids that distinguish VQO polygons
     slope_vqo<-merge(slope_vqo, vqo_pixels, by.x = "pixelid", by.y = "pixelid", all.y= TRUE)
     
     #assign slope class each pixel. Remove the last element of the slope_class vector for labeling
-    test[, slope_class := cut(slope, p2pRatios$slope_class, labels = head(p2pRatios$slope_class,-1))]
-    
+    slope_vqo[, slope_bin := cut(slope, sim$p2pRatios$slope_class, labels = head(sim$p2pRatios$slope_class,-1))]
+    slope_vqo[, slope_class := as.numeric(as.character(slope_bin))][is.na(slope_class), slope_class :=0]
+ 
     #get the veg height and p2p ratio
-    slope_vqo<-merge(slope_vqo, p2pRatios, by.x = "slope_class", by.y = "slope_class", all.x= TRUE)
+    slope_vqo<-merge(slope_vqo, sim$p2pRatios, by.x = "slope_class", by.y = "slope_class", all.x= TRUE)
     
     #calculate the area weighted p2p and VEG height
     vqo_adj<-slope_vqo[, .(p2p = mean(p2pRatio), veg = mean(vegHeight)), by = zoneid ]
     
     #Update the zoneConstraint table in the database
-    dbExecute(sim$castordb, "UPDATE zoneConstraints set threshold = :veg, percentage = percentage*:p2p where reference_zone =", P(sim, "nameVQORaster","p2pVQOCastor")," and zoneid =:zoneid;")
+    #browser()
+    dbBegin(sim$castordb)
+      rs<-dbSendQuery(sim$castordb, glue::glue("UPDATE zoneConstraints set threshold = :veg, percentage = percentage*:p2p where reference_zone ='", P(sim, "nameVQORaster","p2pVQOCastor"),"' and zoneid =:zoneid;"),vqo_adj[,c("zoneid", "p2p", "veg")])
+    dbClearResult(rs)
+    dbCommit(sim$castordb)
+
     
   }else{
     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameSlopeRaster", "p2pVQOCastor")))
