@@ -79,7 +79,7 @@ doEvent.FLEX = function(sim, eventTime, eventType) {
       sim <- Init(sim)
       sim <- getInitialFisherHR(sim)
       for (i in 1:P(sim, "burnInLength", "FLEX")) { #What should this order be?
-        sim <- survivalFisher(sim) #overall surival for the year -- remove mothers and unborn kits before the year starts
+        sim <- survivalFisher(sim) #overall survival for the year -- remove mothers and unborn kits before the year starts
         sim <- disperseFisher(sim) #go find a territory if the habitat changed or kits born year previously
         sim <- reproduceFisher(sim) #since territories are established -- can reproduce and have kits age = 0.
         sim <- ageFisher(sim) # age the fisher so the kits are one year starting in the next i
@@ -96,7 +96,7 @@ doEvent.FLEX = function(sim, eventTime, eventType) {
       sim <- checkHabitatNeeds(sim)
       
       for (i in 1:P(sim, "timeInterval", "FLEX")) { #What should this order be?
-        sim <- survivalFisher(sim) #overall surival for the year -- remove mothers and unborn kits before the year starts
+        sim <- survivalFisher(sim) #overall survival for the year -- remove mothers and unborn kits before the year starts
         sim <- disperseFisher(sim) #go find a territory if the habitat changed or kits born year previously
         sim <- plot_territories(sim)
         sim <- reproduceFisher(sim) #since territories are established -- can reproduce and have kits age = 0.
@@ -159,15 +159,13 @@ Init <- function(sim) {
   
   message ("Create fisher agents table and assign values...")
   den.pix <- table.habitat.init [ras_fisher_denning_init == 1, c ("pixelid", "ras_fisher_denning_init")]
-  # sample the pixels where there is denning habitat
-  #den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
-  #use a aggregated raster to find denning pixels to establish
+  #use an aggregated raster to find denning pixels to establish
   den.rast <- terra::subset (sim$raster.stack, grep ("ras_fisher_denning_init", names (sim$raster.stack)))
   
   #POPULATE LANDSCAPE WITH FISHER
   #Get the initial number of fisher from user or estimate. 
   if(P(sim, "initialFisherPop", "FLEX") == 9999 ){ # estimate the initial number of fisher
-   den.rast.ag <- aggregate(den.rast, fact=round(sqrt(mean(sim$female_hr_table$hr_mean)),0)) #fact is the number of pixels to expand by -- so 50 = 60 x 60 ha ~ 3600 ha or 25 km2
+   den.rast.ag <- aggregate(den.rast, fact=50) # fact is the number of pixels to expand by -- so 50 = 60 x 60 ha ~ 3600 ha or 25 km2
    init_n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.01]) # Remove remote areas (i.e., lakes) that have no denning within 2500 ha
   }else{ #use the user specified initial number of fisher
     init_n_fisher <- P(sim, "initialFisherPop", "FLEX")
@@ -179,16 +177,16 @@ Init <- function(sim) {
   #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
   #set.seed(1586) #Useful for testing
   pi <- sampling::inclusionprobabilities(rep(1/nrow(den.pix), nrow(den.pix)), init_n_fisher) #Equal probability. TODO: inclusion probabilities can be based on field data
-  den.samples <- lpm(pi, cbind(den.pix.coords$x, den.pix.coords$y), h = 5000) #Local pivot method using BalancedSampling
+  den.samples <- lpm(pi, cbind(den.pix.coords$x, den.pix.coords$y)) #Local pivot method using BalancedSampling
   denning.starts <- den.pix.coords[den.samples, ]
   
   # create agents table  
   sim$agents <- data.table (individual_id = seq (from = 1, to = nrow (denning.starts), by = 1),
                             sex = "F",
-                            age = sample(x = c(3,4,5,6,7,8,9,10,11,12), nrow (denning.starts), replace = T, prob = c(0.08, 0.08, 0.06, 0.03, 0.02, 0.01,0.0025,0.0025,0.0025,0.0025)), # randomly draw ages from discrete distribution Rich Weir sample data
+                            age = sample(x = c(3,4,5,6,7,8,9,10,11,12), nrow (denning.starts), replace = T, prob = c(0.5,0.05,0.04,0.01,0.01,0.01,0.001,0.001,0.001,0.001)), # randomly draw ages from discrete distribution Rich Weir sample data
                             initialPixels = denning.starts$pixelid,
                             size_achieved = as.numeric(NA))
-  #Add in dispersers age <= 2 years
+  #Add in dispersers age <= 2 years (which account for ~70% of the population)
   n_disp = round((nrow (denning.starts)/(100-(44+27)))*(44+27), 0)
   max_id<- max(sim$agents$individual_id) + 1
   sim$agents<-rbindlist(list(sim$agents, data.table (individual_id = seq (from = max_id , to = (max_id + (n_disp-1)), by = 1),
@@ -312,9 +310,9 @@ disperseFisher<- function(sim){
  
   if (nrow (sim$dispersers) > 0) { # check to make sure there are dispersers
     # ADULTS PREVIOUSLY ESTABLISHED--Allow fisher whose territories have been degraded are allowed to change their territory shape
-    est.fisher<-sim$dispersers[age > 2,]
+    est.fisher<-sim$dispersers[age > 1,]
     if(nrow(est.fisher) > 0){ # fisher who have and individual id had a territory
-      sim$dispersers[sim$dispersers[,age > 2],id:= .I ] # Need id (an identifier for the adults)
+      sim$dispersers[sim$dispersers[,age > 1],id:= .I ] # Need id (an identifier for the adults)
       #check to find the nearest denning habitat to their current
       den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixelid),]
       den.available.coords <- data.table(xyFromCell(sim$pix.rast, den.available$pixelid))
@@ -327,8 +325,12 @@ disperseFisher<- function(sim){
       den.rast <- sim$pix.rast
       den.rast[] <- 0
       den.rast[den.available$pixelid] <- 1
-      den.rast.ag <- aggregate(den.rast, fact=round(sqrt(mean(sim$female_hr_table$hr_mean)),0)) #fact is the number of pixels to expand by -- so 50 = 60 x 60 ha ~ 3600 ha or 25 km2
-      n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.008]) #Remove remote areas (i.e., lakes) that have denning sites that have less than 1 percent denning
+      
+      den.rast.ag <- aggregate(den.rast, fact=50) # fact is the number of pixels to expand by -- so 50 = 60 x 60 ha ~ 3600 ha or 25 km2
+      n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.01]) # Remove remote areas (i.e., lakes) that have no denning within 2500 ha
+      
+      # den.rast.ag <- aggregate(den.rast, fact=round(sqrt(mean(sim$female_hr_table$hr_mean)),0)) #fact is the number of pixels to expand by -- so 50 = 60 x 60 ha ~ 3600 ha or 25 km2
+      # n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.008]) #Remove remote areas (i.e., lakes) that have denning sites that have less than 1 percent denning
       
       #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
       #set.seed(1586) #Useful for testing
@@ -468,7 +470,7 @@ disperseFisher<- function(sim){
       #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
       #set.seed(1586) #Useful for testing
       pi <- sampling::inclusionprobabilities(rep(1/nrow(den.available), nrow(den.available)), n_fisher) #Equal probability
-      den.samples <- lpm(pi, cbind(den.available.coords$x, den.available.coords$y))#, h = 5000) #Local pivot method using BalancedSampling
+      den.samples <- lpm(pi, cbind(den.available.coords$x, den.available.coords$y)) #Local pivot method using BalancedSampling
       denning.starts <- den.available.coords[den.samples, ] # Location potentials for the juvies
       
       #Allocate juveniles to denning sites. See which juveniles are the closest to each of the denning.starts
@@ -700,7 +702,7 @@ survivalFisher<-function(sim){
   #browser()
   
   if(n_dispersers > 0 ){
-    sim$dispersers[,  cohort:= fcase(age <= 2, "Juvenile", age > 2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
+    sim$dispersers[,  cohort:= fcase(age <= 1, "Juvenile", age > 1 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
     sim$dispersers<-merge(sim$dispersers, sim$survival_rate_table[type == "Disperser", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
     sim$dispersers[,  survive := rbinom (n = .N, size = 1, prob = rtruncnorm (1, a = 0, b = 1, mean = Mean, sd = SD))]
     
@@ -710,7 +712,7 @@ survivalFisher<-function(sim){
   }
   if(n_adults > 0){
     #Merge in the corresponding survival_rate_table to the dispersers and the agents
-    sim$agents[,  cohort:= fcase(age <= 2, "Juvenile", age >2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
+    sim$agents[,  cohort:= fcase(age <= 1, "Juvenile", age >1 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
     sim$agents<-merge(sim$agents, sim$survival_rate_table[type == "Established", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
     #TO DO: ADJUST SURVIVAL of Established Fisher BELOW
     sim$agents<-merge(sim$agents, sim$mahal_metric_table[,c("FHE_zone_num", "Max")], by.x = "fisher_pop", by.y = "FHE_zone_num", all.x=T)
@@ -740,8 +742,8 @@ ageFisher<-function(sim){
 }
 
 recordABMReport<-function(sim, i){
-  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 2, ])), 
-                                 n_f_juv = as.numeric (nrow (sim$agents [sex == "F" & age <= 2 & age > 0, ])),
+  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1, ])), 
+                                 n_f_juv = as.numeric (nrow (sim$agents [sex == "F" & age <= 1 & age > 0, ])),
                                  n_f_disp = as.numeric (nrow (sim$dispersers [sex == "F" & age > 0, ])),
                                  mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]))), 
                                  sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]))), 
@@ -975,9 +977,9 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
   }
   if(!suppliedElsewhere("repro_rate_table", sim)){
     sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
-                                      Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
-                                      Mean = c(0.5,3,0.5,3,0.5,3,0.5,3),
-                                      SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+                                      Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"), # updating to be more realistic
+                                      Mean = c(0.82,2.6,0.54,1.7,0.54,1.7,0.54,1.7), # from Lofroth et al 2022
+                                      SD = c(0.3,0.7,0.4,0.7,0.4,0.7,0.4,0.7))
   }
   if(!suppliedElsewhere("female_hr_table", sim)){
     sim$female_hr_table <- data.table (fisher_pop = c (1:4), 

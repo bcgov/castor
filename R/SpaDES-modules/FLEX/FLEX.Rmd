@@ -38,7 +38,7 @@ paths <- list(
   outputPath = paste0(here::here(),"/R/scenarios/test_flex2/outputs/scen1c_static_high")
 )
 
-times <- list (start = 0, end = 3)
+times <- list (start = 0, end = 2)
 
 parameters <- list(FLEX = list (female_max_age = 12, # updating to make max age more dependent on survival rates
                                 reproductive_age = 2,
@@ -87,7 +87,8 @@ repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
                                 Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
                                 # Mean = c(0.75,2.6, 0.54,1.7, 0.54,1.7, 0.54,1.7), # Lofroth 2022
                                 # Mean = c(0.75,2.6, 0.59,1.9, 0.59,1.9, 0.59,1.9), # Fograty 2022 (+10% for Columbian)
-                                Mean = c(0.75,2.6, 0.65,2.0, 0.65,2.0, 0.65,2.0), # Fograty 2022 (20% for Columbian)
+                                # Mean = c(0.75,2.6, 0.65,2.0, 0.65,2.0, 0.65,2.0), # Fograty 2022 (20% for Columbian)
+                                Mean = c(0.75,2.6, 0.75,2.6, 0.75,2.6, 0.75,2.6), # Fograty 2022 (unrealistically high for Columbian)
                                 SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
 
 mySim <- SpaDES.core::simInit(times = times, 
