@@ -1,10 +1,13 @@
 ---
-title: "Comparison between fireCastor results and actual number of fires in the Boundary TSA for the year 2023"
+title: Comparison between fireCastor results and actual number of fires in the Boundary
+  TSA for the year 2023
 author: "Elizabeth Kleynhans"
 date: "2024-07-16"
 output:
   html_document: default
   pdf_document: default
+  word_document: default
+  keep_md: yes
 editor_options:
   chunk_output_type: inline
 ---
@@ -79,15 +82,16 @@ ggplot() +
 ```
 ## FireCastor results
 
-On average fireCastor simulated 4.5 ignitions per run although this number varied between 1 and 14 ignitions across all reps (figure 2).  
+Using the observed climate data fireCastor simulated on average 4.5 ignitions per run although this number varied between 1 and 14 ignitions across all reps (figure 2).  
 
-```{r fireCastor_number_ignitions, fig.cap = "**Figure 2.** Number of ignitions simulated by fireCastor relative to the actual number of ignitions observed (black dashed) in the Boundary TSA for the year 2023"}
-fireReportForReps_test_1 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/outputs/fireReportForReps_test_1.rds")
-fireReportForReps_test_1<-as.data.frame(fireReportForReps_test_1)
+```{r fireCastor_number_ignitions, fig.cap = "**Figure 2.** Number of ignitions simulated by fireCastor using the observed climate as input in the Boundary TSA for the year 2023. The the actual number of ignitions observed is represented by the black dashed line."}
+fireReportForReps_test <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/outputs/fireReportForReps_test_1.rds")
+fireReportForReps_test<-data.table(fireReportForReps_test)
+fireReportForReps_test[, gcm:="observed"]
 
-fireReportForReps_test_1$numberstarts<-as.numeric(fireReportForReps_test_1$numberstarts)
+fireReportForReps_test$numberstarts<-as.numeric(fireReportForReps_test$numberstarts)
 
-ggplot(fireReportForReps_test_1, (aes(x=numberstarts, y = ..density..))) +
+ggplot(fireReportForReps_test, (aes(x=numberstarts, y = ..density..))) +
   geom_histogram(bins = 14, fill = "#B3E4F7")+
   geom_density(  adjust = 5) + 
   #xlim(0,10000)+
@@ -95,8 +99,7 @@ ggplot(fireReportForReps_test_1, (aes(x=numberstarts, y = ..density..))) +
   labs(x = "Number of ignitions", y = "Density")
 ```
 
-
-The fire sizes simulated by fire castor ranged between 1ha and 1 238 677 ha with the median being 23 ha. The average fire size observed in Boundary in 2023 was 2.3h which is essentially the same as the most commonly simulated fire size (2ha) by fireCastor (figure 3).
+The fire sizes of a single fire simulated by fire castor ranged between 1ha and 1 238 677 ha with the median being 23 ha. The average size of a single fire observed in Boundary TSA in 2023 was 2.3ha which is essentially the same as the most commonly simulated fire size (2ha) by fireCastor (figure 3).
 ```{r individual_firesize, fig.cap = "**Figure 3.** Distribution of fire sizes simulated by fireCastor. The average actual fire size observed in Boundary TSA in 2023 is represented by the dashed black line. Note the x-axis was cut off at 150 ha so that the distribution of smaller fire sizes could be more clearly seen."}
 firesize<-readRDS("C:\\Work\\caribou\\castor\\R\\scenarios\\test_fire\\outputs\\perFireReportForReps_test_1.rds")
 
@@ -111,9 +114,9 @@ ggplot(data=firesize, (aes(x=areaburned_estimated, y=..density..))) +
   labs(x = "Simulated size of individual fires", y = "Density")
 
 ```
+The total predicted area burned across all fires in a single year within Boundary TSA was between 1 ha and 1 240 711 ha with a mean of 2978.6ha and a mediam of 818.5 ha (figure 4).
 
-Similar to fire size the total area burned during a single simulation of fireCastor varied significantly with the minimum area burned being 1ha, the maximum being 1 240 711 ha and the median being 818ha (figure 4).  
-```{r, fig.cap="**Figure 4.** Simulated total area burned during a single rep with actual area burned represented by the dashed black line."}
+```{r, fig.cap="**Figure 4.** Predicted total area burned during a single rep with actual area burned represented by the dashed black line."}
 total_area_burned<- firesize[ ,list(sum=sum(areaburned_estimated)), by=rep]
 
 ggplot(data=total_area_burned, (aes(x=sum, y=..density..))) +  
@@ -123,55 +126,25 @@ ggplot(data=total_area_burned, (aes(x=sum, y=..density..))) +
   geom_vline(aes(xintercept=perim_subset_total), color="black", linetype="dashed", size=0.75) +
   labs(x = "Simulated total area burned in 2023", y = "Density")
 
-# summary(fireReportForReps_test_1$totalareaburned)
-# 
-# 
-# 
-# total_area_burned<- firesize[ ,list(sum=sum(areaburned_estimated)), by=rep]
-# summary(meanAreaBurned)
-# 
-# hist(total_area_burned$sum, breaks = 100)
-# plot(
-#   density(total_area_burned$sum ), 
-#   main="Density Plot of Total Area burned",
-#   xlab="Area (ha)", ylab="Density",
-#   xlim=c(0, 30000)
-#   )
-# 
-# ggplot(data=total_area_burned) +    
-#   geom_histogram(aes(x=sum), fill = "grey70", boundary =0, binwidth = 20) + 
-#   xlim(0,5000)+
-#   geom_vline(aes(xintercept=perim_subset_total), color="black", linetype="dashed", size=0.75)
-# 
-# ggplot(data=total_area_burned) +    
-#   geom_density(aes(x=sum), fill = "grey70", boundary =0, binwidth = 20) + 
-#   xlim(0,10000)+
-#   geom_vline(aes(xintercept=perim_subset_total), color="black", linetype="dashed", size=0.75) +
-#   labs(x = "Total area burned", y = "Y-axis title")
-# 
-# ggplot(data=meanAreaBurned) +    
-#   geom_histogram(aes(x=mean), fill = "grey70", boundary =0, binwidth = 20) + 
-#   xlim(0,3000)+
-#   geom_vline(aes(xintercept=perim_subset_total), color="black", linetype="dashed", size=0.75)
-#   
-# 
-# plot(
-#   density(meanAreaBurned$mean ), 
-#   main="Density Plot of mean Area burned",
-#   xlab="Area (ha)", ylab="Density",
-#   xlim = c(0,8000)
-#   )
-# 
-# mean(total_area_burned$sum)
-# sd(total_area_burned$sum)
 
 
 ```
 
 
-Because the simulation is repeated 10 000 times we can examine which areas on the landscape have a higher probability of burning because they burned more frequently across all the simulations. 
+Fire size is what is statistically predicted from our models and this is the size of the fire that we specify in the spread2 function as the stopping fire size i.e. spread2 tries to spread a fire until the specified number of pixels is burned. However, even though this fire size is predicted statistically, our simulated fire might not actually grow as large as we specify if neighboring pixels have a probability of zero or a small probability of burning. Thus to examine this I also plotted number of pixels burned in a simulation year versus the predicted total area burned from the statistical model (figure 5). From figure 5 it seems that predicted fire size is commonly not reached during the simulation. The Boundary TSA is approximately 659 000 hectares. This is the maximum number of pixels burned that we might have expected for situations where the statistically predicted fire size was greater than this. In contrast the largest area actually burned during any of the simulations was 15628ha. Thus although all pixels in the boundary TSA should have burned on 5 occasions (5 fires were greater than 659000ha) this never actually occur. This is something I need to look into and work on fixing.
 
-```{r, fig.cap= "**Figure 5.** Location of areas with highest probability of burning from 10 000 simulations of fire in the Boundary TSA for the year 2023"}
+
+```{r, fig.cap="**Figure 5.** Predicted total area burned versus simulated total area burned. Each point represents the results of a single simulation."}
+ggplot(new, aes(x=sum, y=totalareaburned)) + geom_point(size=0.5) +
+  xlim(0, 210000) + ylim(0, 17500) +
+  labs(x = "Predicted total area burned", y="Simulated total area burned")
+
+```
+
+# Predicting areas most likely to burn
+Because the simulation is repeated 10 000 times we can examine which areas on the landscape have a higher probability of burning because they burned more frequently across all the simulations. Figure 5 is a map of the Boundary TSA showing areas that burned more or less frequently across all the simulations. 
+
+```{r, fig.cap= "**Figure 6.** Location of areas with highest probability of burning from 10 000 simulations of fire in the Boundary TSA for the year 2023"}
 #import RDS file
 y<-readRDS("C:\\Work\\caribou\\castor\\R\\scenarios\\test_fire\\outputs\\firedisturbanceTableForReps_1.rds")
 y<-data.table(y)

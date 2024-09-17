@@ -333,7 +333,7 @@ disperseFisher<- function(sim){
       #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
       #set.seed(1586) #Useful for testing
       pi <- sampling::inclusionprobabilities(rep(1/nrow(den.available), nrow(den.available)), n_fisher) #Equal probability
-      den.samples <- lpm(pi, cbind(den.available.coords$x, den.available.coords$y), h=5000) #Local pivot method using BalancedSampling
+      den.samples <- lpm(pi, cbind(den.available.coords$x, den.available.coords$y))#, h=5000) #Local pivot method using BalancedSampling
       denning.starts <- den.available.coords[den.samples, ] # Location potentials for the juvies
       
       #Allocate adults to denning sites. See which adults are the closest to each of the denning.starts
@@ -468,7 +468,7 @@ disperseFisher<- function(sim){
       #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
       #set.seed(1586) #Useful for testing
       pi <- sampling::inclusionprobabilities(rep(1/nrow(den.available), nrow(den.available)), n_fisher) #Equal probability
-      den.samples <- lpm(pi, cbind(den.available.coords$x, den.available.coords$y), h = 5000) #Local pivot method using BalancedSampling
+      den.samples <- lpm(pi, cbind(den.available.coords$x, den.available.coords$y))#, h = 5000) #Local pivot method using BalancedSampling
       denning.starts <- den.available.coords[den.samples, ] # Location potentials for the juvies
       
       #Allocate juveniles to denning sites. See which juveniles are the closest to each of the denning.starts
@@ -981,8 +981,10 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
   }
   if(!suppliedElsewhere("female_hr_table", sim)){
     sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
-                                     hr_mean = c (3000, 3000, 4500, 3000),
-                                     hr_sd = c (500, 500, 500, 500)) # updating to more realistic SD (higher for SBD but then crashes)
+                                     # hr_mean = c (3000, 3000, 4500, 3000), 
+                                     hr_mean = c (2880, 2920, 4340, 4530), # actual mean
+                                     # hr_sd = c (500, 500, 500, 500),
+                                     hr_sd = c (482, 460, 1120, 571)) # actual SE
   }
   if(!suppliedElsewhere("mahal_metric_table", sim)){
   sim$mahal_metric_table <- data.table (FHE_zone = c ("Boreal", "Sub-Boreal moist", "Sub-Boreal dry", "Dry Forest"),
