@@ -63,7 +63,8 @@ parameters <-  list (
                           nameForestInventoryQMD = "quad_diam_125",
                           nameForestInventorySiteIndex = "site_index" 
                           ),
-        p2pVQOCastor =list(nameSlopeRaster= "rast.bc_ha_slope",nameVQORaster = "rast.zone_cond_vqo")
+        p2pVQOCastor =list(nameSlopeRaster= "rast.bc_ha_slope",
+                           nameVQORaster = "rast.zone_cond_vqo")
         
         )
 

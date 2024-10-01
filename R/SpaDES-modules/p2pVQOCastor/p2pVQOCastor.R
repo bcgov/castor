@@ -43,6 +43,7 @@ doEvent.p2pVQOCastor = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
+      
       #Checks
       if(nrow(dbGetQuery(sim$castordb, glue::glue("Select * from zone where reference_zone ='", P(sim, "nameVQORaster","p2pVQOCastor"), "';"))) == 0){
         stop(paste0("ERROR: The raster:", P(sim, "nameVQORaster","p2pVQOCastor"), " is not listed in the zone table"))
@@ -57,7 +58,7 @@ doEvent.p2pVQOCastor = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  
+  browser()
   if(!(P(sim, "nameSlopeRaster", "p2pVQOCastor") == '99999')){
     message(paste0('..getting slope for VQO adjustment: ',P(sim, "nameSlopeRaster", "p2pVQOCastor")))
     ras.slope <- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
@@ -78,7 +79,7 @@ Init <- function(sim) {
     
     
     nameVqoColumn<-dbGetQuery(sim$castordb, glue::glue("Select zone_column from zone where reference_zone = '", P(sim, "nameVQORaster","p2pVQOCastor"), "';"))
-    vqo_pixels<-data.table(dbGetQuery(sim$castordb, glue::glue("select pixelid, ",nameVqoColumn$zone_column ," as zoneid from pixels where ", nameVqoColumn$zone_column," is not null;")))
+    vqo_pixels<-data.table(dbGetQuery(sim$castordb, glue::glue("select pixelid, ",nameVqoColumn$zone_column ," as zoneid from pixels where ", nameVqoColumn$zone_column," is not null and cflb > 0;")))
     
     #get the ids that distinguish VQO polygons
     slope_vqo<-merge(slope_vqo, vqo_pixels, by.x = "pixelid", by.y = "pixelid", all.y= TRUE)
