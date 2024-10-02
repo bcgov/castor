@@ -1379,7 +1379,7 @@ downScaleData<-function(sim){
   return(invisible(sim))
 }
   
-  poissonProcessModel<-function(sim){
+poissonProcessModel<-function(sim){
     
  sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*cmi_min-0.124*(cmi-cmi3yr/3)-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
 
@@ -1453,7 +1453,7 @@ fireSize <- function(sim) {
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
-
+browser()
 occ<-sim$downdat[, fire:= rnbinom(n = 1, size = 0.416, mu = est), by=1:nrow(sim$downdat)][fire>0,]
 
 

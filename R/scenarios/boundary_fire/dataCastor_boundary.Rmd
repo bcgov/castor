@@ -93,9 +93,31 @@ parameters <-  list (
                            nameRoads =  'rast.ce_road_2022'
                            ),
         forestryCastor = list(),
-        fireCastor = list(),
-        climateCastor= list(maxRun =1, gcm='CanESM5', ssp ='ssp245', climateData = "future",
-                            run = c("r3i1p1f1"), climateYears = 2022:2060, nameClimateIdnoRast ='rast.climate_prism_base_layer', nameClimateTable='vat.climate_prism_lat_lon_lookup', vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
+        fireCastor = list(calculateInterval =1,
+                    ignitionMethod = 'poissonProcess', # options are poissonProcess, historicalDist, static
+                    #calendarStartYear = 2020,
+                    nameFrtRaster = "rast.frt",
+                    nameAspectRaster = "rast.bc_ha_aspect",
+                    nameSlopeRaster = "rast.bc_ha_slope",
+                    nameDistInfrastructureRaster = "rast.dist_infrastructure",
+                    nameRoadsRast = "rast.ce_road_2022",
+                    #recovery = 300,
+                    nameElevationRaster = "rast.dem",
+                    #nameClimateIdnoRast="rast.climate_prism_base_layer",
+                    #nameClimateTable = "vat.climate_prism_lat_lon_lookup",
+                    simStartYear = 2023,
+                    nameBecRast = "rast.bec_current",
+                    nameBecTable = "vat.bec_zone_vat",
+                    nameForestInventoryRaster = "rast.vri2023_id",
+                    nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2023",
+                    nameForestInventoryKey = "feature_id",
+                    nameForestInventorybclcs_level_1 = "bclcs_level_1",
+                    nameForestInventorybec_zone_code = '99999',
+                    pixelid_10kmRast = "rast.pixelId10km",
+                    nameFirepixel10km = "vat.spatially_varying_10km_vat",
+                    numberFireReps = 1),
+        climateCastor= list(maxRun =1,gcm='CanESM5', gcmname='CanESM5', ssp ='ssp245', climateData = "future",
+                            run = "r10i1p1f1", climateYears = 2022:2060, nameClimateIdnoRast ='rast.climate_prism_base_layer', nameClimateTable='vat.climate_prism_lat_lon_lookup', vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
 nameProvCMITable = "public.prov_cmi_ave",
                                vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
         disturbanceCastor = list(calculateInterval =  1, 
@@ -116,8 +138,8 @@ modules <- list("dataCastor",
                 "roadCastor",
                 "forestryCastor",
                 "disturbanceCastor",
-                "climateCastor"
-                #"fireCastor"
+                "climateCastor",
+                "fireCastor"
                 #"uploadCastor"
                 )
 
@@ -158,7 +180,6 @@ dbExecute(castordb, "DELETE from blocks;")
 
 #get the landings
 out<-data.table(dbGetQuery(castordb, "select pixelid as blockid, pixelid as landing from pixels order by pixelid"))
-
 
 dbBegin (castordb)
 rs <- dbSendQuery (castordb, "INSERT into blocks (blockid, landing) values (:blockid, :landing)", out)
