@@ -1332,7 +1332,7 @@ downScaleData<-function(sim){
   dat_climate<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid_climate, ppt_05, ppt_06, ppt_07, ppt_08, tmax_05, tmax_06, tmax_07, tmax_08, cmi_05, cmi_06, cmi_07, cmi_08, cmi, cmi3yr FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor"), " AND run = '", P(sim, "run", "climateCastor"), "';")))
   
   message("get climate for aoi")
-  
+
   dat_climate<-dat_climate[, cmi_min:= do.call(pmin, .SD),.SDcols=c("cmi_05", "cmi_06","cmi_07","cmi_08") ]
   dat_climate<-dat_climate[, `:=`(PPT_sm = rowSums(.SD, na.rm=T)), .SDcols=c("ppt_05", "ppt_06","ppt_07","ppt_08")]
   dat_climate<-dat_climate[, TEMP_MAX:= do.call(pmax, .SD),.SDcols=c("tmax_05","tmax_06","tmax_07","tmax_08") ]
@@ -1356,7 +1356,7 @@ downScaleData<-function(sim){
   
 #  prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "prov_cmi_table","fireCastor"), " WHERE gcm= ",P(sim, "gcm", "fireCastor"), "AND ssp=", P(sim, "ssp", "fireCastor"), "and period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor") , " AND run =", P(sim, "ssp", "fireCastor"), ";")))
   # 
-   Prov_CMI<-dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " WHERE run == '", P(sim, "run", "climateCastor"),"' AND period=", time(sim)*(P(sim, "calculateInterval", "fireCastor")) + P(sim, "simStartYear", "fireCastor") , ";"))
+   Prov_CMI<-dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " WHERE run = '", P(sim, "run", "climateCastor"),"' AND period=", time(sim)*(P(sim, "calculateInterval", "fireCastor")) + P(sim, "simStartYear", "fireCastor") , ";"))
    
   dat<-merge(dat_veg, agg, by.x="pixelid10km", by.y="pixelid10km")
   
@@ -1453,6 +1453,7 @@ fireSize <- function(sim) {
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
+
 occ<-sim$downdat[, fire:= rnbinom(n = 1, size = 0.416, mu = est), by=1:nrow(sim$downdat)][fire>0,]
 
 
