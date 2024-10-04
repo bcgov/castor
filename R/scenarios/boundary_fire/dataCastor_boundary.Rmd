@@ -19,8 +19,7 @@ output: pdf_document
 ---
 
 # Overview
--	Need timber supply impact analysis for the wolverine herd
-
+Simulate climate impacted fire regimes in the Boundary TSA. Build the castordb to allow the forest structure to change given harvest schedule determined by STSM.
 
 # Usage
 Set parameters for creating the database in the code chunk below.
@@ -168,21 +167,61 @@ mysimout<-spades(mySim)
 #Adjust the blocks table
 Each pixel is its own block from stsm
 ```{r}
-castordb <- dbConnect(RSQLite::SQLite(), dbname =paste0 (here::here (), "/R/scenarios/boundary_fire/boundary_fire_castordb.sqlite"))
+#Outputs from STSM
+harvest.schedule<-data.table(read_tsv("harvest_sched/logDebug.txt", col_names = TRUE))
+#currBlockId is not unique across the sim. It resets back to one by each period. Assign a unique blockid to each block
+harvest.schedule[, blockid:=paste0( yr, yearInPeriod,"0", currBlockId)][, blockid:=as.integer(blockid)]
+
+#connect to castordb
+castordb <- dbConnect(RSQLite::SQLite(), dbname ="boundary_fire_castordb.sqlite")
+
+#Get castordb blank/dummy raster
 ras.info<-dbGetQuery(castordb, "SELECT * FROM raster_info where name = 'ras';")
 print(ras.info)
 ras<-rast(xmin= ras.info$xmin, xmax=ras.info$xmax, ymin=ras.info$ymin, ymax=ras.info$ymax, nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow)
 crs(ras) <-st_crs(as.integer(ras.info$crs))$wkt
 
+
+#Update the pixels table
+dbBegin (castordb)
+rs <- dbSendQuery (castordb, "UPDATE pixels set blockid = :blockid where pixelid = :ogc_fid", harvest.schedule[,c("blockid", "ogc_fid")])
+dbClearResult (rs)
+dbCommit (castordb)
+
+
 #remove old blocks from blockingCastor
-dbExecute(castordb, "UPDATE pixels set blockid = pixelid;")
-dbExecute(castordb, "DELETE from blocks;")
+dbExecute(castordb, "DElete from blocks;")
+
+landing.info<-dbGetQuery(castordb, "select pixelid, dist, thlb from pixels order by pixelid")
+
+edges.weight<-data.table(dbGetQuery(castordb, "select * from roadedges;"))
+node.coords<-data.table(dbGetQuery(castordb, "select * from roadcoords;"))
+g<-cppRouting::makegraph(edges.weight,directed=F, coords = node.coords) 
+graph.df<-cppRouting::to_df(g)
+dbDisconnect(castordb)
+
+blocks<-unique(harvest.schedule[, c("ogc_fid", "blockid")])
+ras.blocks<-ras
+ras.blocks[blocks$ogc_fid]<-blocks$blockid
 
 #get the landings
-out<-data.table(dbGetQuery(castordb, "select pixelid as blockid, pixelid as landing from pixels order by pixelid"))
+base.blocks.tab<-data.table(blockid = ras.blocks[], pixelid = landing.info$pixelid, dist = landing.info$dist, thlb = landing.info$thlb)
+setnames(base.blocks.tab, "blockid.lyr.1", "blockid")
+
+base.blocks.tab<-base.blocks.tab[ blockid > 0, ][, mdist := min(dist), by = blockid][order(blockid)]
+
+landings<-base.blocks.tab[ dist==mdist, ][, mpixelid := max(pixelid), by = blockid][pixelid == mpixelid,]
+
+#check to make sure in graph
+verts<-unique(c(as.integer(graph.df$from), as.integer(graph.df$to)))
+landings[pixelid %in% verts, in.graph:=1 ]
+test<-landings[is.na(in.graph),] #616 outside of graph...in perm roads since dist ==0
+
+castordb <- dbConnect(RSQLite::SQLite(), dbname ="boundary_fire_castordb.sqlite")
+out<-landings[,c("blockid", "pixelid")]
 
 dbBegin (castordb)
-rs <- dbSendQuery (castordb, "INSERT into blocks (blockid, landing) values (:blockid, :landing)", out)
+rs <- dbSendQuery (castordb, "INSERT into blocks (blockid, landing) values (:blockid, :pixelid)", out)
 dbClearResult (rs)
 dbCommit (castordb)
 
@@ -190,3 +229,55 @@ dbGetQuery(castordb, "select * from blocks limit 10;")
 dbDisconnect(castordb)
 ```
 
+## Harvest Schedule from STSM
+forestryCastor needs a raster stack of harvest units in each time period
+
+### Get the harvest seqeuence and raster grid
+```{r}
+library(sf)
+library(terra)
+#the outputs from STSM
+ras.pixelid<-rast("harvest_sched/tsa02_ogc_id.tif") 
+harvest.schedule<-data.table(read_tsv("harvest_sched/logDebug.txt", col_names = TRUE))
+#currBlockId is not unique across the sim. It resets back to one by each period. Assign a unique blockid to each block
+harvest.schedule[, blockid:=paste0( yr, yearInPeriod,"0", currBlockId)][, blockid:=as.integer(blockid)]
+
+#check for duplicates
+if(length(unique(harvest.schedule$ogc_fid)) == nrow(harvest.schedule)){
+  message("no dups")
+}else{
+  message("dups")
+}
+
+#Connect to the Castordb to get the raster information
+con = dbConnect(RSQLite::SQLite(), dbname = "boundary_fire_castordb.sqlite")
+ras.info<-dbGetQuery(con, "SELECT * FROM raster_info where name = 'ras';")
+print(ras.info)
+ras<-rast(xmin= ras.info$xmin, xmax=ras.info$xmax, ymin=ras.info$ymin, ymax=ras.info$ymax, nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow)
+crs(ras) <-st_crs(as.integer(ras.info$crs))$wkt
+dbDisconnect(con)
+
+#Check the castordb rastor is the same as the input
+if(ext(ras) == ext(ras.pixelid)){
+  message("same raster")
+  ras[]<-0
+}else{
+  message("wrong raster extents")
+}
+
+#Need to convert the pixels values in ras.harvest.schedule into blockids. All I need is the logDebug.txt file and the ogc_fid
+harvest.schedule$sim_year<- 1 + harvest.schedule$yr + harvest.schedule$yearInPeriod #Annualize - the current set up for fireCastor
+
+ras.hseq<-lapply(1:max(harvest.schedule$sim_year), function(x){
+  temp<-harvest.schedule[sim_year ==x, ]
+  ras.temp<-ras
+  ras.temp[temp$ogc_fid]<-temp$blockid
+  names(ras.temp) <- paste0("hsq_", x)
+  ras.temp
+})
+
+out<-rast(ras.hseq)
+writeRaster(out, "boundary_fire_hsq.tif", overwrite = TRUE)
+
+
+```
