@@ -40,7 +40,7 @@ inputDir <- file.path (paste0 (here::here (), "/R/scenarios/boundary_fire/inputs
 outputDir <- file.path (paste0 (here::here (), "/R/scenarios/boundary_fire/outputs")) %>% reproducible::checkPath (create = TRUE)
 
 
-times <- list (start = 0, end = 0)
+times <- list (start = 0, end = 37)
 parameters <-  list (
         .progress = list (type = NA, interval = NA),
         .globals = list (),
@@ -49,7 +49,9 @@ parameters <-  list (
                     dbPort='5432' ,
                     dbUser=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
                     dbPass= keyring::key_get('dbpass', keyring = 'postgreSQL'),
-                         saveCastorDB = TRUE,
+                         saveCastorDB = FALSE,
+                          dbName = 'castor',
+                          useCastorDB = "C:/Work/caribou/castor/boundary_fire_castordb.sqlite",
                           sqlite_dbname = "boundary_fire", 
                           nameBoundaryFile = "public.boundary_fire", 
                           nameBoundaryColumn = "tsa_name", 
@@ -103,22 +105,26 @@ parameters <-  list (
                     nameRoadsRast = "rast.ce_road_2022",
                     #recovery = 300,
                     nameElevationRaster = "rast.dem",
-                    #nameClimateIdnoRast="rast.climate_prism_base_layer",
-                    #nameClimateTable = "vat.climate_prism_lat_lon_lookup",
                     simStartYear = 2023,
                     nameBecRast = "rast.bec_current",
                     nameBecTable = "vat.bec_zone_vat",
-                    #nameForestInventoryRaster = "rast.vri2023_id",
-                    #nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2023",
-                    #nameForestInventoryKey = "feature_id",
                     nameForestInventorybclcs_level_1 = "bclcs_level_1",
                     nameForestInventorybec_zone_code = '99999',
                     pixelid_10kmRast = "rast.pixelId10km",
                     nameFirepixel10km = "vat.spatially_varying_10km_vat",
                     numberFireReps = 1),
-        climateCastor= list(maxRun =1,gcm='CanESM5', gcmname='CanESM5', ssp ='ssp245', climateData = "future",
-                            run = "r10i1p1f1", climateYears = 2021:2060, nameClimateIdnoRast ='rast.climate_prism_base_layer', nameClimateTable='vat.climate_prism_lat_lon_lookup', vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
-nameProvCMITable = "public.prov_cmi_ave",
+        climateCastor= list(maxRun =1,
+                            gcm='CanESM5', #"ACCESS_ESM1_5", "CanESM5", "MPI_ESM1_2_HR" Note that MPI_ESM1_2HR seems to only have r1i1p1f1 and r2i1p1f1 for ssp 126 and ssp245. 
+                            gcmname='CanESM5', 
+                            ssp ='ssp245', #"ssp126", ""ssp245", "ssp370"
+                            climateData = "future",
+                            run = "r10i1p1f1", #r10i1p1f1","r1i1p1f1","r2i1p1f1", "r3i1p1f1"
+                            climateYears = 2021:2060, 
+                            nameClimateIdnoRast ='rast.climate_prism_base_layer', 
+                            nameClimateTable='vat.climate_prism_lat_lon_lookup', 
+                            vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
+
+                            nameProvCMITable = "public.prov_cmi_ave",
                                vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
         disturbanceCastor = list(calculateInterval =  1, 
                                  permDisturbanceRaster = "rast.mine_ag_wind_rail",
@@ -143,8 +149,11 @@ modules <- list("dataCastor",
                 #"uploadCastor"
                 )
 
-objects <- list (scenario = scenario
-                 )
+harvestSchedule <- rast("boundary_fire_hsq.tif")
+
+ 
+objects <- list(harvestSchedule  = harvestSchedule , 
+                scenario = scenario)
 
 paths <- list(modulePath = moduleDir,
               inputPath = inputDir,
@@ -169,7 +178,7 @@ mysimout<-spades(mySim)
 Each pixel is its own block from stsm
 ```{r}
 #Outputs from STSM
-harvest.schedule<-data.table(read_tsv("harvest_sched/logDebug.txt", col_names = TRUE))
+harvest.schedule<-data.table(readr::read_tsv("C:/Work/caribou/castor/R/scenarios/boundary_fire/harvest_sched/logDebug.txt", col_names = TRUE))
 #currBlockId is not unique across the sim. It resets back to one by each period. Assign a unique blockid to each block
 harvest.schedule[, blockid:=paste0( yr, yearInPeriod,"0", currBlockId)][, blockid:=as.integer(blockid)]
 
@@ -238,8 +247,8 @@ forestryCastor needs a raster stack of harvest units in each time period
 library(sf)
 library(terra)
 #the outputs from STSM
-ras.pixelid<-rast("harvest_sched/tsa02_ogc_id.tif") 
-harvest.schedule<-data.table(read_tsv("harvest_sched/logDebug.txt", col_names = TRUE))
+ras.pixelid<-rast("C:/Work/caribou/castor/R/scenarios/boundary_fire/harvest_sched/tsa02_ogc_id.tif") 
+harvest.schedule<-data.table(read_tsv("C:/Work/caribou/castor/R/scenarios/boundary_fire/harvest_sched/logDebug.txt", col_names = TRUE))
 #currBlockId is not unique across the sim. It resets back to one by each period. Assign a unique blockid to each block
 harvest.schedule[, blockid:=paste0( yr, yearInPeriod,"0", currBlockId)][, blockid:=as.integer(blockid)]
 

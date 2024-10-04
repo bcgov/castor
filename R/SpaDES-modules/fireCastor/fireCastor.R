@@ -33,30 +33,18 @@ defineModule(sim, list(
   documentation = list("README.txt", "fireCastor.Rmd"),
   reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr", "pool", "climr"),
   parameters = rbind(
-    
-    #defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
     defineParameter("nameFrtRaster", "numeric", NA, NA, NA, "Raster of the fire regime types across Canada"),
     defineParameter("nameAspectRaster", "numeric", NA, NA, NA, "Raster of aspect across BC"),
     defineParameter("nameSlopeRaster", "numeric", NA, NA, NA, "Raster of slope across BC"),
     defineParameter("nameDistInfrastructureRaster", "numeric", NA, NA, NA, "Raster of distance from any particular pixel to the closest infrastructure. Infrastructure is rail roads, powerlines, urban, oil (wells, pump sites etc), mines"),
-    #defineParameter("nameStaticSpreadRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure + b3*spring_wind) in the spread model"),
     defineParameter("nameRoadsRast", "numeric", NA, NA, NA, "Raster of roads across BC. This is here incase roadsCastor is not run"),
     defineParameter("nameElevationRaster", "numeric", NA, NA, NA, "Digital elevation map of BC This is here incase elevation data is not supplied in another module"),
     defineParameter("simStartYear", "numeric", 2020, NA, NA, "The simulation year at which fire spread is first simulated"),
-    #defineParameter("simEndYear", "numeric", 2100, NA, NA, "The simulation year at which fire spread is first simulated"),
     defineParameter("nameBecRast", "numeric", NA, NA, NA, "Raster of bec zones across BC."),
     defineParameter("nameBecTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the bec zone and bec subzone information"),
-    #defineParameter("gcm", "character", '99999', NA, NA, "Global climate model from which to get future climate data e.g. ACCESS-ESM1-5"),
-    #defineParameter("ssp", "character", '99999', NA, NA, "Climate projection from which to get future climate data e.g. ssp370"),
-    #defineParameter("maxRun", "integer", '99999', NA, NA, "Maximum number of model runs to include. A value of 0 is ensembleMean only."),
-    #defineParameter("run", "character", '99999', NA, NA, "The run of the climate projection from which to get future climate data e.g. r1i1p1f1"),
-    defineParameter("nameForestInventoryRaster", "numeric", NA, NA, NA, "Raster of VRI feature id"),
-    defineParameter("nameForestInventoryTable", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
-    defineParameter("nameForestInventoryKey", "character", "99999", NA, NA, desc = "Name of the veg comp primary key that links the table to the raster"),
     defineParameter("ignitionMethod", "character", "pre", NA, NA, "This describes the type of method used to determine the number of fire starts"),
     #defineParameter("numberFireReps", "numerical", "99999", NA, NA, desc = "value with the number of fire simulation repetitions needed"),
-    #defineParameter("firemodelcoeftbl", "character", "99999", NA, NA, desc = "Table with coefficient values to parameterze models for each fire regime type"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -408,20 +396,10 @@ roadDistCalc <- function(sim) {
 
 
 getClimateVariables <- function(sim) {
-  
-  #### TO DO: fix GCM run ####
-  #I need to think about how to incorporate the different GCM runs in here. i.e. each GCM has several runs. What should I do about this and how should I save the outputs for each run. 
-  
    
    id_vals<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid, pixelid_climate FROM pixels")))
    
-   #id_vals2<-merge(climate_dat_no1)
-   
-   #### FIX I have listed one run here but I need to run the sim for each run so think about how to do this.####
    qry<-paste0("SELECT * FROM climate_", P(sim, "gcmname", "climateCastor"),"_", P(sim, "ssp", "climateCastor"), " WHERE period = ", time(sim)*P(sim,"calculateInterval","fireCastor") + P(sim, "simStartYear","fireCastor"), " AND run = '",P(sim, "run", "climateCastor"), "';")
-   
-   #qry<-paste0("SELECT * FROM climate_MPI_ssp370 WHERE period = 2023 AND run = 'r1i1p1f1';")
-   #print(qry)
    
    dat<-data.table(dbGetQuery(sim$castordb, qry))   
    
@@ -470,7 +448,6 @@ createVegetationTable <- function(sim) {
   
   qry<-paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info ('pixels') WHERE name='bclcs_level_1';")
   
-  #qry<-paste0("SELECT COUNT('bclcs_level_1') as exists_check FROM sqlite_master WHERE type='table' AND name='pixels';")
   
   if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
   
@@ -483,10 +460,10 @@ createVegetationTable <- function(sim) {
   #----------------------------#
   #----Set forest attributes----
   #----------------------------#
-  if(!P(sim, "nameForestInventoryRaster","fireCastor") == '99999'){
+  if(!P(sim, "nameForestInventoryRaster","dataCastor") == '99999'){
     message("clipping inventory key")
     ras.fid<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                       srcRaster= P(sim, "nameForestInventoryRaster", "fireCastor"), 
+                                       srcRaster= P(sim, "nameForestInventoryRaster", "dataCastor"), 
                                        clipper=sim$boundaryInfo[[1]], 
                                        geom= sim$boundaryInfo[[4]], 
                                        where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -498,11 +475,11 @@ createVegetationTable <- function(sim) {
       rm(ras.fid)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameForestInventoryRaster", "fireCastor")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameForestInventoryRaster", "dataCastor")))
     }
     
     
-    if(!P(sim, "nameForestInventoryTable","fireCastor") == '99999'){ #Get the forest inventory variables 
+    if(!P(sim, "nameForestInventoryTable","dataCastor") == '99999'){ #Get the forest inventory variables 
       
       #remove species % stuff here
       
@@ -519,7 +496,7 @@ createVegetationTable <- function(sim) {
       if(length(fuel_attributes_castordb) > 0){
         print(paste0("getting inventory attributes to create fuel types: ", paste(fuel_attributes_castordb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
-        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "fireCastor"), " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",P(sim, "nameForestInventoryTable","fireCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "fireCastor") ," IN (",
+        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataCastor"), " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",P(sim, "nameForestInventoryTable","dataCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "dataCastor") ," IN (",
                                                     paste(fids, collapse = ","),");" ), conn=sim$dbCreds))
         
         
