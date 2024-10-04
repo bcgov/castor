@@ -1453,7 +1453,7 @@ fireSize <- function(sim) {
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
-browser()
+
 occ<-sim$downdat[, fire:= rnbinom(n = 1, size = 0.416, mu = est), by=1:nrow(sim$downdat)][fire>0,]
 
 
