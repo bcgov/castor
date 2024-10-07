@@ -94,9 +94,9 @@ doEvent.fireCastor = function(sim, eventTime, eventType, debug = FALSE){
       sim <- scheduleEvent(sim, time(sim), "fireCastor", "getClimateFireVariables", 11)
       sim <- scheduleEvent(sim, time(sim), "fireCastor", "getVegVariables", 11)
       sim <- scheduleEvent(sim, time(sim), "fireCastor", "downScaleTo10Km", 12)
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "numberOfIgnitions", 13)
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "areaBurned", 14)
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "calculateProbEscapeSpread", 14)
+      sim <- scheduleEvent(sim, time(sim)+ P(sim, "calculateInterval", "fireCastor"), "fireCastor", "numberOfIgnitions", 13)
+      sim <- scheduleEvent(sim, time(sim)+ P(sim, "calculateInterval", "fireCastor"), "fireCastor", "areaBurned", 14)
+      sim <- scheduleEvent(sim, time(sim)+ P(sim, "calculateInterval", "fireCastor"), "fireCastor", "calculateProbEscapeSpread", 14)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "simulateFireSpread", 15)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "saveFireRasters", 15)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "saveFireTables", 15)
@@ -1430,8 +1430,10 @@ fireSize <- function(sim) {
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
-
-occ<-sim$downdat[, fire:= rnbinom(n = 1, size = 0.416, mu = est), by=1:nrow(sim$downdat)][fire>0,]
+browser()
+#remove NA pixels to omit warning
+set.seed(as.integer(runif(1, 0, 100000)))
+occ<-sim$downdat[!is.na(est),][, fire:= rnbinom(n = 1, size = 0.416, mu = est), by=.I][fire>0,]
 
 
 message("determine fire size")
@@ -1442,13 +1444,12 @@ message("determine fire size")
 
 fire.size.sim<-data.table(fire.size = as.numeric(), pixelid10km=as.integer())
 
+#TODO: this needs to be nested for cases where more than fire is simulated within a pixelid10km
 for(f in 1:length(occ$fire)){
-
-  fires<-data.table(fire.size = (exp(gamlss.dist::rWEI(occ$fire[f], mu = occ$mu_sim[f], sigma =occ$sigma_sim[f]))), pixelid10km = occ$pixelid10km[f])
-  
-  #print(fires)
-  
-  fire.size.sim<- rbindlist(list(fire.size.sim, data.table(fire.size = sum(fires$fire.size), pixelid10km = fires$pixelid10km[1])))
+  for(k in 1:occ$fire[f]){
+    fires<-data.table(fire.size = (exp(gamlss.dist::rWEI(1, mu = occ$mu_sim[f], sigma =occ$sigma_sim[f]))), pixelid10km = occ$pixelid10km[f])
+    fire.size.sim<- rbindlist(list(fire.size.sim, fires))
+  }
 }
 
 sim$fire.size<-fire.size.sim
