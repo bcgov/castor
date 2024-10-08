@@ -168,9 +168,16 @@ mySim <- simInit(times = times,
                  objects = objects,
                  paths = paths)
 
-system.time({
-mysimout<-spades(mySim)
-})
+
+#mysimout<-spades(mySim)
+
+library(SpaDES.experiment)
+mysimout<-simInitAndExperiment(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths, replicates = 14, clearSimEnv = TRUE)
+                 
 #SpaDES.core::experiment(mySim, replicates = 15, saveExperiment = FALSE, clearSimEnv = TRUE, .plotInitialTime = NA) # no plotting
 #mysimout<-spades(mySim)
 

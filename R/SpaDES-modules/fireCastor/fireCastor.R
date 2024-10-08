@@ -534,7 +534,7 @@ createVegetationTable <- function(sim) {
 
 
 calcProbEscapeSpread<-function(sim){
-  
+ if(!is.null(sim$fire.size)) {
   vri<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, frt, age, dist_infra, slope, aspect_cardinal, zone, basalarea, (1-dec_pcnt)*100 AS conifer_pct_cover_total, case when height >=4 and basalarea >= 8 and 1-dec_pcnt >= 0.75 then 1 
   when height >=4 and basalarea >= 8 and 1-dec_pcnt >= 0.25 then 2 
   when height >=4 and basalarea >= 8 and dec_pcnt >= 0.75 then 3 
@@ -1233,7 +1233,7 @@ end as veg_cat FROM pixels"))
   rm(dat)
   gc()
   #print(sim$probFireRast)
-  
+}
   return(invisible(sim))
 }
 
@@ -1430,7 +1430,7 @@ fireSize <- function(sim) {
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
-browser()
+#browser()
 #remove NA pixels to omit warning
 set.seed(as.integer(runif(1, 0, 100000)))
 occ<-sim$downdat[!is.na(est),][, fire:= rnbinom(n = 1, size = 0.416, mu = est), by=.I][fire>0,]
@@ -1456,14 +1456,17 @@ sim$fire.size<-fire.size.sim
 print(sim$fire.size)
 
 
- } else {message("no fires simulated")}
+ } else {message("no fires simulated")
+   #logic for no fires
+   sim$fire.size<-NULL
+ }
 
 return(invisible(sim))
 }
 
   
-  spreadProcess <- function(sim) {  
-    
+spreadProcess <- function(sim) {  
+    #browser()
     message("get ignition locations")
     
     # create empty fire report
