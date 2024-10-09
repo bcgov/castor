@@ -1287,24 +1287,13 @@ downScaleData<-function(sim){
   message("Downscale vegetation categories")
   ### FRT
   downVeg<-data.table(dbGetQuery(sim$castordb, "SELECT pixelid10km, mode(frt) AS frt,  
-  sum(case when height >= 4 and basalarea >= 8 and 100-(dec_pcnt*100) >= 75 then 1 else 0 end) as con,
-  sum(case when height >= 4 and basalarea >= 8 and dec_pcnt >= 75 then 1 else 0 end) as dec,
-  sum(case when (basalarea < 8 or height < 4) then 1 else 0 end) as young,
-  sum(case when height >= 0 and basalarea >= 0 and bclcs_level_1 = 'V' then 1 else 0 end) as flammable
+  sum(case when height >= 4 and basalarea >= 8 and 1-dec_pcnt >= 0.75 then 1 else 0 end) as con,
+  sum(case when height >= 4 and basalarea >= 8 and dec_pcnt >= 0.75 then 1 else 0 end) as dec,
+  sum(case when ((basalarea < 8 or basalarea is NULL) or (height < 4 or height is NULL)) and treed = 1 then 1 else 0 end) as young,
+  sum(case when bclcs_level_1 = 'V' then 1 else 0 end) as flammable
   FROM pixels group by pixelid10km;")) 
   
   dat_veg<-merge(est_rf_table, downVeg, by.x = "pixelid10km", by.y = "pixelid10km")
-  
-#   dbGetQuery(mySim$castordb,paste0("with cte as (
-# SELECT cmi05, cmi06, cmi07, cmi08, ppt05, ppt06, ppt07, ppt08, tmax05, tmax06, tmax07, tmax08, cmi, cmi3yr, pixelid_climate from climate_ESM1_2_HR_ssp370 WHERE period=2020 AND run='r10i1p1f1'), ha_info as (select  pixelid_climate, pixelid10km FROM pixels) select min(cmi05) as cmi05, min(cmi06) as cmi06, min(cmi07) as cmi07, min(cmi08) as cmi08, sum(ppt05) as ppt05, sum(ppt06) as ppt06, sum(ppt07) as ppt07, sum(ppt08) as ppt08, max(tmax05) as tmax05, max(tmax06) as tmax06, max(tmax07) as tmax07, max(tmax08) as tmax08, pixelid10km from ha_info left join on ha_info.pixelid_climate = cte.pixelid_climate group by pixelid10km;"))
-#   
-#   dbGetQuery(mySim$castordb,paste0("with cte as (SELECT cmi05, cmi06, cmi07, cmi08, ppt05, ppt06, ppt07, ppt08, tmax05, tmax06, tmax07, tmax08, cmi, cmi3yr, pixelid_climate from climate_ESM1_2_HR_ssp370 WHERE period=2020 AND run='r10i1p1f1'), pixel_info as (select  pixelid_climate, pixelid10km, pixelid FROM pixels) select min(cmi05) as cmi05, pixelid10km from pixel_info left join on pixel_info.pixelid_climate = cte.pixelid_climate group by pixelid10km;"))
-#   
-     # 
-  # dbGetQuery(sim$castordb,paste0("SELECT pixelid10km, cmi04, cmi05, cmi06, cmi07, cmi08, cmi09,cmi, cmi3yr
-  # FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor") , " AND run == 'r10i1p1f1'",
-  # "INNER JOIN pixels ON climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"),".pixelid_climate = pixels.pixelid_climate;"))
-  
   
   dat_climate<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid_climate, ppt_05, ppt_06, ppt_07, ppt_08, tmax_05, tmax_06, tmax_07, tmax_08, cmi_05, cmi_06, cmi_07, cmi_08, cmi, cmi3yr FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor"), " AND run = '", P(sim, "run", "climateCastor"), "';")))
   
@@ -1325,20 +1314,14 @@ downScaleData<-function(sim){
                   by = list(dat_climate2$pixelid10km),
                   FUN = mean,
                   na.action = na.omit)
-  
-  # Climate
-  
-  #UPDATE HERE AFTER THE FULL PROVINCIAL CMI TABLE IS MADE
+
   message("get provincial meanCMI")
-  
-#  prov_cmi<-data.table(getTableQuery(paste0("SELECT * FROM ",P(sim, "prov_cmi_table","fireCastor"), " WHERE gcm= ",P(sim, "gcm", "fireCastor"), "AND ssp=", P(sim, "ssp", "fireCastor"), "and period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor") , " AND run =", P(sim, "ssp", "fireCastor"), ";")))
-  # 
+
    Prov_CMI<-dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " WHERE run = '", P(sim, "run", "climateCastor"),"' AND period=", time(sim)*(P(sim, "calculateInterval", "fireCastor")) + P(sim, "simStartYear", "fireCastor") , ";"))
    
   dat<-merge(dat_veg, agg, by.x="pixelid10km", by.y="pixelid10km")
   
   dat$avgCMIProv<-Prov_CMI$ave_cmi[1]
-  #print(dat$avgCMIProv)
   
   dat$frt<-as.factor(dat$frt)
   dat[, frt5:=0][frt==5, frt5:=1]
@@ -1359,8 +1342,6 @@ downScaleData<-function(sim){
 poissonProcessModel<-function(sim){
     
  sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*cmi_min-0.124*(cmi-cmi3yr/3)-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
-
-# sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*(-18)-0.124*(-10)-0.363*(-2)  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable+1) )]
 
   return(invisible(sim))
 }
@@ -1392,9 +1373,6 @@ historicalNumberStarts<-function(sim){
     data <- ignit %>% group_by(FIRE_YEAR) %>% summarize(n=n()) %>% mutate(freq=n/sum(n)) 
     
     sim$fit_g  <- fitdistrplus::fitdist(data$n, "gamma")
-    
-    #sim$min_ignit<-min(data$n)
-    #sim$max_ignit<-max(data$n)
   }
   
   sim$no_ignitions<-round(rgamma(1, shape=sim$fit_g$estimate[1], rate=sim$fit_g$estimate[2]))
