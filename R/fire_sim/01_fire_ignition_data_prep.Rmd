@@ -22,7 +22,7 @@ output: html_document
 
 The aim of this script is to get fire ignition data for all lightning caused fires. Then I join this fire ignition data to all the associated covariate data to run analyses on. The covariates that I use in the analysis include fire regime type, elevation, slope, aspect, climate data, distance to roads and infrastructure, and vegetation data.
 
-The analysis investiages what variables best predict whether a fire will grow larger than 1ha i.e. escapes or whether it will not i.e. the fire never reaches 1ha in size. Its a simple logistic regression analysis. 
+The analysis investiages what variables best predict whether a fire will grow larger than 1ha i.e. escapes or whether it will not i.e. the fire never reaches 1ha in size. Its a simple logistic regression analysis. See 02_ignition_model_fit.Rmd for this analysis.
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -34,6 +34,7 @@ library(ggplot2)
 library(terra)
 library(climr)
 library(data.table)
+library(sf)
 
 library(keyring)
 
@@ -95,7 +96,7 @@ ggplot(data=fire.ignt.frt, (aes(x=CURRENT_SIZE))) +
 ```
 
 
-## Extract distance to road and infrastructure and get elevation, slope, aspect
+## Extract distance to road and infrastructure and get elevation, slope, aspect, and elevation
 ```{r}
 # bring distance rasters back in
 # import roads distance raster
@@ -203,6 +204,14 @@ gc()
 ```
 
 ## Get VRI data
+
+There are two ways to get the VRI data:
+1.) I can either directly extract it for the ignition location on record but sometimes these ignition locations and the VRI are not very accurate OR
+2.) I can get summary information for the 1km pixel within which the ignition location occured. 
+
+Ill try it both ways
+
+This next section is for the 1st way to extract VRI data i.e. directly extracting it for the location of interest
 This next section takes a long time to run. there may be a more efficient way to do it but for now this is how ill go about it. 
 
 ```{r}
@@ -268,6 +277,134 @@ dat_joined2 <- dat_joined[,!(names(dat_joined) %in% drops)] #remove column
 ## save the data file for use in the analysis
 ```{r}
 st_write(dat_joined2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\ignition_2009_2023.gpkg")
+```
+
+
+This next section creates summary information for each 1km pixel of the VRI and then extracts it from there
+
+### A simple fuel type
+Beverly et al. (2022) showed that distance to hazzardous fuel types are the best predictor of fire exposure. While the Pessaki Fuel Type Algorithm has been used in BC the main components of the classification are based on forest structural attributes: bec zone, species composition, density and height of the forest.
+
+Simply coniferous and mixedwood fuel types are hazardous (Beverly et al. 2022), thus fuel typing may only need  bclcs_level_5 in ('TC', 'TM'), crown closure > 25% to indicate "dense or open" and height > 4 m to indicate not recently disturbed (O1-a/b).
+
+```{r}
+restest = c(100, 100)
+prov.rast <- raster( # standardized provincial raster with no data in it
+  nrows = 15744, ncols = 17216,
+  xmn = 159587.5, xmx = 1881187.5,
+  ymn = 173787.5, ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = restest,
+  vals = 0)
+
+lapply(seq(2019, 2023, 1), function(x) {
+  year_vri <- x
+  geom_column <- 'shape'
+  
+  vri<- getSpatialQuery(glue::glue("SELECT case 
+                                   when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TC') then 1 when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TM') then 2 when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TB') then 3 when (proj_height_1 < 4 or basal_area < 8 or basal_area is null or proj_height_1 is null) and bclcs_level_4 in ('TC','TM','TB') then 4
+                                  when bclcs_level_4 not in ('TC','TM','TB') then 5
+                                  when bclcs_level_1 <> 'V' then 6
+                                end as hazard, {geom_column} FROM vri.veg_comp_lyr_r1_poly{year_vri} "))
+  ras.haz<-fasterize::fasterize(vri, prov.rast, field = "hazard")
+  rm(vri)
+  gc()
+  ras.haz[is.na(ras.haz[])]<-0
+  
+  ras1<-ras.haz
+  ras1[ras1[] > 1 ]<-0
+  ras.fuel1<-terra::crop(terra::aggregate(ras1, fact = 10, fun = sum ),prov.rast) 
+
+  ras2<-ras.haz
+  ras2[ras2[] != 2 ]<-0
+  ras2[ras2[] == 2 ]<-1
+  ras.fuel2<-terra::crop(terra::aggregate(ras2, fact = 10, fun = sum ),prov.rast)
+  
+  ras3<-ras.haz
+  ras3[ras3[] != 3 ]<-0
+  ras3[ras3[] == 3 ]<-1
+  ras.fuel3<-terra::crop(terra::aggregate(ras3, fact = 10, fun = sum ),prov.rast)
+  
+  ras4<-ras.haz
+  ras4[ras4[] != 4 ]<-0
+  ras4[ras4[] == 4 ]<-1
+  ras.fuel4<-terra::crop(terra::aggregate(ras4, fact = 10, fun = sum ),prov.rast)
+  
+  ras5<-ras.haz
+  ras5[ras5[] != 5 ]<-0
+  ras5[ras5[] == 5 ]<-1
+  ras.fuel5<-terra::crop(terra::aggregate(ras5, fact = 10, fun = sum ),prov.rast)
+  
+  ras6<-ras.haz
+  ras6[ras6[] != 6 ]<-0
+  ras6[ras6[] == 6 ]<-1
+  ras.fuel6<-terra::crop(terra::aggregate(ras6, fact = 10, fun = sum ),prov.rast)
+  
+  out<-data.table(con = ras.fuel1[], mix = ras.fuel2[], dec = ras.fuel3[] , young = ras.fuel4[], veg = ras.fuel5[], noflame = ras.fuel6[] )[,pixelid := seq_len(.N)]
+  write.csv(out, glue::glue("fueltype_1k_{year_vri}.csv"))
+  rm(ras1, ras2, ras3, ras4, ras5, ras6, ras.fuel1, ras.fuel2, ras.fuel3, ras.fuel4, ras.fuel5, ras.fuel6, out)
+  gc()
+  x
+})
+
+```
+
+### Compile
+```{r}
+fuel_type<-rbindlist(
+  lapply(seq(2009, 2023, 1), function(x){
+    data<-data.table(read.csv(glue::glue("C:/Work/caribou/castor/fueltype_1k_{x}.csv")))
+    data$FIRE_YEAR<-x
+    data
+}))
+write.csv(fuel_type, "fuel_type_1k_2009to2023.csv")
+```
+
+## open fuel type layer and get values into dat2_joined
+
+```{r}
+
+dat_joined2<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\ignition_2009_2023.gpkg")
+
+vri1k<-data.table(read.csv("C:/Work/caribou/castor/fuel_type_1k_2009to2023.csv"))
+
+restest = c(1000, 1000)
+prov.rast <- raster( # standardized provincial raster with no data in it
+  nrows = 15744, ncols = 17216,
+  xmn = 159587.5, xmx = 1881187.5,
+  ymn = 173787.5, ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = restest,
+  vals = 0)
+
+pixel.grid <- data.table(V1 = as.integer(prov.rast[]))[, pixelid := seq_len(.N)]
+setorder(pixel.grid, "pixelid")#sort the pixels table so that pixelid is in order.
+pixel.grid$V1 <- NULL
+prov.rast[]<-pixel.grid$pixelid
+
+test<-cbind(dat_joined2, st_coordinates(dat_joined2))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+
+##Extract  values from stacked layer
+rasValue2=terra::extract(prov.rast, pointCoordinates)
+head(rasValue2)
+length(rasValue2) 
+dim(dat_joined2)
+
+dat_joined2<-cbind(dat_joined2, rasValue2)
+
+dat_joined3<-merge(dat_joined2, vri1k, by.x=c("FIRE_YEAR", "rasValue2"), by.y=c("FIRE_YEAR","pixelid"))
+
+dim(dat_joined3)
+```
+
+
+## save the data file for use in the analysis
+```{r}
+st_write(dat_joined3, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\ignition_all_2009_2023.gpkg")
 ```
 
 
