@@ -35,7 +35,7 @@ library(DBI)
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 paths <- list(
   modulePath = paste0(here::here(),"/R/SpaDES-modules"),
-  outputPath = paste0(here::here(),"/R/scenarios/test_flex2/outputs/scen1c_static_high")
+  outputPath = paste0(here::here(),"/R/scenarios/test_flex2/outputs/BRFN")
 )
 
 times <- list (start = 0, end = 2)
@@ -47,7 +47,8 @@ parameters <- list(FLEX = list (female_max_age = 12, # updating to make max age 
                                 female_dispersal = 5000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                                 timeInterval = 5, # should be consistent with the time interval used to model habitat
                                 # e.g., growingstockLCUS periodLength scen1c_static_high
-                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/scen1c_static_high.tif")
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/static_habitat_brfn")
+                                #rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/scen1c_static_high.tif")
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/quesnel.tif")
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/lakes.tif")
