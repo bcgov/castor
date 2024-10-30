@@ -109,8 +109,7 @@ times <- list(start = 0, end = 1) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataCastor = list( 
-                           dbName='castor',
+  dataCastor = list( dbName='castor',
                            #saveCastorDB = TRUE,
                            sqlite_dbname = "Lakes_TSA",
                            useCastorDB = paste0(here::here(), "/R/scenarios/Lakes_TSA/Lakes_TSA_clusdb.sqlite"),

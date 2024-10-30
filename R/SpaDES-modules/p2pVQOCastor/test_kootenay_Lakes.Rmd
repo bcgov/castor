@@ -1,0 +1,115 @@
+---
+title: "Untitled"
+author: "Kyle Lochhead"
+date: "2024-09-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r module_usage}
+library (SpaDES)
+library (SpaDES.core)
+library (data.table)
+library (keyring)
+library (terra)
+library(dplyr)
+source (here::here("R/functions/R_Postgres.R"))
+
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+
+moduleDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules"))
+inputDir <- file.path (paste0 (here::here (), "/R/scenarios/test/inputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here::here (), "/R/scenarios/test/outputs")) %>% reproducible::checkPath (create = TRUE)
+
+
+times <- list (start = 0, end = 0)
+parameters <-  list (
+        .progress = list (type = NA, interval = NA),
+        .globals = list (),
+        dataCastor = list(dbName = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                    dbPort='5432' ,
+                    dbUser=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                    dbPass= keyring::key_get('dbpass', keyring = 'postgreSQL'),
+                         saveCastorDB = TRUE,
+                          sqlite_dbname = "koots", 
+                          nameBoundaryFile = "public.tsa_aac_bounds", 
+                          nameBoundaryColumn = "tsa_name", 
+                          nameBoundary = "Kootenay_Lake_TSA", 
+                          nameBoundaryGeom = 'wkb_geometry',
+                          nameCompartmentRaster = "rast.tsa_aac_boundary", 
+                          nameCompartmentTable = "vat.tsa_aac_bounds_vat", 
+                          nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2022',  
+                          nameZoneRasters = c ("rast.zone_cond_beo","rast.zone_cond_vqo"),
+                          nameZoneTable = "zone.constraints", 
+                          # natural and managed stands yield curves are the same    
+                          nameYieldsRaster = "rast.ycid_vdyp_2020", 
+                          nameYieldTable = "yc_vdyp_2020", 
+                          nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
+                          nameYieldCurrentTable = "tipsy_prov_current_2020",
+                          nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+                          nameYieldTransitionTable = "tipsy_prov_2020",  
+                          nameForestInventoryRaster = "rast.vri2023_id", 
+                          nameForestInventoryKey = "feature_id", 
+                          nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2023",
+                          nameForestInventoryAge = "proj_age_1",  
+                          nameForestInventoryHeight = "proj_height_1",
+                          nameForestInventoryCrownClosure = "crown_closure",                             
+                          nameForestInventoryTreed = "bclcs_level_2",
+                          nameForestInventoryBasalArea= "basal_area",
+                          nameForestInventoryQMD = "quad_diam_125",
+                          nameForestInventorySiteIndex = "site_index" 
+                          ),
+        p2pVQOCastor =list(nameSlopeRaster= "rast.bc_ha_slope",
+                           nameVQORaster = "rast.zone_cond_vqo")
+        
+        )
+
+scenario = data.table (name = "load_data", description = "testing in Kootenay Lake")
+
+modules <- list("dataCastor",
+                "p2pVQOCastor")
+
+objects <- list (scenario = scenario)
+
+paths <- list(modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+
+system.time({
+mysimout<-spades(mySim)
+})
+
+```
+
+# Maps pf p2p and veg
+```{r}
+userdb<-dbConnect(RSQLite::SQLite(), "koots_castordb.sqlite")
+ras.info<-dbGetQuery(userdb, "select * from raster_info where name = 'ras'") #Get the raster information
+ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =1:ras.info$ncell)
+raster::crs(ras)<-paste0("EPSG:", ras.info$crs) #set the raster projection
+ras[]<-NA
+
+rs<-data.table(zoneid = dbGetQuery(userdb, "select zone2 from pixels order by pixelid;")$zone2)[, pixelid:=seq_len(.N)]
+constraints<-data.table(dbGetQuery(userdb, "select zoneid, threshold, percentage from zoneConstraints where reference_zone = 'rast.zone_cond_vqo';"))
+
+cs_rs<-merge(rs, constraints, by.x = "zoneid", by.y = "zoneid", all.x = TRUE)
+ras.percentage<-ras
+ras.threshold<-ras
+ras.percentage[cs_rs$pixelid]<-cs_rs$percentage
+ras.threshold[cs_rs$pixelid]<-cs_rs$threshold
+writeRaster(ras.percentage, "koots_vqo_pct_allowable.tif")
+writeRaster(ras.threshold, "koots_vqo_veg.tif")
+```

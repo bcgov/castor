@@ -86,7 +86,7 @@ for (h in 1:length(gcm_models)){
     ds_out_prov <- downscale(
         xyz = inputs[[i]],
         which_refmap = "auto",
-        gcm_ssp_years = 2015:2050,
+        gcm_ssp_years = 2051:2080,#2015:2050,
         gcms = gcm_models[h],
         ssps = gcm_ssps[j],
         max_run = maxRun,
@@ -127,7 +127,7 @@ mkFrameList <- function(nfiles) {
 n<-length(filenames)
 Prov_CMI<-mkFrameList(n) 
 
-write.csv(Prov_CMI, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\Future_climate\\prov_cmi_gmc_2009_2023.csv")
+write.csv(Prov_CMI, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\Future_climate\\prov_cmi_gmc_2051_2080.csv")
 
 
 #qry<-paste0("INSERT INTO climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (run, period, meanCMI) VALUES (:RUN, :PERIOD, :AveCMI)")
@@ -234,21 +234,26 @@ CMI_actual_09_23<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\
 
 CMI_09_15<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\Future_climate\\prov_cmi_gmc_2009_2015.csv")
 
+CMI_51_80<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\Future_climate\\prov_cmi_gmc_2051_2080.csv")
+
 names(CMI_09_15)
 CMI_09_15$SSP<-"none"
 names(CMI_15_34)
 names(CMI_actual_09_23)
+names(CMI_51_80)
 CMI_actual_09_23<- CMI_actual_09_23 %>% dplyr::rename(GCM = DATASET)
 CMI_actual_09_23$RUN<-"none"
 CMI_actual_09_23$SSP<-"none"
 
-prov_CMI<-rbind(rbind(rbind(CMI_09_15, CMI_15_34), CMI_35_50), CMI_actual_09_23)
+prov_CMI<-rbind(rbind(rbind(rbind(CMI_09_15, CMI_15_34), CMI_35_50), CMI_actual_09_23), CMI_51_80)
 
 prov_CMI<-data.table(prov_CMI)
+prov_CMI[, X:=NULL]
 setnames(prov_CMI, c("gcm", "run", "period", "ave_cmi", "ssp"))
 prov_CMI<-prov_CMI[gcm == "ACCESS-ESM1-5", gcm:="ACCESS_ESM1_5"]
 prov_CMI<-prov_CMI[gcm == "MPI-ESM1-2-HR", gcm:="MPI_ESM1_2_HR"]
 prov_CMI$period<-as.integer(prov_CMI$period)
+prov_CMI<-prov_CMI[!is.na(period),]
 #prov_CMI<-prov_CMI[gcm == "CanESM5", GCM:="CanESM5"]
 
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432', user = keyring::key_get('dbuser', keyring = 'postgreSQL'), password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
@@ -303,12 +308,12 @@ ggplot(prov_CMI_ssp370, aes(period, ave_cmi, color=gcm)) +
   geom_smooth(aes(color=gcm), se = TRUE) +
   geom_line(data=prov_CMI_actual, size=1, colour = "black")
 
-prov_CMI_ssp370<-prov_CMI[SSP %in% c("none", ""),]
-prov_CMI_ssp370<-prov_CMI_ssp370[!is.na(GCM),]
+prov_CMI_ssp370<-prov_CMI[ssp %in% c("none", ""),]
+prov_CMI_ssp370<-prov_CMI_ssp370[!is.na(gcm),]
 prov_CMI_ssp370$PERIOD<-as.numeric(prov_CMI_ssp370$PERIOD)
 
 
-ggplot(prov_CMI_ssp370, aes(PERIOD, AveCMI, colour = GCM)) +
+ggplot(prov_CMI_ssp370, aes(period, ave_cmi, colour = gcm)) +
   geom_point() +
   geom_smooth(se = TRUE)
 

@@ -1,0 +1,97 @@
+---
+title: "p2pVQOCastor Manual"
+subtitle: "v.`r SpaDES.core::moduleMetadata(module = 'p2pVQOCastor', path = '..')$version`"
+date: "Last updated: `r Sys.Date()`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_float: true
+    theme: sandstone
+    number_sections: false
+    df_print: paged
+    keep_md: yes
+editor_options:
+  chunk_output_type: console
+  bibliography: citations/references_p2pVQOCastor.bib
+link-citations: true
+always_allow_html: true
+---
+
+# p2pVQOCastor Module
+
+<!-- the following are text references used in captions for LaTeX compatibility -->
+(ref:p2pVQOCastor) *p2pVQOCastor*
+
+```{r setup-p2pVQOCastor, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## change to eval = TRUE if all chunks are to be evaluated
+
+dir.create("figures", showWarnings = FALSE)
+
+download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.png",
+              destfile = "figures/markdownBadge.png",
+              mode = 'wb')
+```
+
+[![made-with-Markdown](figures/markdownBadge.png)](https://commonmark.org)
+
+<!-- if knitting to pdf remember to add the pandoc_args: ["--extract-media", "."] option to yml in order to get the badge images -->
+
+#### Authors:
+
+`r paste(as.character(SpaDES.core::moduleMetadata(module = "p2pVQOCastor", path = '..')$authors), sep = ', ')`
+<!-- ideally separate authors with new lines, '\n' not working -->
+
+## Module Overview
+
+### Module summary
+
+Factoring Visual Resources into Timber Supply Analysis. see [Bulletin - Modelling Visuals in TSR III]( https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/visual-resource-mgmt/vrm_modeling_visuals_bulletin.pdf#:~:text=prepared%20to%20convey%20two%20new%20procedures%20that%20enhance%20modelling%20of)
+
+### Module inputs and parameters
+
+To adjust VQO for slope - there needs to be a slope raster, VQO polygon id raster that corresponds to the VQO in the zoneContraints table.
+
+Table \@ref(tab:moduleInputs-p2pVQOCastor) shows the full list of module inputs.
+
+```{r moduleInputs-p2pVQOCastor, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_inputs <- SpaDES.core::moduleInputs("p2pVQOCastor", "C:/Users/klochhea/castor/R/SpaDES-modules")
+knitr::kable(df_inputs,
+             caption = "List of (ref:p2pVQOCastor) input objects and their description.") %>%
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+User-visible parameters (Table \@ref(tab:moduleParams-p2pVQOCastor))
+
+```{r moduleParams-p2pVQOCastor, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_params <- SpaDES.core::moduleParams("p2pVQOCastor", "C:/Users/klochhea/castor/R/SpaDES-modules")
+knitr::kable(df_params, caption = "List of (ref:p2pVQOCastor) parameters and their description.") %>%
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+### Events
+
+p2pVQOCastor uses the user defined slope raster to estimate the area weighted plan to perspective ratio and visually effect green up threshold. To do this:
+
+1. each pixel within the VQO polygon is classified into the slope class
+2. using a user defined lookup table (default is specified in the Kootenay Lakes TSR) that assigns the p2p and VEG height by slope class
+3. calculate the average p2p and VEG height.
+4. update the zoneConstraints table in the castordb
+  + percentage is the allowable/permissable alteration
+  + threshold is the VEG height or visually effective green up height
+
+### Module outputs
+
+Description of the module outputs (Table \@ref(tab:moduleOutputs-p2pVQOCastor)).
+
+```{r moduleOutputs-p2pVQOCastor, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_outputs <- SpaDES.core::moduleOutputs("p2pVQOCastor", "C:/Users/klochhea/castor/R/SpaDES-modules")
+knitr::kable(df_outputs, caption = "List of (ref:p2pVQOCastor) outputs and their description.") %>%
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+### Links to other modules
+
+This module requires dataCastor for establishing the castordb connection.
+### Getting help
+
+-   see https://github.com/bcgov/castor

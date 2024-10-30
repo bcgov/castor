@@ -211,7 +211,7 @@ crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex 
 
 setTablesCastorDB <- function(sim) {
   message('...setting data tables')
-  
+
   ###------------------------#
   #Set the compartment IDs----
   ###------------------------#
@@ -232,7 +232,7 @@ setTablesCastorDB <- function(sim) {
     
     #Set V1 to merge in the vat table values so that the column is character
     if(!(P(sim, "nameCompartmentTable", "dataCastor") == "99999")){
-      compart_vat <- data.table(getTableQuery(glue::glue("SELECT * FROM  {P(sim)$nameCompartmentTable};"), conn=sim$dbCreds))
+      compart_vat <- unique(data.table(getTableQuery(glue::glue("SELECT * FROM  {P(sim)$nameCompartmentTable};"), conn=sim$dbCreds)))
       pixels<- merge(pixels, compart_vat, by.x = "V1", by.y = "value", all.x = TRUE )
       pixels[, V1:= NULL]
       col_name<-data.table(colnames(compart_vat))[!V1 == "value"]
