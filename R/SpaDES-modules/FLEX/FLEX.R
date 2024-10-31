@@ -179,7 +179,7 @@ Init <- function(sim) {
   #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
   #set.seed(1586) #Useful for testing
   pi <- sampling::inclusionprobabilities(rep(1/nrow(den.pix), nrow(den.pix)), init_n_fisher) #Equal probability. TODO: inclusion probabilities can be based on field data
-  den.samples <- lpm(pi, cbind(den.pix.coords$x, den.pix.coords$y), h = 5000) #Local pivot method using BalancedSampling
+  den.samples <- lpm(pi, cbind(den.pix.coords$x, den.pix.coords$y)) #Local pivot method using BalancedSampling
   denning.starts <- den.pix.coords[den.samples, ]
   
   # create agents table  
@@ -197,7 +197,6 @@ Init <- function(sim) {
               initialPixels = sample(denning.starts$pixelid, n_disp, replace =T),
               size_achieved = NA)
   ))
-  
   #---- assign the population to sim$agents table
   tab.fisher.pop <- table.habitat.init [ras_fisher_pop > 0, c ("pixelid", "ras_fisher_pop")]
   names (tab.fisher.pop) <- c ("pixelid", "fisher_pop")
@@ -232,6 +231,7 @@ Init <- function(sim) {
 
 getInitialFisherHR<-function(sim){
   message ("Establishing fisher territories ...")
+  #browser()
   # convert to raster objects for spread2 not needed
   sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, NULL)
   contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
@@ -306,7 +306,7 @@ getInitialFisherHR<-function(sim){
 
 
 disperseFisher<- function(sim){
-
+  #browser()
   message (paste0("disperseFisher: # dispersing:", nrow(sim$dispersers)))
   sim$dispersers[, size_achieved:=NA] #reset all the home ranges
  
@@ -361,9 +361,9 @@ disperseFisher<- function(sim){
         sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)
         sim$dispersers$new_pixelid <- NULL
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
-                                               start = adult.fisher.found.site$initialPixels, 
+                                               start = adult.fisher.found.site[!is.na(hr_size),]$initialPixels, 
                                                spreadProb = as.numeric (sim$spread.rast[]),
-                                               exactSize = adult.fisher.found.site$hr_size, # try to find same home range size
+                                               exactSize = adult.fisher.found.site[!is.na(hr_size),]$hr_size, # try to find same home range size
                                                allowOverlap = F, asRaster = F, circle = F)
         #Convert the raster spread process from territory searching into a minimum convex polygon
         total_ha<-contingentHR[, .N, by = "initialPixels"]
@@ -445,7 +445,22 @@ disperseFisher<- function(sim){
     #---Kits try disperse after the adults (larger sized animals win)
     #check the individual_id post habitatQual calls, assign an individual_id to these establish juvies
     if(nrow(sim$dispersers[ age >= 1,]) > 0){ #kits and adults that haven't established
-      #sim$dispersers[is.na(individual_id) & age > 0, id := .I] # Need id (an identifier for the juvenile)
+     
+      #---- assign fisher_pop?
+      #---- assign an HR size based on population
+     
+      sim$dispersers [is.na(hr_size) & fisher_pop == 1, hr_size := round (rnorm (nrow (sim$dispersers [is.na(hr_size) & fisher_pop == 1, ]), sim$female_hr_table [fisher_pop == 1, hr_mean], sim$female_hr_table [fisher_pop == 1, hr_sd]))]
+      sim$dispersers [is.na(hr_size) & fisher_pop == 2, hr_size := round (rnorm (nrow (sim$dispersers [is.na(hr_size) & fisher_pop == 2, ]), sim$female_hr_table [fisher_pop == 2, hr_mean], sim$female_hr_table [fisher_pop == 2, hr_sd]))]
+      sim$dispersers [is.na(hr_size) & fisher_pop == 3, hr_size := round (rnorm (nrow (sim$dispersers [is.na(hr_size) & fisher_pop == 3, ]), sim$female_hr_table [fisher_pop == 3, hr_mean], sim$female_hr_table [fisher_pop == 3, hr_sd]))]
+      sim$dispersers [is.na(hr_size) & fisher_pop == 4, hr_size := round (rnorm (nrow (sim$dispersers [is.na(hr_size) & fisher_pop == 4, ]), sim$female_hr_table [fisher_pop == 4, hr_mean], sim$female_hr_table [fisher_pop == 4, hr_sd]))]
+      
+      sim$dispersers [is.na(hr_size) & fisher_pop == 1, hr_size_lb := sim$female_hr_table [fisher_pop == 1, hr_mean]- 2*sim$female_hr_table [fisher_pop == 1, hr_sd]]
+      sim$dispersers [is.na(hr_size) & fisher_pop == 2, hr_size_lb := sim$female_hr_table [fisher_pop == 2, hr_mean]- 2*sim$female_hr_table [fisher_pop == 2, hr_sd]]
+      sim$dispersers [is.na(hr_size) & fisher_pop == 3, hr_size_lb := sim$female_hr_table [fisher_pop == 3, hr_mean]- 2*sim$female_hr_table [fisher_pop == 3, hr_sd]]
+      sim$dispersers [is.na(hr_size) & fisher_pop == 4, hr_size_lb := sim$female_hr_table [fisher_pop == 4, hr_mean]- 2*sim$female_hr_table [fisher_pop == 4, hr_sd]]
+      
+      
+       #sim$dispersers[is.na(individual_id) & age > 0, id := .I] # Need id (an identifier for the juvenile)
       sim$dispersers[sim$dispersers[, age >= 1],id:= .I ]
       juv.fisher <- sim$dispersers[id > 0, ] 
  
@@ -495,23 +510,11 @@ disperseFisher<- function(sim){
   
         #juv.fisher.found.site<-juv.fisher.found.site[, initialPixels:= new_pixelid]
         sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)
-        #---- assign fisher_pop?
-        #---- assign an HR size based on population
-        
-        juv.fisher.found.site [fisher_pop == 1, hr_size := round (rnorm (nrow (juv.fisher.found.site [fisher_pop == 1, ]), sim$female_hr_table [fisher_pop == 1, hr_mean], sim$female_hr_table [fisher_pop == 1, hr_sd]))]
-        juv.fisher.found.site [fisher_pop == 2, hr_size := round (rnorm (nrow (juv.fisher.found.site [fisher_pop == 2, ]), sim$female_hr_table [fisher_pop == 2, hr_mean], sim$female_hr_table [fisher_pop == 2, hr_sd]))]
-        juv.fisher.found.site [fisher_pop == 3, hr_size := round (rnorm (nrow (juv.fisher.found.site [fisher_pop == 3, ]), sim$female_hr_table [fisher_pop == 3, hr_mean], sim$female_hr_table [fisher_pop == 3, hr_sd]))]
-        juv.fisher.found.site [fisher_pop == 4, hr_size := round (rnorm (nrow (juv.fisher.found.site [fisher_pop == 4, ]), sim$female_hr_table [fisher_pop == 4, hr_mean], sim$female_hr_table [fisher_pop == 4, hr_sd]))]
-        
-        juv.fisher.found.site [fisher_pop == 1, hr_size_lb := sim$female_hr_table [fisher_pop == 1, hr_mean]- 2*sim$female_hr_table [fisher_pop == 1, hr_sd]]
-        juv.fisher.found.site [fisher_pop == 2, hr_size_lb := sim$female_hr_table [fisher_pop == 2, hr_mean]- 2*sim$female_hr_table [fisher_pop == 2, hr_sd]]
-        juv.fisher.found.site [fisher_pop == 3, hr_size_lb := sim$female_hr_table [fisher_pop == 3, hr_mean]- 2*sim$female_hr_table [fisher_pop == 3, hr_sd]]
-        juv.fisher.found.site [fisher_pop == 4, hr_size_lb := sim$female_hr_table [fisher_pop == 4, hr_mean]- 2*sim$female_hr_table [fisher_pop == 4, hr_sd]]
-        
+
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
-                                               start = juv.fisher.found.site$initialPixels, 
+                                               start = juv.fisher.found.site[!is.na(hr_size),]$initialPixels, 
                                                spreadProb = as.numeric (sim$spread.rast[]),
-                                               exactSize = juv.fisher.found.site$hr_size, # try to find same home range size
+                                               exactSize = juv.fisher.found.site[!is.na(hr_size),]$hr_size, # try to find same home range size
                                                allowOverlap = F, asRaster = F, circle = F)
         # only care about home range bigger than 100 ha
         total_ha<-contingentHR[, .N, by = "initialPixels"]
@@ -550,9 +553,9 @@ disperseFisher<- function(sim){
             
           # fisher were able to re-establish. Include the agent and territory - 
           message(paste0("disperseFisher: # juvs established:", nrow(juv.fisher.found.site))) 
-          tab.perc<-tab.perc[, d2_score:=d2]
+          tab.perc <- tab.perc[, d2_score:=d2]
           juv.fisher.found.site <- juv.fisher.found.site[,`:=`(d2_score = NULL)] #remove variables not found in sim$agents
-          juv.fisher.found.site<-merge(juv.fisher.found.site, tab.perc[,c("individual_id", "d2_score")], by.x = "individual_id", by.y = "individual_id")
+          juv.fisher.found.site <- merge(juv.fisher.found.site, tab.perc[,c("individual_id", "d2_score")], by.x = "individual_id", by.y = "individual_id")
           sim$territories<-rbindlist(list(sim$territories, contingentHR.ras))
           #message(nrow(sim$territories))
           sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)

@@ -1,0 +1,147 @@
+---
+title: "FLEX2"
+author: ""
+date: "26 October 2022"
+output:
+  html_document:
+    keep_md: yes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
+```
+
+## Overview
+This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to input habitat data that was written as a raster output from the fisherHabitatLoader module. The fisherHabitatLoader saves rasters of the occurrence of fisher habitat types (denning, rust, cavity, resting and movement) at each interval of a forestry simulation using forestryCastor. The forestryCastor module is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). Thus fisherHabitatLoader updates fisher habitat conditions over a simulation period. This approach  allows for faster simulation of multiple iterations of a fisher population on a landscape. as it can read the habitat conditions as predetermined by the simulation model. I is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCastor.
+
+
+### Usage
+Run the model below
+```{r module_usage}
+library (data.table)
+library (terra)
+library (keyring)
+library (tidyverse)
+library (here)
+library (stringr)
+library (truncnorm)
+library (RANN)
+library(sampling)
+library(BalancedSampling)
+library(ggplot2)
+library(DBI)
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+paths <- list(
+  modulePath = paste0(here::here(),"/R/SpaDES-modules"),
+  outputPath = paste0(here::here(),"/R/scenarios/test_flex2/outputs/BRFN")
+)
+
+times <- list (start = 0, end = 0) # to save init output
+
+parameters <- list(FLEX = list (female_max_age = 12, # updating to make max age more dependent on survival rates
+                                reproductive_age = 2,
+                                burnInLength = 5,
+                                sex_ratio = 0.5,
+                                female_dispersal = 5000,  # ha; radius = 500 pixels = 50km = 7850km2 area
+                                timeInterval = 5, # should be consistent with the time interval used to model habitat
+                                # e.g., growingstockLCUS periodLength scen1c_static_high
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/static_habitat_brfn.tif")
+                                # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/scen1c_static_high.tif")
+                                # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
+                                # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/quesnel.tif")
+                                # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/lakes.tif")
+                                
+)
+)
+
+modules <- list ("FLEX")
+#female_hr_table <- data.table (fisher_pop = c (1:4),  hr_mean = c (1500, 1500, 2100, 1500),hr_sd = c (500, 500, 500, 500))
+survival_rate_table<-rbindlist(list(
+      data.table (fisher_pop = c (1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4),
+                  type = "Established",
+                  cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
+                  # Mean = c (0.86, 0.50, 0.8, 0.2,  0.79, 0.41, 0.7, 0.2,  0.79, 0.41, 0.7, 0.2,  0.79, 0.41, 0.7, 0.2), #Lofroth 2022
+                  # Mean = c (0.95, 0.55, 0.88, 0.22,
+                  # # 0.87, 0.45, 0.77, 0.22,  0.87, 0.45, 0.77, 0.22,  0.87, 0.45, 0.77, 0.22), #Fogarty 2022 - no trap
+                  # Mean = c (0.95, 0.55, 0.88, 0.22,
+                  # 0.95, 0.50, 0.85, 0.24,  0.95, 0.50, 0.85, 0.24,  0.95, 0.50, 0.85, 0.24), #Fogarty 2022 - no trap + 10% for Columbian
+                  Mean = c (0.95, 0.55, 0.88, 0.22,
+                  0.95, 0.80, 0.85, 0.24,  0.95, 0.80, 0.85, 0.24,  0.95, 0.80, 0.85, 0.24), # unrealistically high
+                  SD = c (0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1)), 
+      data.table (fisher_pop = c (1,1,1,1, 2,2,2,2, 3,3,3,3, 4,4,4,4),
+                  type = "Disperser",
+                  cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
+                  Mean = c (0.76, 0.40, 0.7, 0.1,   0.69, 0.31, 0.6, 0.1, 0.69, 0.31, 0.6, 0.1, 0.69, 0.31, 0.6, 0.1),
+                  SD = c (0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1)) 
+                                ))
+
+  # Fisher populations 
+  # 1 = boreal
+  # 2 = sbs-wet
+  # 3 = sbs-dry
+  # 4 = dry
+
+female_hr_table <- data.table (fisher_pop = c (1:4), 
+                                     # hr_mean = c (3000, 3000, 3000, 3000),
+                                     hr_mean = c (2880, 2920, 4340, 4530), # actual mean
+                                     # hr_sd = c (500, 500, 500, 500))
+                                     hr_sd = c (482, 460, 1120, 571)) # actual SE
+
+
+repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
+                                Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
+                                # Mean = c(0.75,2.6, 0.54,1.7, 0.54,1.7, 0.54,1.7), # Lofroth 2022
+                                # Mean = c(0.75,2.6, 0.59,1.9, 0.59,1.9, 0.59,1.9), # Fograty 2022 (+10% for Columbian)
+                                # Mean = c(0.75,2.6, 0.65,2.0, 0.65,2.0, 0.65,2.0), # Fograty 2022 (20% for Columbian)
+                                Mean = c(0.75,2.6, 0.75,2.6, 0.75,2.6, 0.75,2.6), # Fograty 2022 (unrealistically high for Columbian)
+                                SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+
+mySim <- SpaDES.core::simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = list(scenario = data.table(name = "test"),survival_rate_table=survival_rate_table,female_hr_table=female_hr_table, repro_rate_table=repro_rate_table),
+                 paths = paths)
+
+SpaDES.core::outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
+mySimOut <- SpaDES.core::spades(mySim)
+mySimOut$fisherABMReport
+#experiment(mySim, replicates = 2)
+
+# sum(rbinom (n = 30,
+#         size = 1,
+#         prob = rtruncnorm (1,
+#                            a = 0, # lower bounds
+#                            b = 1, # upper bounds
+#                            mean = repro_rate_table [Fpop == 2 & Param == 'DR', Mean], 
+#                            sd =  repro_rate_table [Fpop == 2 & Param == 'DR', SD])))
+
+```
+
+#Plot
+```{r}
+rast.stk<- rast(paste0 (here::here(), "/R/SpaDES-modules/FLEX/quesnel.tif"))
+plot(rast.stk["ras_fisher_movement_init"])
+plot(rast.stk["ras_fisher_movement_5"])
+plot(rast.stk["ras_fisher_movement_10"])
+plot(rast.stk["ras_fisher_movement_15"])
+# plot(rast.stk["ras_fisher_movement_20"])
+plot(rast.stk["ras_fisher_denning_init"])
+plot(rast.stk["ras_fisher_denning_5"])
+plot(rast.stk["ras_fisher_denning_10"])
+plot(rast.stk["ras_fisher_denning_15"])
+# plot(rast.stk["ras_fisher_denning_20"])
+
+dir_reps<-data.table(dir(paste0(here::here(),"/R/scenarios/test_flex2/outputs/static_high/columbia/")))[V1 %like% "rep",]
+abmReport<-rbindlist(lapply(dir_reps$V1, function(x) {
+  readRDS(paste0(here::here(),"/R/scenarios/test_flex2/outputs/static_high/columbia/",x,"/fisherABMReport_year4.rds"))}))
+
+ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult)) +
+   stat_binhex() +
+  geom_smooth()
+#writeRaster(terr.ras, "test_terr2.tif", overwrite = T)
+
+ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult, group = timeperiod)) +
+  geom_boxplot()
+```

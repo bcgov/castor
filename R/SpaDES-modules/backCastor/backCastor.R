@@ -131,12 +131,14 @@ getHistoricalLandings <- function(sim) {
 ### Set a list of cutblock locations as a Spatial Points object
 getLandings <- function(sim) {
   message("get landings")
+  
   if(!is.null(sim$histLandings)){
     landings <- sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + P(sim)$startHarvestYear) 
     if(nrow(landings) > 0){
       print(paste0('getting landings in: ', time(sim)))
       #TO DO: remove the labelling of column and rows with numbers like c(2,3) should be c("x", "y")
       sim$landings<- terra::cellFromXY(sim$ras, landings[,c(2,3)])
+      sim$harvestPixelList<-data.table(dbGetQuery(sim$castordb, paste0("select pixelid, dist, blockid from pixels where pixelid in(", paste(sim$landings, collapse = ',', sep=""),");")))
       #TODO: put a unique statement here? so that there aren't duplicate of the same landing location
       if(P(sim)$getArea){sim$landingsArea<-landings[,4]}else {sim$landingsArea<-NULL}
       
@@ -183,7 +185,7 @@ getExistingCutblocks<-function(sim){
       
       message('...getting age')
       blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvest_year) as age, objectid as blockid from ", P(sim, "nameCutblockTable", "backCastor"), 
-                                       " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"), conn = sim$dbCreds)
+                                       " where objectid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"), conn = sim$dbCreds)
       
       dbExecute(sim$castordb, "CREATE INDEX index_blockid on pixels (blockid)")
       #Set the age
@@ -242,6 +244,7 @@ setBlocksTable <- function(sim) {
 }
 
 finalAgeCalc <- function (sim) { # this function inverts the roadstatus and roadyear from the time it was built/used in the backcast to its age (i.e., end time - year it was built/used)
+  
   if(P(sim)$resetAge) { # if TRUE
     message("Setting roadyear and roadstatus as negative age.")
     
@@ -254,6 +257,7 @@ finalAgeCalc <- function (sim) { # this function inverts the roadstatus and road
     sim$road.year<-sim$ras
     sim$road.year[]<-dbGetQuery(sim$castordb, 'SELECT roadyear FROM pixels')$roadyear
     sim$road.status<-sim$ras
+    sim$road.status[]<-NA
     sim$road.status[]<-dbGetQuery(sim$castordb, 'SELECT roadstatus FROM pixels')$roadstatus
     
     

@@ -189,6 +189,7 @@ getExistingRoads <- function(sim) {
     dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN roadstatus integer;")
   
     if(!is.null(sim$boundaryInfo)){
+      #browser()
       sim$road.type<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                             srcRaster= P(sim, "nameRoads", "roadCastor"), 
                             clipper=sim$boundaryInfo[[1]], 
@@ -393,6 +394,7 @@ setGraph<- function(sim){
     if(!suppliedElsewhere(sim$roadSourceID)){
       sim$roadSourceID<-step.two[order(roadtype)][1]$pixelid #Assign the road source to any one of the perm roads
     }
+    
     #Sequential Nearest Neighbour without replacement - find the closest pixel to create the loop
     edges.loop<-rbindlist(lapply(1:nrow(step.two.xy), function(i){
       if(nrow(step.two.xy) == i ){ #The last pixel needed to make the loop
@@ -519,8 +521,10 @@ mstSolve <- function(sim){
   message('mstSolve')
   #------get the edge list between a permanent road and the landing
   if(nrow(sim$harvestPixelList)>0){
-  landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),][ landings %in% sim$nodes, ]
-  #landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
+    landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),][ landings %in% sim$nodes, ]
+  
+    #landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
+  
   weights.closest.rd <- cppRouting::get_distance_matrix(Graph=sim$g, 
                                   from=landing.cell$landings, 
                                   to=sim$roadSourceID, 
@@ -771,7 +775,14 @@ addInitialRoadsTable<- function(sim) {
   sim$landings<-NULL
   return(invisible(sim))
 } 
-  
+
+getMillLocations <- function(sim){
+  #get the closest roaded pixels to the sim$millLocations
+  perm.rds<-xyFromCell(sim$ras, dbGetQuery(sim$castorb, "select pixelid from pixels where roadstatus =0;")$pixelid)
+  nn.perms<-RANN::nn2(perm.rds, sim$millLocations, k =1)
+  return(invisible(sim))
+}
+
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("boundaryInfo", sim)){
     sim$boundaryInfo<-list("public.gcbp_carib_polygon","herd_name","Telkwa","geom")
