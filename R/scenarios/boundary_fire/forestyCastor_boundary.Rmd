@@ -136,7 +136,7 @@ parameters <-  list (
                                              keyring::key_get ("vmdbname", keyring="postgreSQL")))
         )
 
-scenario = data.table (name = "MPI_ESM1_2_HR_ssp370_r1i1p1f1", description = "dataCastor output")
+scenario = data.table (name = "nharv_MPI_ESM1_2_HR_ssp370_r1i1p1f1", description = "dataCastor output")
 
 modules <- list("dataCastor",
                 "growingStockCastor",
@@ -176,7 +176,7 @@ mysimout<-simInitAndExperiment(times = times,
                  params = parameters, 
                  modules = modules,
                  objects = objects,
-                 paths = paths, replicates = 14, clearSimEnv = TRUE)
+                 paths = paths, replicates = 16, clearSimEnv = TRUE)
                  
 #SpaDES.core::experiment(mySim, replicates = 15, saveExperiment = FALSE, clearSimEnv = TRUE, .plotInitialTime = NA) # no plotting
 #mysimout<-spades(mySim)

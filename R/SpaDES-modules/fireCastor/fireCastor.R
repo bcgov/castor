@@ -35,6 +35,7 @@ defineModule(sim, list(
   parameters = rbind(
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
     defineParameter("nameFrtRaster", "numeric", NA, NA, NA, "Raster of the fire regime types across Canada"),
+    defineParameter("nameFireCentreRaster", "numeric", NA, NA, NA, "Raster of the fire centre across BC"),
     defineParameter("nameAspectRaster", "numeric", NA, NA, NA, "Raster of aspect across BC"),
     defineParameter("nameSlopeRaster", "numeric", NA, NA, NA, "Raster of slope across BC"),
     defineParameter("nameDistInfrastructureRaster", "numeric", NA, NA, NA, "Raster of distance from any particular pixel to the closest infrastructure. Infrastructure is rail roads, powerlines, urban, oil (wells, pump sites etc), mines"),
@@ -1199,9 +1200,11 @@ downScaleData<-function(sim){
 }
   
 poissonProcessModel<-function(sim){
-    
  sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*cmi_min-0.124*(cmi-cmi3yr/3)-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
-
+ #Lightning caused fires - m9 see r/fire_sim/number_of_ignitions/fire_occurrence.rmd   
+ #sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0772*cmi_min-0.268*(cmi-cmi3yr/3)-0.214*avgCMIProv  -0.710*frt5 -1.43*frt7 -1.58*frt9  -1.54*frt10  -0.96*frt11  -1.02*frt12 -1.36*frt13  -0.763*frt14  -2.47*frt15 + 0.51*log(con + 1) - 0.0442 *log(dec + 1) +est_rf  + log(flammable) )]
+ #Person caused fires - per7 see r/fire_sim/number_of_ignitions/fire_occurrence.rmd   
+ #sim$downdat<-sim$downdat[ ,est:= exp(-15.1 -2.224*cmi + 0.333*lroad +0.0402*cmi06+ 0.0855*avgCMIProv  -2.50*frt5 -0.0168*frt7 -0.777*frt9  -1.74*frt10  -1.21*frt11  -0.941*frt12 -1.09*frt13  -0.132*frt14  -0.288*frt15+ -0.106 *log(young + 1) + 0.174 *log(dec + 1) + 0.0363*fc2 + 0.597* fc3 - 0.271*fc4 - 0.192*fc5 -0.1* fc6 +est_rf  + log(flammable) )]
   return(invisible(sim))
 }
 
