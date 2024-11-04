@@ -38,7 +38,7 @@ paths <- list(
   outputPath = paste0(here::here(),"/R/scenarios/test_flex2/outputs/BRFN")
 )
 
-times <- list (start = 0, end = 2)
+times <- list (start = 0, end = 0) # to save init output
 
 parameters <- list(FLEX = list (female_max_age = 12, # updating to make max age more dependent on survival rates
                                 reproductive_age = 2,
@@ -47,8 +47,8 @@ parameters <- list(FLEX = list (female_max_age = 12, # updating to make max age 
                                 female_dispersal = 5000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                                 timeInterval = 5, # should be consistent with the time interval used to model habitat
                                 # e.g., growingstockLCUS periodLength scen1c_static_high
-                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/static_habitat_brfn")
-                                #rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/scen1c_static_high.tif")
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/static_habitat_brfn.tif")
+                                # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/scen1c_static_high.tif")
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/quesnel.tif")
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/lakes.tif")
@@ -76,6 +76,12 @@ survival_rate_table<-rbindlist(list(
                   Mean = c (0.76, 0.40, 0.7, 0.1,   0.69, 0.31, 0.6, 0.1, 0.69, 0.31, 0.6, 0.1, 0.69, 0.31, 0.6, 0.1),
                   SD = c (0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1, 0.1,0.2,0.1,0.1)) 
                                 ))
+
+  # Fisher populations 
+  # 1 = boreal
+  # 2 = sbs-wet
+  # 3 = sbs-dry
+  # 4 = dry
 
 female_hr_table <- data.table (fisher_pop = c (1:4), 
                                      # hr_mean = c (3000, 3000, 3000, 3000),
