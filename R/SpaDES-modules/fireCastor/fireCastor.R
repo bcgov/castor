@@ -570,7 +570,7 @@ end as veg_cat FROM pixels"))
   
   dat<-data.table(dat)
 
-  dat[cmi_04_05 ==-9999, cmi_04_05:=NA]
+  dat[cmi_04_05 ==(-9999), cmi_04_05:=NA]
   
   #thisline of code below does not seem to want towork properly
   #dat<-cbind(dat, model.matrix( ~ 0 + frt, data=dat))
@@ -628,7 +628,7 @@ end as veg_cat FROM pixels"))
         0.049740807 * scale_tmin_04_05^2 +
         0.017573729 * scale_tmin_04_05^3 +
         0.180973589 * scale_percent_con + 
-        0.042191387 * scale_cmi_04_05 * scale_cmi_06_07
+        0.042191387 * scale_cmi_04_05 * scale_cmi_06_07]
       
       
       dat[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
@@ -889,7 +889,7 @@ end as veg_cat FROM pixels"))
     print("no data for FRT 12")
     
     frt12<-data.table(pixelid = as.numeric(),
-                      frt = as.numeric(), = as.integer(),
+                      frt = as.numeric(),
                      prob_ignition_spread = as.integer())
     
   }
@@ -1289,8 +1289,52 @@ for(f in 1:length(occ$fire)){
   }
 }
 
-sim$fire.size<-fire.size.sim
-print(sim$fire.size)
+
+# Note the above fire size is the size of the perimeter its not actual area burned. So here I adjust the number i.e. reduce it slightly according to a gamma distributed model looking at the relationship between the perimeter size and actual area burned by frt.
+
+
+fire.size.sim<-merge(sim$downdat[, c("pixelid10km", "frt")], fire.size.sim, by.x="pixelid10km", by.y="pixelid10km", all.y=TRUE)
+
+fire.size.sim[, frt_5:=0][frt=="5",frt_5:=1]
+fire.size.sim[, frt_7:=0][frt=="7",frt_7:=1]
+fire.size.sim[, frt_9:=0][frt=="9",frt_9:=1]
+fire.size.sim[, frt_10:=0][frt=="10",frt_10:=1]
+fire.size.sim[, frt_11:=0][frt=="11",frt_11:=1]
+fire.size.sim[, frt_12:=0][frt=="12",frt_12:=1]
+fire.size.sim[, frt_13:=0][frt=="13",frt_13:=1]
+fire.size.sim[, frt_14:=0][frt=="14",frt_14:=1]
+fire.size.sim[, frt_15:=0][frt=="15",frt_15:=1]
+
+fire.size.sim2<-fire.size.sim[fire.size>=100,]
+
+fire.size.sim2[, mu:=exp(-0.3918913 + log(fire.size)*1.0166865)]
+fire.size.sim2[, sigma:= exp(1.43159 +
+                 (-0.2000846*log(fire.size)) +
+                 (-0.4647708 * frt_5) +
+                 0.05794254 * frt_7 +
+                 (-0.7754247 * frt_9) +
+                 (-1.329711 * frt_10) +
+                 (-0.4918907 * frt_11) +
+                 (-1.189321 * frt_12) +
+                 (-1.614991 * frt_13) +
+                 (-0.6377721 * frt_14) +
+                 (-1.500612 * frt_15))]
+
+
+fire.size.sim2[, fire_size_adj:= rGA(1, mu=mu, sigma= sigma),by=.I]
+fire.size.sim2[, c("sigma", "mu"):=NULL]
+
+fire.size.sim3<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
+
+sim$fire.size<-rbind(fire.size.sim3, fire.size.sim2)
+
+
+# slope<-rnorm(length(fire.size.sim$fire.size), mean = 0.742260, sd = 0.04819156)
+# fire.size.sim$adjusted.fire.size<- 0 +  fire.size.sim$fire.size*slope
+# 
+# sim$fire.size<-fire.size.sim
+# 
+# print(sim$fire.size)
 
 
  } else {message("no fires simulated")
@@ -1336,10 +1380,10 @@ spreadProcess <- function(sim) {
     spreadRas<-raster(spreadRas)
     spreadRas[is.na(spreadRas[])] <- 0 
     
-    sim$fire.size$fire.size<-round(sim$fire.size$fire.size,0)
+    sim$fire.size$fire_size_adj<-round(sim$fire.size$fire_size_adj,0)
     
     message("simulating fire")
-    sim$out <- spread2(area, start = sim$fire.size$ignit_location, spreadProbRel =spreadRas, exactSize=sim$fire.size$fire.size,maxRetriesPerID=20, asRaster = FALSE, allowOverlap=FALSE)
+    sim$out <- spread2(area, start = sim$fire.size$ignit_location, spreadProbRel =spreadRas, exactSize=sim$fire.size$fire_size_adj,maxRetriesPerID=20, asRaster = FALSE, allowOverlap=FALSE)
  
     message("resetting age and volume in pixels table")
     
@@ -1360,7 +1404,7 @@ spreadProcess <- function(sim) {
     
     # create temp fire report
     
-    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location=sim$fire.size$ignit_location, pixelid10km = sim$fire.size$pixelid10km, areaburned_estimated = sim$fire.size$fire.size)
+    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location=sim$fire.size$ignit_location, pixelid10km = sim$fire.size$pixelid10km, areaburned_estimated = sim$fire.size$fire_size_adj)
     
     } else {
       message("no fires simulated")
