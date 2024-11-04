@@ -1,0 +1,1063 @@
+---
+title: "03_spread_data_prep"
+author: "Elizabeth Kleynhans"
+date: "2024-10-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+require (sf)
+require (RPostgreSQL)
+require (rpostgis)
+require (fasterize)
+require (raster)
+require (dplyr)
+library(bcdata)
+library(data.table)
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+## Description
+
+Here I download the fire incident data that kyle used to fit his models and the fire burn severity data that FAIB produces then i correlated the size of the fire from the incident dataset to the actual area burned according to the severity data set. I use the slope and se from this correlation to change the size of the fire that I use in my spread2 function.
+```{r}
+# join fire ignition to fire_polygons
+ fire_bounds_hist<-try(
+   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_FIRE_POLYS_SP") %>%
+     filter(FIRE_YEAR > 2014) %>%
+     collect()
+ )
+
+# fire point ignition data that Kyle used in his models
+ignit<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    filter(FIRE_YEAR > 2014) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    collect()
+)
+
+fire_ignit_df<-ignit %>% select(FIRE_NUMBER, FIRE_YEAR, FIRE_CAUSE, CURRENT_SIZE) %>% st_drop_geometry()
+
+#fire_bounds_hist_df<-fire_bounds_hist %>% select(FIRE_NUMBER, FIRE_YEAR, FIRE_CAUSE, FIRE_SIZE_HECTARES) %>% st_drop_geometry()
+
+# fire_severity<-try(
+#   bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_BURN_SEVERITY_SP") %>% collect()
+# )
+
+#get FRT
+FRT<-getSpatialQuery("SELECT * FROM public.frt_canada")
+
+#get provincial boundary for clipping the layers to the area of interest
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+crs(prov.bnd)# this one needs to be transformed to 3005
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
+
+#Clip FRT to BC boundary
+frt_clipped<-st_intersection(bc.bnd, FRT)
+#plot(st_geometry(frt_clipped), col=sf.colors(10,categorical=TRUE))
+length(unique(frt_clipped$Cluster))
+frt_sf<-st_as_sf(frt_clipped)
+
+# note clipping the fire locations to the BC boundary removes a few ignition points in several of the years
+ignit<-ignit[bc.bnd,] # making sure all fire ignitions have coordinates within BC
+ignit<-st_as_sf(ignit) #convert to sf object
+# join the ignition points to frt
+ignit <- st_join(ignit, frt_sf)
+table(is.na(ignit$Cluster))
+
+fire_ignit_df<-ignit %>% select(FIRE_NUMBER, FIRE_YEAR, FIRE_CAUSE, CURRENT_SIZE, Cluster) %>% st_drop_geometry()
+```
+
+# Get Fire severity data
+```{r}
+# Get fire severity data. Download it in two sections because all of it at once is too big.
+fire_severity_15_17<-try(
+  bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_BURN_SEVERITY_SP") %>% filter(FIRE_YEAR < 2018) %>% collect()
+)
+fire_severity_18<-try(
+  bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_BURN_SEVERITY_SP") %>% filter(FIRE_YEAR == 2018) %>% collect()
+)
+
+fire_severity_19_22<-try(
+  bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_BURN_SEVERITY_SP") %>% filter(FIRE_YEAR > 2018) %>% collect()
+)
+
+fire_severity_23<-try(
+  bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_BURN_SEVERITY_SAME_YR_SP") %>% filter(FIRE_YEAR > 2022) %>% collect()
+)
+fire_severity_23<-fire_severity_23 %>% select(id, FIRE_NUMBER:FEATURE_LENGTH_M, geometry) %>% rename(geom=geometry)
+
+
+fire_severity<-rbind(fire_severity_15_17, fire_severity_18)
+fire_severity<-rbind(fire_severity, fire_severity_19_22)
+fire_severity<-fire_severity %>% select(id, FIRE_NUMBER:FEATURE_LENGTH_M, geometry) %>% rename(geom=geometry)
+fire_severity<-rbind(fire_severity, fire_severity_23)
+table(fire_severity$FIRE_YEAR)
+
+#save fire_severity data set because it takes a while to download
+st_write(fire_severity, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\fire_severity_data_raw_2015_23.gpkg")
+
+
+rm(fire_severity_15_17, fire_severity_18, fire_severity_19_22, fire_severity_23)
+gc()
+
+
+# pull out the areas that were actually burned and sum them up by fire number
+fire_severity_summary<- fire_severity %>% filter(BURN_SEVERITY_RATING %in% c("High", "Medium", "Low")) %>%
+  group_by(FIRE_NUMBER, FIRE_YEAR) %>%
+  summarise(total_area_ha = sum(AREA_HA),
+            total_area_sqm = sum(FEATURE_AREA_SQM))
+
+
+
+fire_dat<-left_join(fire_severity_summary, fire_ignit_df, by=c("FIRE_NUMBER", "FIRE_YEAR"))
+
+table(fire_dat$FIRE_YEAR)
+
+# Im here
+fire_dat_dt<-data.table(fire_dat)
+#fire_dat_dt2<-merge(fire_dat_dt, fire_bounds_hist_df, by=c("FIRE_NUMBER", "FIRE_YEAR"))
+
+#Note that fire sizes less than 100ha are included in the dataset but only for the years 2015 and 2016 so remove these
+
+x<-fire_dat_dt[CURRENT_SIZE<100,]
+table(x$FIRE_YEAR)
+
+fire_dat_dt3<-fire_dat_dt[CURRENT_SIZE>=100,]
+fire_dat_dt3<-fire_dat_dt3[CURRENT_SIZE>=total_area_ha, ]
+table(fire_dat_dt3$Cluster)
+
+plot_dat<-fire_dat_dt3[, c("FIRE_YEAR", "total_area_ha")][,burn_group:="fire_sev"]
+plot_dat<-plot_dat %>% rename(areaburn=total_area_ha)
+plot_dat2<-fire_dat_dt3[, c("FIRE_YEAR", "CURRENT_SIZE")][,burn_group:="perim"]
+plot_dat2<-plot_dat2 %>% rename(areaburn=CURRENT_SIZE)
+plot_dat<-rbind(plot_dat, plot_dat2)
+plot_dat$FIRE_YEAR<-as.factor(plot_dat$FIRE_YEAR)
+
+ggplot(data=plot_dat, aes(x=FIRE_YEAR, y=areaburn, fill=burn_group)) +
+  geom_boxplot() +
+  ylim(0, 10000)
+```
+
+# attempt at fitting gamma distribution 
+```{r}
+library(lme4)
+fire_dat_dt3[FIRE_NUMBER=="G91933",CURRENT_SIZE:=FIRE_SIZE_HECTARES]
+fire_dat_dt3[222]
+fire_dat_dt3<-fire_dat_dt3[FIRE_NUMBER!="G80051",]
+fire_dat_dt3[283]
+fire_dat_dt3<-fire_dat_dt3[FIRE_NUMBER!="G90410",]
+
+fire_dat_dt3$Cluster<-as.factor(fire_dat_dt3$Cluster)
+```
+
+Below Im going to try do what Kyle did in params/linkHBS_VRI_Calibration.Rmd. Here he fits a gamma and negative binomial model using gamls to correlate observed wood volume to projected volume. Im going to try the same methods to fit area burned i.e. total area in a fire that was observed to burn at low, medium or high intensity to the perimeter size of the fire. Im also going to test wheterh adding fire regime type helps the fit of this model.
+```{r}
+model1 <- lm(total_area_ha ~ CURRENT_SIZE, data=fire_dat_dt3)
+summary(model1)
+area_var <- predict(model1, data =fire_dat_dt3, interval="prediction")
+init.data <- cbind(fire_dat_dt3, area_var)
+
+lm_eqn = function(m) {
+  l <- list(a = format(as.numeric(coef(m)[1]), digits = 2),
+      b = format(as.numeric(coef(m)[2]), digits = 2),
+      r2 = format(summary(m)$r.squared, digits = 3))
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2,l)
+  as.character(as.expression(eq))                 
+}
+
+ggplot(init.data , aes(CURRENT_SIZE, total_area_ha)) +
+  geom_point() +
+  geom_smooth(method='lm', se = TRUE)+
+  geom_line(aes(y=lwr), color = "red", linetype = "dashed")+
+  geom_line(aes(y=upr), color = "red", linetype = "dashed") +
+    geom_abline(intercept =0, slope=1, col ="purple") +
+  theme_bw()
+
+#I should play with this a little i.e. figure out what the mean and sd or shape and scale are. 
+# hist(fire_dat_dt3$total_area_ha, prob = T, xlim=c(0,10000), breaks=2000)
+# curve(dgamma(x, 1.2, 0.0001), add=TRUE, col = 'red')
+# curve(dnorm(x, 15138, 19838), add=TRUE)
+# curve(dlnorm(x, 8.79, 1.41), add=TRUE, col = 'blue')
+
+```
+
+```{r}
+## Fit and compare some models
+library(gamlss)
+fire_dat<-fire_dat_dt3[, c("total_area_ha", "CURRENT_SIZE", "Cluster", "geom")]
+fire_dat<-fire_dat[!is.na(Cluster),]
+str(fire_dat)
+
+test.0.gamma <- gamlss(total_area_ha ~ CURRENT_SIZE,
+                 sigma.formula = ~ 1,
+                 mu.link = "log",
+                 sigma.link = "log",
+                 family = GA(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+test.0.gamma2 <- gamlss(total_area_ha ~ CURRENT_SIZE+Cluster,
+                 sigma.formula = ~ 1,
+                 mu.link = "log",
+                 sigma.link = "log",
+                 family = GA(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+
+test.0.lognor <- gamlss(total_area_ha ~ CURRENT_SIZE,
+                 sigma.formula = ~ 1,
+                 mu.link = "log",
+                 sigma.link = "log",
+                 family = LOGNO(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+test.0.lognor2 <- gamlss(total_area_ha ~ CURRENT_SIZE+Cluster,
+                 sigma.formula = ~ 1,
+                 mu.link = "log",
+                 sigma.link = "log",
+                 family = LOGNO(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+AIC(test.0.gamma,test.0.gamma2, test.0.lognor, test.0.lognor2)
+
+
+test.1.gamma <- gamlss(total_area_ha ~ log(CURRENT_SIZE),
+                 sigma.formula = ~ 1,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = fire_dat)
+test.1.gamma2 <- gamlss(total_area_ha ~ log(CURRENT_SIZE)+Cluster,
+                 sigma.formula = ~ 1,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = fire_dat)
+test.1.lognor <- gamlss(total_area_ha ~ log(CURRENT_SIZE),
+                 sigma.formula = ~ 1,
+                 mu.link = "log",
+                 sigma.link = "log",
+                 family = LOGNO(),
+                 data = fire_dat)
+test.1.lognor2 <- gamlss(total_area_ha ~ log(CURRENT_SIZE)+Cluster,
+                 sigma.formula = ~ 1,
+                 mu.link = "log",
+                 sigma.link = "log",
+                 family = LOGNO(),
+                 data = fire_dat)
+
+test.0.gam.inv <- gamlss(total_area_ha ~ CURRENT_SIZE+Cluster,
+                 sigma.formula = ~ 1,
+                 mu.link = "inverse",
+                 sigma.link = "inverse",
+                 family = GA(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+
+
+# non of these are great. What about if I let the sigma be a function of the Current size
+
+test.2 <- gamlss(total_area_ha ~ CURRENT_SIZE+Cluster,
+                 sigma.formula = ~ CURRENT_SIZE,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+wp(test.2)
+
+test.4 <- gamlss(total_area_ha ~ CURRENT_SIZE,
+                 sigma.formula = ~ CURRENT_SIZE + Cluster,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = na.omit(fire_dat),
+                 control = gamlss.control(n.cyc = 2000))
+
+test.3 <- gamlss(total_area_ha ~ log(CURRENT_SIZE),
+                 sigma.formula = ~ log(CURRENT_SIZE)+Cluster,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+test.5 <- gamlss(total_area_ha ~ log(CURRENT_SIZE) +Cluster,
+                 sigma.formula = ~ log(CURRENT_SIZE)+Cluster,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = na.omit(fire_dat),
+                 control = gamlss.control(n.cyc = 2000))
+
+test.6 <- gamlss(total_area_ha ~ log(CURRENT_SIZE) +Cluster,
+                 family = IG(),
+                 data = na.omit(fire_dat),
+                 control = gamlss.control(n.cyc = 2000))
+
+m3<-gamlss(total_area_ha~log(CURRENT_SIZE)+Cluster,data=fire_dat,family=GAF, method=mixed(1,300),
+c.crit=0.00001)
+
+wp(test.3)
+plot(test.3)
+GAIC(test.0.gamma, test.0.gamma2, test.0.lognor, test.1.gamma, test.1.gamma2, test.1.lognor, test.1.lognor2, test.1.gamma.inv, test.0.gam.inv,test.3, test.2, test.4, test.5,m3)
+```
+
+
+Below i check that the points are independently distributed in space i.e. that there is no spatial auto corrleation i.e. that im over estimating or under estimating the values and that there is a spatial trend to this estimate. 
+```{r}
+ind.1<- predictAll(test.3, newdata = fire_dat)
+mu<-ind.1$mu
+ind.2<-cbind(fire_dat, mu)
+ind.2$res<-ind.2$total_area_ha - ind.2$mu
+ind.2<- st_as_sf(ind.2) %>% st_cast("POLYGON")
+
+ind.2$centroids <-st_centroid(st_buffer(st_sfc(ind.2$geom), 0))
+
+coords<-st_coordinates(ind.2$centroids)
+
+#get distances
+
+dists <- as.matrix(dist(coords))
+dists.inv <- 1/dists 
+diag(dists.inv) <- 0
+#dists[1:50, 1:50] # check what they look like - units are in metres
+
+#auto.2$res<-auto.2$res+runif(326, 1, 10000)
+library(ape)
+Moran.I(ind.2$res, dists.inv)
+#The P value is not significant its 0.8 this suggests that we cant reject the null hypothesis i.e. that the points are randomly distributed. Good! This also appears to be true when we plot it. see blow.
+
+xyspatial=SpatialPoints(coords)
+porspatial=data.frame(ind.2$res)
+spatialdata=SpatialPointsDataFrame(xyspatial,porspatial)
+
+library(gstat)
+vario2 <- variogram(ind.2$res~1, spatialdata)
+plot(vario2)
+
+bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
+    ylab = "Y-coordinates")
+```
+
+
+Now Im going to test how well my values are predicted. Ill fit the model to 75% of the data and test it on 25% of the data. 
+
+```{r}
+test.3 <- gamlss(total_area_ha ~ log(CURRENT_SIZE),
+                 sigma.formula = ~ log(CURRENT_SIZE) + Cluster,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+
+test.4 <- gamlss(total_area_ha ~ log(CURRENT_SIZE) + Cluster,
+                 sigma.formula = ~ log(CURRENT_SIZE) + Cluster,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = fire_dat,
+                 control = gamlss.control(n.cyc = 2000))
+
+GAIC(test.3, test.4)
+summary(test.3)
+
+# test.3 is the best
+```
+
+
+```{r}
+set.seed(222)
+ind <- sample(2, nrow(fire_dat), replace = TRUE, prob = c(0.75, 0.25))
+train <- fire_dat[ind==1,]
+table(train$Cluster)
+test <- data.table(fire_dat[ind==2,])
+test[, geom:=NULL]
+test1<-test[,c("CURRENT_SIZE", "Cluster")]
+
+top_mod <- gamlss(total_area_ha ~ log(CURRENT_SIZE),
+                 sigma.formula = ~ log(CURRENT_SIZE) + Cluster,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = train,
+                 control = gamlss.control(n.cyc = 2000))
+
+predicted<- predictAll(top_mod, newdata = test)
+
+test$mu <- predicted$mu
+test$sigma <- predicted$sigma
+test$upper.2 <- with(predicted, qGA(0.95, mu = mu, sigma = sigma))
+test$lower.2 <- with(predicted, qGA(0.05, mu = mu, sigma = sigma))
+test$upper.1 <- with(predicted, qGA(0.67, mu = mu, sigma = sigma))
+test$lower.1 <- with(predicted, qGA(0.33, mu = mu, sigma = sigma))
+
+# Plot it
+p.min <-
+  ggplot(test, aes(x = CURRENT_SIZE, y = total_area_ha) ) +
+  geom_point(alpha=0.4) +
+  #facet_wrap(~ ForestQualityClass) +
+  xlab(expression(paste("Perimeter size, ha"))) +
+  ylab(expression(paste("Observed area burned, ha"))) +
+  geom_line(aes(y = mu, x = CURRENT_SIZE), color = 'blue', data = test, lwd = 1) +
+  geom_line(aes(y = lower.2, x =  CURRENT_SIZE), linetype = "dashed", color = 'red', data = test) +
+  geom_line(aes(y = upper.2 , x =  CURRENT_SIZE), linetype = "dashed", color = 'red', data = test) +
+  geom_line(aes(y = lower.1 , x =  CURRENT_SIZE), linetype = "dotted", color = 'blue', data = test) +
+  geom_line(aes(y = upper.1 , x =  CURRENT_SIZE), linetype = "dotted", color = 'blue', data = test) +
+  geom_abline(intercept =0, slope=1, col ="yellow") +
+  facet_wrap(~Cluster) + xlim(0,1000) + ylim(0, 1000)
+
+
+
+
+# now trying with a dummy dataset
+
+CURRENT_SIZE<- rep(seq(100,  1000000, by = 1000), 9)
+Cluster<-rep(c(5,7,9,10,11,12,13,14,15), each = 9000)
+
+sim_dat<-data.frame(cbind(CURRENT_SIZE, Cluster))
+sim_dat$frt_5 <- ifelse(sim_dat$Cluster == 5, 1, 0)
+sim_dat$frt_7 <- ifelse(sim_dat$Cluster == 7, 1, 0)
+sim_dat$frt_9 <- ifelse(sim_dat$Cluster == 9, 1, 0)
+sim_dat$frt_10 <- ifelse(sim_dat$Cluster == 10, 1, 0)
+sim_dat$frt_11 <- ifelse(sim_dat$Cluster == 11, 1, 0)
+sim_dat$frt_12 <- ifelse(sim_dat$Cluster == 12, 1, 0)
+sim_dat$frt_13 <- ifelse(sim_dat$Cluster == 13, 1, 0)
+sim_dat$frt_14 <- ifelse(sim_dat$Cluster == 14, 1, 0)
+sim_dat$frt_15 <- ifelse(sim_dat$Cluster == 15, 1, 0)
+
+new.dist.min <- predictAll(top_mod, newdata = sim_dat)
+sim_dat$mu <- new.dist.min$mu
+sim_dat$sigma <- new.dist.min$sigma
+sim_dat$upper.2 <- with(new.dist.min, qGA(0.95, mu = mu, sigma = sigma))
+sim_dat$lower.2 <- with(new.dist.min, qGA(0.05, mu = mu, sigma = sigma))
+sim_dat$upper.1 <- with(new.dist.min, qGA(0.67, mu = mu, sigma = sigma))
+sim_dat$lower.1 <- with(new.dist.min, qGA(0.33, mu = mu, sigma = sigma))
+
+
+p.min <-
+  ggplot(sim_dat, aes(x = CURRENT_SIZE, y = mu) ) +
+  geom_point(alpha=0.4) +
+  #facet_wrap(~ ForestQualityClass) +
+  xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
+  ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
+  geom_line(aes(y = mu, x = CURRENT_SIZE), color = 'blue', data = sim_dat, lwd = 1.75) +
+  geom_line(aes(y = lower.2, x =CURRENT_SIZE  ), linetype = "dashed", color = 'red', data = sim_dat) +
+  geom_line(aes(y = upper.2 , x =  CURRENT_SIZE), linetype = "dashed", color = 'red', data = sim_dat) +
+  geom_line(aes(y = lower.1 , x =  CURRENT_SIZE), linetype = "dotted", color = 'blue', data = sim_dat) +
+  geom_line(aes(y = upper.1 , x =  CURRENT_SIZE), linetype = "dotted", color = 'blue', data = sim_dat) +
+  geom_abline(intercept =0, slope=1, col ="yellow")+
+  ylim(0,200000) + facet_wrap(~Cluster)
+
+
+
+sigma=top_mod$sigma.coefficients[1] +
+  log(sim_dat$y)* top_mod$sigma.coefficients[2] +
+  sim_dat$frt_5 * top_mod$sigma.coefficients[3] +
+  sim_dat$frt_7 * top_mod$sigma.coefficients[2] +
+  sim_dat$frt_9 * top_mod$sigma.coefficients[2] + 
+  sim_dat$frt_10 * top_mod$sigma.coefficients[2] +
+  sim_dat$frt_11 * top_mod$sigma.coefficients[2] +
+  sim_dat$frt_12 * top_mod$sigma.coefficients[2] +
+  sim_dat$frt_13 * top_mod$sigma.coefficients[2] +
+  sim_dat$frt_14 * top_mod$sigma.coefficients[2] +
+  sim_dat$frt_15 * top_mod$sigma.coefficients[2]
+  
+  
+mu = coef(top_mod)[1] + 
+  log(y)*coef(top_mod)[2] 
+
+
+
+
+
+```
+
+
+```{r}
+fit1<-lm(total_area_ha ~ log(CURRENT_SIZE) + Cluster, data=fire_dat_dt3)
+summary(fit1)
+plot(fit1)
+fire_dat_dt3<-fire_dat_dt3[!is.na(Cluster),]
+
+# the above is not great as as there is a clear wedge shape to the residuals. Lets try with a gamma distribution
+
+mod1 <- glm(total_area_ha ~ log(CURRENT_SIZE) + Cluster, data = fire_dat_dt3, family = Gamma(link = "log"), control = list(maxit = 500))
+plot(mod1)
+summary(mod1)
+
+hist(fire_dat_dt3$total_area_ha)
+exp(coef(mod1))
+
+shape<-1/0.08299764
+
+library(DHARMa)
+simout  <-  simulateResiduals(mod1)
+residuals(simout)
+plot(simout) 
+hist(residuals(simout))
+testDispersion(mod1)
+plotResiduals(simout, form = fire_dat_dt3$CURRENT_SIZE)
+plotResiduals(simout, form = fire_dat_dt3$Cluster)
+```
+
+
+Im going to try what Kyle does. Fit my model with data from 2015 to 2020 and then use 2021 - 2023 data as a test.
+
+```{r}
+
+fit<-fire_dat_dt3[FIRE_YEAR<2021,]
+test<-fire_dat_dt3[FIRE_YEAR>2020,]
+
+# create training and testing datasets
+set.seed(222)
+ind <- sample(2, nrow(fire_dat_dt3), replace = TRUE, prob = c(0.75, 0.25))
+train <- fire_dat_dt3[ind==1,]
+table(train$Cluster)
+test <- fire_dat_dt3[ind==2,]
+
+
+mod1 <- glm(log(total_area_ha) ~ log(CURRENT_SIZE) + Cluster, data = train, family = Gamma(link = "log"), control = list(maxit = 500))
+plot(mod1)
+summary(mod1)
+
+
+# sample values off a distribution
+shape <- 1/0.08015677
+
+test[,frt_3:=0][Cluster=="3", frt_3:=1]
+test[,frt_5:=0][Cluster=="5", frt_5:=1]
+test[,frt_7:=0][Cluster=="7", frt_7:=1]
+test[,frt_9:=0][Cluster=="9", frt_9:=1]
+test[,frt_10:=0][Cluster=="10", frt_10:=1]
+test[,frt_11:=0][Cluster=="11", frt_11:=1]
+test[,frt_12:=0][Cluster=="12", frt_12:=1]
+test[,frt_13:=0][Cluster=="13", frt_13:=1]
+test[,frt_14:=0][Cluster=="14", frt_14:=1]
+test[,frt_15:=0][Cluster=="15", frt_15:=1]
+
+test$scale<-as.numeric(exp(coef(mod1)[1] + coef(mod1)[2] * log(test$CURRENT_SIZE) + 
+                        coef(mod1)[3]*test$frt_5 + 
+                        coef(mod1)[4]*test$frt_7 +
+                        coef(mod1)[5]*test$frt_9 +
+                        coef(mod1)[6]*test$frt_10 +
+                        coef(mod1)[7]*test$frt_11 +
+                        coef(mod1)[8]*test$frt_12 +
+                        coef(mod1)[9]*test$frt_13 +
+                        coef(mod1)[10]*test$frt_14 +
+                        coef(mod1)[11]*test$frt_15)) /shape
+
+test1<-test[, c("CURRENT_SIZE", "Cluster", "total_area_ha", "scale")]
+test1[, CURRENT_SIZE:=log(CURRENT_SIZE)]
+test1[, total_area_ha:=log(total_area_ha)]
+
+# get predicted values i.e. the mean of the model I guess
+test1$predicated<- predict(mod1, newdata = test1[, c("CURRENT_SIZE", "Cluster")], type = "response")
+
+#runs<-rbindlist(lapply(1:1000, function(x){
+test2<-test1[, fire_size:=rgamma(n = 1, shape = shape, scale = test1$scale), by=1:nrow(test1)][, data_source:="gamma_distribution"]
+test3<-test1[, fire_size:=rgamma(n = 1, shape = shape, scale = test1$scale), by=1:nrow(test1)][, data_source:="gamma_distribution"]
+#}))
+
+test2<-test1[, c("CURRENT_SIZE", "Cluster", "total_area_ha")][, data_source:="observed"]
+test3<-test1[, c("CURRENT_SIZE", "Cluster", "predicated")][, data_source:="model_predicted"]
+test3<- test3 %>% rename(total_area_ha=predicated)
+test4<-runs[, c("CURRENT_SIZE", "Cluster","fire_size")][,data_source:="gamma_distribution"]
+test4 <- test4 %>% rename(total_area_ha=fire_size)
+
+test_all<-rbindlist(list(test2, test3, test4))
+
+
+ggplot(data=test_all) +
+  geom_point(aes(x = CURRENT_SIZE, y = total_area_ha, col=data_source)) + 
+  facet_wrap(~ Cluster, scales = "free")
+
+```
+
+
+```{r}
+# Its strange that the predicted lm from ggplot is different to that predicted in the stats package
+ggplot(fire_dat_dt3, aes(x=CURRENT_SIZE, y=total_area_ha)) + geom_point(shape=1) +
+    scale_colour_hue(l=50) + # Use a slightly darker palette than normal
+     geom_smooth(formula = 'y ~ x', method=lm,   # Add linear regression lines
+                se=TRUE,    # Don't add shaded confidence region
+                 fullrange=TRUE) +
+ # geom_abline(aes(intercept=0, slope=0.742260)) + 
+labs(x = "Perimeter size (ha)", y = "Burned area size (ha)") + xlim(0,10000) + ylim(0,10000)
+
+
+#gamlss
+# castor R params, yeild uncertainty
+#link hbs, VRI calibration
+
+# well balanced sampling. Local pivot method.
+
+# put euclidian distance. 
+# sample non-burned locations within the fire boundary, sample points that are >25th percentile on distance from the ignition location. 
+# only do this for fires > 100 ha. 
+
+#Approach, add FRT to this fire_dat dataset. Then run a model with CURRENT SIZE and FRT as predictors. Try a gam since this error is scaled with the mean i.e larger values have more error. 
+
+fire_dat_100ha<-fire_dat[CURRENT_SIZE>=100,]
+fit1<-lm(total_area_ha ~ 0+CURRENT_SIZE, data=fire_dat_100ha)
+summary(fit1)
+
+```
+
+```{r}
+fire_severity$BURN_SEVERITY_RATING<-as.factor(fire_severity$BURN_SEVERITY_RATING)
+one_fire<- fire_severity %>% filter(FIRE_NUMBER == "C10038" )
+ggplot(data=one_fire) +
+  geom_sf(aes(fill = "BURN_SEVERITY_RATING"))
+
+pts$pttype<-as.factor(pts$pttype)
+
+pts2<-pts %>% filter(pttype == 0)
+
+ggplot(data = foo3) +
+  geom_sf( ) +
+  geom_sf(data = bar2_buff)
+
+ggplot(data = pts)+
+  geom_point()
+```
+
+
+
+Modelling approach. Im going to sample pixels within fires that were classified as burned (low, medium, high) or not burned i.e. this will give me the probability that a pixel burns. Then assuming it burns I can estimate the probability that it burns at low severity or in (medium or high) and then given that it burned in the medium or category I can again assess which class it was. 
+See https://iopscience.iop.org/article/10.1088/1748-9326/ac939b
+
+########################
+Create buffers around the fire polygons taht is approximately the same size as the area burned by the fire.
+1.) assume the the fire is approximately round. in that case the area can be estimated using 
+A = pi *r^2
+
+Then the area of the fire plus the buffer will be
+
+B = pi*(r+x)^2
+
+if the buffered area is the same as A then
+
+A = B - A so substitute the values in and I get
+
+pi * r^2 = pi * (r+x)^2 - pi*r^2
+simplify this equation to get
+0 = 2rx + x^2 - r^2
+
+Since we know the area burned we can get r using A = pi r^2 then substitute r into the above equation and solve for x
+################################
+
+```{r}
+
+#fire_burned<- left_join(fire_severity, fire_ignit_df, by=c("FIRE_NUMBER", "FIRE_YEAR"))
+# pull out the areas that were actually burned and sum them up by fire number
+
+#st_write(fire_burned, dsn="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\fire_severity_data.gpkg")
+fire_burned<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\fire_severity_data.gpkg")
+
+years<-unique(fire_burned$FIRE_YEAR)
+f<-function (x, r) 2*r*x + x^2 - r^2
+
+
+filenames<-list()
+
+  for (i in 1:length(years)) {
+    datalist = list()
+# first clip out the fire perimeteres from the buffered area and sample within the buffered area.
+    foo<-fire_burned %>%
+      filter(FIRE_YEAR==years[i]) %>%
+      filter(BURN_SEVERITY_RATING %in% c("High", "Medium", "Low"))
+    
+    print(years[i])
+    
+    fire_num<-unique(foo$FIRE_NUMBER)
+    
+    for (j in 1:length(fire_num)) {
+      print(fire_num[j])
+      
+      
+    bar<-foo %>% filter(FIRE_NUMBER == fire_num[j])
+    severity<-unique(bar$BURN_SEVERITY_RATING)
+    
+    sampled_points_sf3<-list()
+    for (sever in severity){
+      bar_sev<-bar %>% filter(BURN_SEVERITY_RATING == sever)
+    #########
+      #sample points within fire
+    if(bar_sev$CURRENT_SIZE[1]<100 |is.na(bar_sev$CURRENT_SIZE)[1] ){ptsize=200} else{ptsize=400}
+      foo4_sp<-as(bar_sev, "Spatial")
+      samp_points2<-list()
+      
+      samp_points2 <- try(spsample (foo4_sp, cellsize = c (ptsize, ptsize), type = "regular"), silent=TRUE)
+      
+      if (length(samp_points2)==1) {
+        samp_points2 <- try(spsample (foo4_sp, n=2, type = "random"))
+      }
+      
+      if (length(samp_points2)==1) {
+        samp_points2 <- try(spsample (foo4_sp, n=2, type = "random"))
+      }
+    
+      
+      samp_points_new2 <- data.frame (matrix (ncol = 5, nrow = nrow (samp_points2@coords))) # add 'data' to the points
+      colnames (samp_points_new2) <- c ("pttype","year", "fire_label", "CURRENT_SIZE", "burn_severity")
+      samp_points_new2$pttype <- 1
+      samp_points_new2$year<-years[i]
+      samp_points_new2$fire_label<-fire_num[j]
+      samp_points_new2$CURRENT_SIZE<-bar$CURRENT_SIZE[1]
+      samp_points_new2$burn_severity<-sever
+      
+      sampled_points2 <- SpatialPointsDataFrame (samp_points2, data = samp_points_new2)
+      sampled_points_sf2<-st_as_sf(sampled_points2)
+       sampled_points_sf3[[sever]]<-sampled_points_sf2
+       rm(sampled_points2, sampled_points_sf2, samp_points_new2, foo4_sp, bar_sev)
+      
+    }
+     sampled_points_sf4 = do.call(rbind, sampled_points_sf3)
+     #print("sampled 1's")
+      
+      #get size of buffer
+      
+        burnsize<-bar %>% filter(BURN_SEVERITY_RATING %in% c("Low", "Medium", "High")) %>% summarise(area_burned=sum(AREA_HA))
+        
+        bar2<-fire_burned %>% filter(FIRE_NUMBER == fire_num[j])
+          
+      if(burnsize$area_burned[1] < 50){
+        #print(paste0("fire size =",burnsize$area_burned))
+        bar3<-st_union(bar2)
+        bar_buff<-st_buffer(bar3,dist=80)
+        bar2_buff<-st_buffer(bar3,dist=0)
+    #check
+    
+    # clip buffered area out of fire perimeter  
+      foo3<-sf::st_difference(bar_buff, bar2_buff)
+      # check it worked
+     # ggplot() + sampled_points_sf2
+      
+      #Third sample points in each year for each herd
+      # change sf feature to a SpatialPolygonDataFrame
+      foo3_sp<-as(foo3, "Spatial")
+      
+      samp_points <- try(spsample (foo3_sp, n = length(sampled_points_sf4$pttype), type = "random"))
+      
+      if (length(samp_points)==1) {
+        samp_points <- try(spsample (foo3_sp, n=2, type = "random"))
+      }
+        
+        } else {
+   # r_val<-as.numeric(sqrt((sum(st_area(bar2)))/pi))
+        r_val<-as.numeric(sqrt(burnsize$area_burned[1]*100*100)/pi)
+        x<-try(uniroot(f, c(0,1000000),maxiter = 100000, r=r_val))
+        xroot<-x$root
+    
+    bar3<-st_union(bar2)
+    ggplot(data=bar3)+geom_sf()
+    
+    bar_buff<-st_buffer(bar3,dist=xroot)
+    bar2_buff<-st_buffer(bar3,dist=0)
+    #check
+    
+    # clip buffered area out of fire perimeter  
+    foo3<-sf::st_difference(bar_buff, bar2_buff)
+      # check it worked
+     # ggplot() + sampled_points_sf2
+      
+      #Third sample points in each year for each herd
+      # change sf feature to a SpatialPolygonDataFrame
+      foo3_sp<-as(foo3, "Spatial")
+      
+      samp_points <- try(spsample (foo3_sp, n = length(sampled_points_sf4$pttype), type = "regular"))
+    
+      }
+      
+      
+        
+      samp_points_new <- data.frame (matrix (ncol = 5, nrow = nrow (samp_points@coords))) # add 'data' to the points
+      colnames (samp_points_new) <- c ("pttype","year", "fire_label", "CURRENT_SIZE", "burn_severity")
+      samp_points_new$pttype <- 0
+      samp_points_new$year<-years[i]
+      samp_points_new$fire_label<-fire_num[j]
+      samp_points_new$CURRENT_SIZE<-bar2$CURRENT_SIZE[1]
+      samp_points_new$burn_severity<-"unburned"
+      sampled_points <- SpatialPointsDataFrame (samp_points, data = samp_points_new)
+      sampled_points_sf<-st_as_sf(sampled_points)
+      
+      #ggplot() + geom_sf(data = foo3, fill="red")+
+        # geom_sf(data=sampled_points_sf)
+      
+      pts<-rbind(sampled_points_sf, sampled_points_sf4)
+      datalist[[j]] <- pts
+      
+      rm(pts, sampled_points_sf, sampled_points_sf3, sampled_points_sf4, samp_points2, samp_points_new, foo3, foo3_sp, bar3, bar_buff, bar2_buff)
+      gc()
+      
+    }
+    #assign file names to the work
+    big_data = do.call(rbind, datalist)
+    table(big_data$fire_label, big_data$pttype)
+      
+    nam1<-paste("sampled_points",years[i],sep=".") #defining the name
+      
+      assign(nam1,big_data)
+      filenames<-append(filenames,nam1)
+    }
+      
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+samp_spread<-mkFrameList(n) 
+dim(samp_spread)
+
+table(samp_spread$pttype, samp_spread$year)
+
+# save it 
+st_write(samp_spread, dsn="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points_with_burn_severity.gpkg")
+
+
+```
+
+```{r}
+rm(foo, foo3, foo3_sp, foo4_sp, samp_points_new, sampled_points_sf, samp_points, samp_points2, bar, bar_sev, bar2, bar_buff, bar2_buff, bar3, sampled_points_sf4, sampled_points, sampled_points_sf3)
+```
+
+
+# join the points to climate, topographic and vegetation variables
+
+```{r}
+#get FRT
+FRT<-getSpatialQuery("SELECT * FROM public.frt_canada")
+
+#get provincial boundary for clipping the layers to the area of interest
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+crs(prov.bnd)# this one needs to be transformed to 3005
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
+
+#Clip FRT to BC boundary
+frt_clipped<-st_intersection(bc.bnd, FRT)
+#plot(st_geometry(frt_clipped), col=sf.colors(10,categorical=TRUE))
+length(unique(frt_clipped$Cluster))
+frt_sf<-st_as_sf(frt_clipped)
+
+# note clipping the fire locations to the BC boundary removes a few ignition points in several of the years
+samp_spread_clipped<-samp_spread[bc.bnd,] # making sure all fire ignitions have coordinates within BC boundary
+table(samp_spread_clipped$year)
+table(samp_spread$year) #We have lost a few but its not many.
+table(samp_spread_clipped$year, samp_spread_clipped$pttype)
+
+samp_spread_clipped<-st_as_sf(samp_spread_clipped) #convert to sf object
+# join the ignition points to frt
+samp_spread_clipped <- st_join(samp_spread_clipped, frt_sf)
+table(is.na(samp_spread_clipped$Cluster))
+
+samp_spread_clipped<-samp_spread_clipped %>% select(pttype:dist_infrastructure_m, PRENAME, Cluster, geometry)
+
+```
+
+
+## Extract distance to road and infrastructure and get elevation, slope, aspect, and elevation
+```{r}
+# bring distance rasters back in
+# import roads distance raster
+roads_dist <- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+crs(roads_dist)
+
+# import infrastructure data
+dist_rail<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+
+##Slope
+DEM_slope <- rast("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+##Aspect
+DEM_aspect <- rast("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+#Elevation
+
+rasStack = rast(list(DEM_slope, DEM_aspect, dist_rail, dist_power, dist_oil, dist_mines, dist_urban))
+crs(rasStack)<- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs" # EPSG 9001. Hmm should probably change to 3005
+res(rasStack)
+
+##Try this first
+test<-cbind(samp_spread_clipped, st_coordinates(samp_spread_clipped))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+
+##Extract  values from stacked layer
+rasValue2=terra::extract(rasStack, pointCoordinates)
+head(rasValue2)
+dim(rasValue2) 
+dim(samp_spread_clipped)
+
+samp_spread_clipped<-cbind(samp_spread_clipped, rasValue2)
+
+#Get value for infrastructure that is closest
+samp_spread_clipped$dist_infrastructure_m<-0
+samp_spread_clipped$dist_infrastructure_m<-
+  ifelse(samp_spread_clipped$dist_rail < samp_spread_clipped$dist_power, samp_spread_clipped$dist_rail, samp_spread_clipped$dist_power)
+
+samp_spread_clipped$dist_infrastructure_m<-
+  ifelse(samp_spread_clipped$dist_oil < samp_spread_clipped$dist_infrastructure, samp_spread_clipped$dist_oil, samp_spread_clipped$dist_infrastructure)
+
+samp_spread_clipped$dist_infrastructure_m<-
+  ifelse(samp_spread_clipped$dist_mines < samp_spread_clipped$dist_infrastructure, samp_spread_clipped$dist_mines, samp_spread_clipped$dist_infrastructure)
+
+samp_spread_clipped$dist_infrastructure_m<-
+  ifelse(samp_spread_clipped$dist_urban < samp_spread_clipped$dist_infrastructure, samp_spread_clipped$dist_urban, samp_spread_clipped$dist_infrastructure)
+
+# change distance from the scale of ha to m
+samp_spread_clipped$dist_infrastructure_m<-samp_spread_clipped$dist_infrastructure_m*100
+samp_spread_clipped$dist_roads_m<-samp_spread_clipped$dist_roads*100
+
+rm(DEM_slope, DEM_aspect, DEM, roads_dist, dist_rail, dist_power, dist_oil, dist_mines, dist_urban, rasStack, test, rasValue2, frt_clipped, frt_sf, ignit, FRT, fire.ignition.clipped, fire.ignition_sf, prov.bnd, pointCoordinates, bc.bnd)
+gc()
+
+```
+
+## Get climate data
+
+```{r}
+x3b<- st_transform(samp_spread_clipped, crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
+
+head(x3b)
+
+#getting long lat info
+#geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
+st_crs(x3b) #Retrieve coordinate reference system to check
+
+x4a<-as.data.frame(x3b)
+#x4a$idno<- 1:dim(x4a[1])
+x4<- x4a %>%
+  tidyr::separate(geometry, into = c("longitude", "latitude")," ")
+x4$longitude<- gsub(",", "", as.character(x4$longitude) )
+x4$longitude<- substring(x4$longitude, 3)
+x4$longitude<- as.numeric(x4$longitude)
+#x4$longitude<- round(x4$longitude, digits=4)
+x4$latitude<- gsub(")", "", as.character(x4$latitude) )
+x4$latitude<- as.numeric(x4$latitude)
+#x4$latitude<- round(x4$latitude, digits=4)
+
+library(climr)
+years<-min(x4$year):max(x4$year)
+clim_dat<-list()
+
+for (i in 1:length(years)){
+fire_clim<-x4 %>% 
+  filter(year == years[i]) %>% 
+  dplyr::select(ID, latitude, longitude, dem_ha_bc) %>%
+  rename(id=ID,
+         lon=longitude,
+         lat = latitude,
+         elev = dem_ha_bc)
+fire_clim<-data.table::data.table(fire_clim)
+#
+ds_out <- downscale(
+          xyz = fire_clim,
+          which_refmap = "auto",
+          obs_years = years[i],
+          obs_ts_dataset = "climatena",
+          vars = c("PAS_01", "PAS_02", "PAS_03", "PAS_04", "PAS_05","PPT_02","PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_02", "Tmax_03","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_02","Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_02","Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08", "Tmin_09" ,"CMD_02", "CMD_03","CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMD_09", "CMI_02","CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"))
+
+ds_out<-ds_out[DATASET == "climatena",]
+
+clim_dat<-rbind(clim_dat, ds_out)
+rm(ds_out, fire_clim)
+}
+
+samp_spread_clipped$year<-as.numeric(samp_spread_clipped$year)
+clim_dat$PERIOD<-as.numeric(clim_dat$PERIOD)
+samp_spread.clim<-left_join(samp_spread_clipped, clim_dat, join_by(ID==id, year == PERIOD))
+
+#check I did not loose any data.
+table(samp_spread.clim$year)
+table(samp_spread_clipped$year)
+
+rm(clim_dat, samp_spread)
+gc()
+
+st_write(samp_spread.clim,  dsn="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points_with_burn_severity_clim.gpkg")
+
+```
+
+## Get VRI data
+
+There are two ways to get the VRI data:
+1.) I can either directly extract it for the ignition location on record but sometimes these ignition locations and the VRI are not very accurate OR
+2.) I can get summary information for the 1km pixel within which the ignition location occured. 
+
+Ill try it both ways
+
+This next section is for the 1st way to extract VRI data i.e. directly extracting it for the location of interest
+This next section takes a long time to run. there may be a more efficient way to do it but for now this is how ill go about it. 
+
+```{r}
+#Get dummy layer for projection (too lazy to write it) 
+lyr<-getSpatialQuery(paste("SELECT geom FROM public.forest_tenure limit 1") )
+
+#Make an empty provincial raster aligned with hectares BC
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lyr)$proj4string, resolution = c(100, 100), vals = 0
+)
+
+year_vri<-min(samp_spread.clim$year):max(samp_spread.clim$year)
+#use the vri layer from the year before the fire because e.g. 2022 vri data is the vegetation represeted up till the end of 2022 
+
+vri_layers<-c("vri.veg_comp_lyr_r1_poly2014", "vri.veg_comp_lyr_r1_poly2015", "vri.veg_comp_lyr_r1_poly2016", "vri.veg_comp_lyr_r1_poly2017", "vri.veg_comp_lyr_r1_poly2018", "vri.veg_comp_lyr_r1_poly2019", "vri.veg_comp_lyr_r1_poly2020", "vri.veg_comp_lyr_r1_poly2021", "vri.veg_comp_lyr_r1_poly2022")
+
+#create empty sf object to rbind data too
+dat_joined<-st_sf(geometry = st_sfc(crs=3005))
+
+for (i in 1:length(vri_layers)) {
+  
+  print(year_vri[i])
+#get feature id for the year of interest
+layer<-getSpatialQuery(paste0("SELECT feature_id, shape FROM ", vri_layers[i], ";"))
+#create a raster out of the feature id
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature_id")
+rm(layer)
+gc()
+#get the fire data for year of interest
+dat<-samp_spread.clim %>% filter(year == year_vri[i])
+#get coordintes of fire locations
+test<-cbind(dat, st_coordinates(dat))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+##Extract feature_id values from raster for the fire locations using the coordinates
+rasValue2=terra::extract(layer.ras, pointCoordinates)
+dat<-cbind(dat, rasValue2)
+
+dat2<-dat %>% dplyr::select(rasValue2)
+dat2<-data.table(dat2)
+dat2<-dat2[!is.na(rasValue2), ]
+dat2<-unique(dat2$rasValue2)
+# query the vri layer using the feature id
+attrib_inv<-data.table::data.table(getTableQuery(paste0("SELECT feature_id AS fid, bclcs_level_1, bclcs_level_4, basal_area, proj_height_1, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3, species_pct_3, species_cd_4, species_pct_4, species_cd_5, species_pct_5, species_cd_6, species_pct_6, bec_zone_code, bec_subzone FROM ", vri_layers[i], " WHERE feature_id IN (", paste(dat2, collapse = ","),");" )))
+
+#join the vri data to the fire data
+dat<-left_join(dat, attrib_inv, join_by(rasValue2==fid))
+#add all the data to a new dataframe
+dat_joined<-rbind(dat_joined, dat)
+#clean up to reduce memory ussage
+rm(dat, attrib_inv, rasValue2, pointCoordinates, test)
+gc()
+}
+
+head(dat_joined)
+dat_joined<-st_as_sf(dat_joined)
+drops <- c("ID") # list of col names
+dat_joined2 <- dat_joined[,!(names(dat_joined) %in% drops)] #remove column
+```
+
+## save the data file for use in the analysis
+```{r}
+st_write(dat_joined2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points_with_burn_severity_clim_veg.gpkg")
+```
+
