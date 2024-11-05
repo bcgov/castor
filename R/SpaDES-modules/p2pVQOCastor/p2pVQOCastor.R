@@ -79,7 +79,7 @@ Init <- function(sim) {
     
     
     nameVqoColumn<-dbGetQuery(sim$castordb, glue::glue("Select zone_column from zone where reference_zone = '", P(sim, "nameVQORaster","p2pVQOCastor"), "';"))
-    vqo_pixels<-data.table(dbGetQuery(sim$castordb, glue::glue("select pixelid, ",nameVqoColumn$zone_column ," as zoneid from pixels where ", nameVqoColumn$zone_column," is not null and cflb > 0;")))
+    vqo_pixels<-data.table(dbGetQuery(sim$castordb, glue::glue("select pixelid, ",nameVqoColumn$zone_column ," as zoneid, cflb from pixels where ", nameVqoColumn$zone_column," is not null and cflb > 0;")))
     
     #get the ids that distinguish VQO polygons
     slope_vqo<-merge(slope_vqo, vqo_pixels, by.x = "pixelid", by.y = "pixelid", all.y= TRUE)

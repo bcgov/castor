@@ -53,6 +53,7 @@ defineModule(sim, list(
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents a compartment or supply block. Not currently in the pgdb?"),
     defineParameter("nameCompartmentTable", "character", "99999", NA, NA, desc = "Name of the table in a pg db that represents a compartment or supply block value attribute look up. CUrrently 'study_area_compart'?"),
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
+    defineParameter("nameContributingLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to the contributing landbase. This mask is between 0 and 1, representing where land contributes to constraints"),
     defineParameter("nameAgeRaster", "character", "99999", NA, NA, desc = "Raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve"),
     defineParameter("nameTreedRaster", "character", "99999", NA, NA, desc = "Raster containing pixel classified as treed"),
     defineParameter("nameSiteIndexRaster", "character", "99999", NA, NA, desc = "Raster containing site index used in uncertainty model of yields"),
@@ -197,7 +198,7 @@ createCastorDB <- function(sim) {
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS silvSystem ( id integer PRIMARY KEY, silvsystem integer, entry_var text, entry_req numeric, transition_silv integer, reset_age integer, description text,start integer default 0, stop integer default 500);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS transitions ( id integer PRIMARY KEY, pixelid integer, silvsystem integer, yieldid_from integer, yieldid_to integer);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric, silvsystem integer default 0, elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
+own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric, cflb numeric, silvsystem integer default 0, elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex numeric, dec_pcnt numeric, eca numeric, salvage_vol numeric default 0, dual numeric, priority numeric default 0);")
   
   #Populate the silvicutural system table
@@ -425,6 +426,30 @@ setTablesCastorDB <- function(sim) {
   }else{
     message('.....thlb: default 1')
     pixels[!is.na(compartid), thlb := 1]
+  }
+  
+  #---------------#
+  #Set the CFLB----
+  #---------------#
+  if(!(P(sim, "nameContributingLandbaseRaster", "dataCastor") == "99999")){
+    message(paste0('.....cflb: ',P(sim, "nameContributingLandbaseRaster", "dataCastor")))
+    ras.cflb<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                                        srcRaster= P(sim, "nameContributingLandbaseRaster", "dataCastor"), 
+                                        clipper=sim$boundaryInfo[[1]], 
+                                        geom= sim$boundaryInfo[[4]], 
+                                        where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                        conn=sim$dbCreds))
+    if(aoi == terra::ext(ras.cflb)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(cflb=as.numeric(ras.cflb[])))
+      rm(ras.cflb)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameContributingLandbaseRaster", "dataCastor")))
+    }
+    
+  }else{
+    message('.....cflb: default 1')
+    pixels[!is.na(compartid), cflb := 1]
   }
   
   #--------------------#
@@ -840,10 +865,10 @@ setTablesCastorDB <- function(sim) {
   #-----------------------------#
   #Load the pixels in RSQLite----
   #-----------------------------#
-  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, silvsystem, treed, age, crownclosure, height, siteindex, basalarea, qmd, dec_pcnt, zone',
+  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, cflb, silvsystem, treed, age, crownclosure, height, siteindex, basalarea, qmd, dec_pcnt, zone',
               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),
               paste(multiVars, sep="' '", collapse=", "),' ) 
-               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :silvsystem, :treed, :age, :crownclosure, :height, :siteindex, :basalarea, :qmd, 0, :zone', 
+               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :cflb, :silvsystem, :treed, :age, :crownclosure, :height, :siteindex, :basalarea, :qmd, 0, :zone', 
               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),
               paste(multiVars2, sep="' '", collapse=", :"),')')
   
