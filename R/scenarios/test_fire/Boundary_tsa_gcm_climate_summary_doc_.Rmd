@@ -1,7 +1,7 @@
 ---
 title: Results from 10 000 reps of fireCastor when run using actual and predicted climate for the year 2023 in the Boundary TSA
 author: "Elizabeth Kleynhans"
-date: "2024-07-16"
+date: "2024-09-09"
 output:
   html_document: default
   keep_md: yes
@@ -34,12 +34,12 @@ source (here::here("R/functions/R_Postgres.R"))
 ```
 
 ## Introduction
-We used fire Castor to predict number of ignitions, fire size, and areas burned when climate data was extracted from two different runs of two different GCM's (MPI-ESM1-2-HR and CanESM2) at SSP 2-4.5 and compared these results to simulations run on the actual climate data for the year 2023. This comparison give us an idea of how different the predicted climate is from the observed climate and how different each GCM run is to the others as well as to the actual observed climate. Lastly, it also helps us understand how climate impacts fireCastor and the prediction of fires. As before vegetation data from the 2022 VRI was used as inputs into fireCastor. 10 000 simulations were performed to get distributions of the number of ignitions and total area burned in the Boundary TSA. These simulation results were also compared to actual burn data from lightning caused fires for the year 2023 in the same area. 
+We used fire Castor to predict number of ignitions and fire size (area encompassed within the fire perimeter) when climate data was extracted from two different runs of two different GCM's (MPI-ESM1-2-HR and CanESM2) at SSP 2-4.5 and compared these results to simulations run on the actual climate data for the year 2023. This comparison gives us an idea of how different the predicted climate is from the observed climate and how different each GCM run is to the others as well as to the actual observed climate. Lastly, it also helps us understand how climate impacts fireCastor i.e. how sensitive it is. As before vegetation data from the 2022 VRI was used as inputs into fireCastor. 10 000 simulations were performed to get distributions of the number of ignitions and total area burned in the Boundary TSA. These simulation results were also compared to actual burn data from lightning caused fires for the year 2023 in the same area. 
 
 ## Observed and predicted climate data for 2023
 
 
-```{r, climate_data, fig.cap = "**Figure 1.** Climate data obtained from ClimR for two runs of two GCM's and compared to the observed climate data for the year 2023 in the Boundary TSA."}
+```{r, climate_data, fig.cap = "**Figure 1.** Climate data obtained from ClimR for two runs of two GCM's and compared to the observed climate data for the year 2023 in the Boundary TSA. cmi = climate moisture index (CMI), cmi3yr = CMI over the past 3 years, Tmax = Maximum temperature recorded between May and August , Summer precipitation = Total precipitation recorded between May and August"}
 # plot the number of times burned on the landscap
 
 sqlite <- dbDriver("SQLite")
@@ -82,36 +82,38 @@ p1 <- ggplot(dat, aes(x=gcm, y=cmi, fill=run)) +
 p2 <- ggplot(dat, aes(x=gcm, y=cmi3yr, fill=run)) + 
   geom_boxplot()+theme(axis.title.x=element_blank(),
         axis.text.x=element_blank()) + ylab("cmi3yr") 
-#+
- # theme(legend.position="none")
 
-dat[, tmax_07_08:=(tmax_07+tmax_08)/2]
-p3 <- ggplot(dat, aes(x=gcm, y=tmax_07_08,  fill=run)) + 
+dat[, tmax_sum:=(tmax_07+tmax_08)/2]
+
+  dat<-dat[, `:=`(PPT_sm = rowSums(.SD, na.rm=T)), .SDcols=c("ppt_05", "ppt_06","ppt_07","ppt_08")]
+  dat<-dat[, TEMP_MAX:= do.call(pmax, .SD),.SDcols=c("tmax_05","tmax_06","tmax_07","tmax_08") ]
+  
+p3 <- ggplot(dat, aes(x=gcm, y=TEMP_MAX,  fill=run)) + 
   geom_boxplot()+
-  labs(x = "GCM", y = "Tmax 07_08") +
+  labs(x = "GCM", y = "Tmax") +
   theme(legend.position="none")
 
-dat[, ppt_07_08:=(ppt_07+ppt_08)/2]
-p4 <- ggplot(dat, aes(x=gcm, y=ppt_07_08, fill=run)) + 
+
+p4 <- ggplot(dat, aes(x=gcm, y=PPT_sm, fill=run)) + 
   geom_boxplot()+
-  labs(x = "GCM", y = "ppt_07_08") +
+  labs(x = "GCM", y = "Summer precipitation") +
   theme(legend.position="none")
 
-dat[, tmax_04_05_06:=(tmax_04+tmax_05+tmax_06)/3]
-p5 <- ggplot(dat, aes(x=gcm, y=tmax_04_05_06, fill=run)) + 
-  geom_boxplot()+
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank()) +
-  ylab("Tmax 04_05_06") +
-  theme(legend.position="none")
+# dat[, tmax_04_05_06:=(tmax_04+tmax_05+tmax_06)/3]
+# p5 <- ggplot(dat, aes(x=gcm, y=tmax_04_05_06, fill=run)) + 
+#   geom_boxplot()+
+#   theme(axis.title.x=element_blank(),
+#         axis.text.x=element_blank()) +
+#   ylab("Tmax 04_05_06") +
+#   theme(legend.position="none")
+# 
+# dat[, ppt_04_05_06:=(ppt_04+ppt_05+ppt_06)/3]
+# p6 <- ggplot(dat, aes(x=gcm, y=ppt_04_05_06, fill=run)) + 
+#   geom_boxplot()+theme(axis.title.x=element_blank(),
+#         axis.text.x=element_blank()) + ylab ("ppt_04_05_06") +
+#   theme(legend.position="none")
 
-dat[, ppt_04_05_06:=(ppt_04+ppt_05+ppt_06)/3]
-p6 <- ggplot(dat, aes(x=gcm, y=ppt_04_05_06, fill=run)) + 
-  geom_boxplot()+theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank()) + ylab ("ppt_04_05_06") +
-  theme(legend.position="none")
-
-plot_grid(p1,p2,p5,p6,p3,p4, labels="AUTO",ncol = 2, align = 'v')
+plot_grid(p1,p2,p3,p4, labels="AUTO",ncol = 2, align = 'v')
 
 
 ```
@@ -120,7 +122,7 @@ plot_grid(p1,p2,p5,p6,p3,p4, labels="AUTO",ncol = 2, align = 'v')
 
 ## FireCastor results
 
-In general number of ignitions was predicted to be low in the Boundary TSA and was moderately well predicted by fireCastor with all climate model inputs (figure 2). Interestingly, area burned was best predicted by CanESM_r1 (figure 3). When you look at the climate data for this model (figure 1) i looks like this model predicted lower temperatures and more precipitation than was geneally observed in this year. This may suggest that climate castor is slightly over estimating 
+In general number of ignitions was predicted to be low in the Boundary TSA for all models which is in accordance with the actual data (figure2). Fire size was more variable (figure 3). Note that fire size is on the log scale. Interestingly the actual climate data predicted larger fire sizes than were actually observed.  
 
 ```{r fireCastor_number_ignitions, fig.cap = "**Figure 2.** Number of ignitions simulated by fireCastor when using climate data obtained from two different runs of two different GCMs and the observed climate relative to the actual number of ignitions observed (black dashed) in the Boundary TSA for the year 2023"}
 fireReportForReps_test <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/outputs/fireReportForReps_test_1.rds")
@@ -159,7 +161,7 @@ p
 
 ```
 
-```{r individual_firesize, fig.cap = "**Figure 3.** Distribution of fire sizes simulated by fireCastor. The average actual fire size observed in Boundary TSA in 2023 is represented by the dashed black line. Note that area burned in on a log  scale"}
+```{r individual_firesize, fig.cap = "**Figure 3.** Distribution of fire sizes simulated by fireCastor. The average actual fire size observed in Boundary TSA in 2023 is represented by the dashed black line. Note that area burned is on a log  scale"}
 firesize<-readRDS("C:\\Work\\caribou\\castor\\R\\scenarios\\test_fire\\outputs\\perFireReportForReps_test_1.rds")
 
 firesize_can_esm_r1 <- readRDS("C:/Work/caribou/castor/R/scenarios/test_fire/CanESM_ssp245_boundaryTSA/outputs/perFireReportForReps_CanESM_ssp245_r1i1p1f1_1.rds")

@@ -31,7 +31,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireCastor.Rmd"),
-  reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr", "pool", "climr"),
+  reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr", "pool", "climr", "gamlss"),
   parameters = rbind(
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
     defineParameter("nameFrtRaster", "numeric", NA, NA, NA, "Raster of the fire regime types across Canada"),
@@ -329,8 +329,7 @@ getStaticVariables<-function(sim){
    gc()
    
   }
-    rm(infra_id, slope_id, aspect_id)
-    gc()
+    
     return(invisible(sim)) 
     
 }
@@ -909,7 +908,7 @@ end as veg_cat FROM pixels"))
        frt13$scale_climate1<-(frt13$climate1spread-18.63689) / 2.962474
        frt13$scale_climate2<-(frt13$climate2spread-37.12834) / 16.30768
        #frt13$scale_dem<-(frt13$dem-1300.345)/381.8039
-       frt13$scale_slope<-(frt13$slope_ha_bc-13.93795) / 10.69801
+       frt13$scale_slope<-(frt13$slope-13.93795) / 10.69801
        #frt13$scale_roads<-(frt13$dist_roads_m-1624.878) / 3420.542
        #frt13$scale_infr<-(frt13$dist_infr_m-12949.65) / 11097.52
        #frt13$scale_dist_ignit<-(frt13$rast_ignit_dist-13298.58) / 14181.51
@@ -1084,6 +1083,7 @@ end as veg_cat FROM pixels"))
   #### rbind frt data ####
   
   sim$probFireRast<- do.call("rbind", list(frt57, frt9, frt10, frt12, frt13, frt14, frt15))
+  sim$probFireRast<-merge(sim$probFireRast, dat[,c("pixelid", "prob_ignition_escape")], by="pixelid")
   
   pixelid_info<-dbGetQuery(sim$castordb, "SELECT pixelid, pixelid10km from pixels ")
   
@@ -1309,34 +1309,31 @@ fire.size.sim[, frt_15:=0][frt=="15",frt_15:=1]
 
 fire.size.sim2<-fire.size.sim[fire.size>=100,]
 
-fire.size.sim2[, mu:=exp(-0.3918913 + log(fire.size)*1.0166865)]
-fire.size.sim2[, sigma:= exp(1.43159 +
-                 (-0.2000846*log(fire.size)) +
-                 (-0.4647708 * frt_5) +
-                 0.05794254 * frt_7 +
-                 (-0.7754247 * frt_9) +
-                 (-1.329711 * frt_10) +
-                 (-0.4918907 * frt_11) +
-                 (-1.189321 * frt_12) +
-                 (-1.614991 * frt_13) +
-                 (-0.6377721 * frt_14) +
-                 (-1.500612 * frt_15))]
+fire.size.sim2[, mu:=exp(-0.3287 + log(fire.size)*0.9149 + frt_5*(-0.5805) + frt_7*0.2137 + frt_9 *(-0.4651)  + frt_10*(-0.4921) + frt_11*(-0.1464) + frt_12*(-0.4940) + frt_13*(-0.5405)  + frt_14*(-0.1440) + frt_15 *(-0.3500))]
 
 
-fire.size.sim2[, fire_size_adj:= rGA(1, mu=mu, sigma= sigma),by=.I]
-fire.size.sim2[, c("sigma", "mu"):=NULL]
+
+fire.size.sim2[, sigma:= exp(0.59023  +
+                 (-0.07018*log(fire.size)) +
+                 (-0.18501  * frt_5) +
+                  (-0.44022  * frt_7) +
+                 (-0.08539 * frt_9) +
+                 (-0.26163  * frt_10) +
+                 (-0.33795 * frt_11) +
+                 (-0.34944 * frt_12) +
+                 (-0.59684 * frt_13) +
+                 (-0.36171* frt_14) +
+                 (-0.46048  * frt_15))]
+
+
+fire.size.sim2[, fire_size_diff:= rGA(1, mu=mu, sigma= sigma),by=.I]
+fire.size.sim2$fire_size_adj<-fire.size.sim2$fire.size-fire.size.sim2$fire_size_diff
+
+fire.size.sim2[, c("sigma", "mu", "fire_size_diff"):=NULL]
 
 fire.size.sim3<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
 
 sim$fire.size<-rbind(fire.size.sim3, fire.size.sim2)
-
-
-# slope<-rnorm(length(fire.size.sim$fire.size), mean = 0.742260, sd = 0.04819156)
-# fire.size.sim$adjusted.fire.size<- 0 +  fire.size.sim$fire.size*slope
-# 
-# sim$fire.size<-fire.size.sim
-# 
-# print(sim$fire.size)
 
 
  } else {message("no fires simulated")
