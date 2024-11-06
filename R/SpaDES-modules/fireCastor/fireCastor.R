@@ -35,7 +35,6 @@ defineModule(sim, list(
   parameters = rbind(
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
     defineParameter("nameFrtRaster", "numeric", NA, NA, NA, "Raster of the fire regime types across Canada"),
-    defineParameter("nameFireCentreRaster", "numeric", NA, NA, NA, "Raster of the fire centre across BC"),
     defineParameter("nameAspectRaster", "numeric", NA, NA, NA, "Raster of aspect across BC"),
     defineParameter("nameSlopeRaster", "numeric", NA, NA, NA, "Raster of slope across BC"),
     defineParameter("nameDistInfrastructureRaster", "numeric", NA, NA, NA, "Raster of distance from any particular pixel to the closest infrastructure. Infrastructure is rail roads, powerlines, urban, oil (wells, pump sites etc), mines"),
