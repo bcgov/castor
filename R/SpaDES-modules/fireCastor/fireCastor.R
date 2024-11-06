@@ -567,8 +567,6 @@ end as veg_cat FROM pixels"))
   }
   
   dat<-merge(dat, elv, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  
-  dat<-data.table(dat)
 
   dat[cmi_04_05 ==(-9999), cmi_04_05:=NA]
   
@@ -633,6 +631,7 @@ end as veg_cat FROM pixels"))
       
       dat[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
       dat[veg_cat==6, prob_ignition_escape:=0]
+      dat[veg_cat==5, prob_ignition_escape:=0]
       
       # not sure what to do about veg_cat 5 as there were none in my ignition data points that I used to fit the model.
       
@@ -674,8 +673,6 @@ end as veg_cat FROM pixels"))
   frt57<-frt57[, c("pixelid","frt", "prob_ignition_spread")]
   
   } else {
-    
-    print("no data for FRT 5")
     
     frt57<-data.table(pixelid=as.numeric(),
                      frt = as.numeric(), 
@@ -731,8 +728,6 @@ end as veg_cat FROM pixels"))
   frt9<-frt9[, c("pixelid","frt", "prob_ignition_spread")]
   } else {
     
-    print("no data for FRT 9")
-    
     frt9<-data.table(pixelid=as.numeric(),
                      frt = as.numeric(), 
                      prob_ignition_spread = as.integer())
@@ -744,7 +739,7 @@ end as veg_cat FROM pixels"))
     # categorizing all treed areas into the same category because there were no treed area in the categories 2 and 3 in actual data
     #frt10[veg_cat %in% c(2,3), veg_cat:=1]
     
-    frt10[pixelid>0, all:=1]
+    #frt10[pixelid>0, all:=1]
     
          
          # Spread
@@ -806,8 +801,6 @@ end as veg_cat FROM pixels"))
     
     frt10<-frt10[, c("pixelid","frt", "prob_ignition_spread")]
   } else {
-    
-    print("no data for FRT 10")
     
     frt10<-data.table(pixelid=as.numeric(),
                       frt = as.numeric(),
@@ -885,8 +878,6 @@ end as veg_cat FROM pixels"))
     frt12<-frt12[, c("pixelid","frt", "prob_ignition_spread")]  
     
   } else {
-    
-    print("no data for FRT 12")
     
     frt12<-data.table(pixelid = as.numeric(),
                       frt = as.numeric(),
@@ -972,8 +963,6 @@ end as veg_cat FROM pixels"))
     
   } else {
     
-    print("no data for FRT 13")
-    
     frt13<-data.table(pixelid=as.numeric(), 
                       frt = as.numeric(), 
                      prob_ignition_spread = as.integer())
@@ -1047,8 +1036,6 @@ end as veg_cat FROM pixels"))
     
   } else {
     
-    print("no data for FRT 14")
-    
     frt14<-data.table(pixelid= as.numeric(),
                       frt = as.numeric(), 
                      prob_ignition_spread = as.integer())
@@ -1073,8 +1060,7 @@ end as veg_cat FROM pixels"))
 
      } else {
     
-    print("no data for FRT 15")
-    
+   
     frt15<-data.table(pixelid= as.numeric(),
                       frt = as.numeric(), 
                       prob_ignition_spread = as.integer())
@@ -1310,6 +1296,7 @@ fire.size.sim[, frt_15:=0][frt=="15",frt_15:=1]
 
 fire.size.sim2<-fire.size.sim[fire.size>=100,]
 
+
 fire.size.sim2[, mu:=exp(-0.3287 + log(fire.size)*0.9149 + frt_5*(-0.5805) + frt_7*0.2137 + frt_9 *(-0.4651)  + frt_10*(-0.4921) + frt_11*(-0.1464) + frt_12*(-0.4940) + frt_13*(-0.5405)  + frt_14*(-0.1440) + frt_15 *(-0.3500))]
 
 
@@ -1334,7 +1321,18 @@ fire.size.sim2[, c("sigma", "mu", "fire_size_diff"):=NULL]
 
 fire.size.sim3<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
 
-sim$fire.size<-rbind(fire.size.sim3, fire.size.sim2)
+fire.size.sim4<-rbind(fire.size.sim3, fire.size.sim2)
+
+#check that adjusted fire size is within the expected range
+fire.size.sim4[, good:= ifelse(fire_size_adj > 0 & fire_size_adj <= fire.size,0,1)]
+
+if(sum(fire.size.sim4$good)>0) {
+  message("adjusted fire size beyond expected range")
+  browser()
+}
+
+
+sim$fire.size<-fire.size.sim4[, good:=NULL]
 
 
  } else {message("no fires simulated")
