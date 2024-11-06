@@ -1322,7 +1322,7 @@ fire.size.sim3<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
 
 fire.size.sim4<-rbind(fire.size.sim3, fire.size.sim2)
 
-#check that adjusted fire size is within the expected range
+#check that adjusted fire size is within the expected range and throw an error if not
 fire.size.sim4[, good:= ifelse(fire_size_adj > 0 & fire_size_adj <= fire.size,0,1)]
 
 if(sum(fire.size.sim4$good)>0) {
