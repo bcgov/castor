@@ -26,6 +26,9 @@ defineModule(sim, list(
   parameters = bindrows(
     defineParameter("nameSlopeRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents the slope percentage (%)"),
     defineParameter("nameVQORaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents the polygon ids pertaining to VQOs"),
+    defineParameter("nameVisualInventory", "character", "99999", NA, NA, desc = "Name of the postgres table containing the visual quality inventory information. Ex. public.rec_vlnd_polygon"),
+    defineParameter("namePolyIDVisualInventory", "character", "99999", NA, NA, desc = "Name of the column in the visual quality inventory that was used as the identifier in the constraints table. Ex. vli_id")
+    
   ),
   inputObjects = bindrows(
     expectsInput(objectName ="castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
@@ -48,7 +51,12 @@ doEvent.p2pVQOCastor = function(sim, eventTime, eventType) {
       if(nrow(dbGetQuery(sim$castordb, glue::glue("Select * from zone where reference_zone ='", P(sim, "nameVQORaster","p2pVQOCastor"), "';"))) == 0){
         stop(paste0("ERROR: The raster:", P(sim, "nameVQORaster","p2pVQOCastor"), " is not listed in the zone table"))
       }
-      
+      if(P(sim, "nameVisualInventory", "p2pVQOCastor") == "99999"){
+        stop("ERROR: enter the visual inventory table name")
+      }
+      if(P(sim, "namePolyIDVisualInventory", "p2pVQOCastor") == "99999"){
+        stop("ERROR: enter the column used in the visual inventory table to identify polygons")
+      }
       sim <- Init(sim)
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
@@ -90,14 +98,19 @@ Init <- function(sim) {
  
     #get the veg height and p2p ratio
     slope_vqo<-merge(slope_vqo, sim$p2pRatios, by.x = "slope_class", by.y = "slope_class", all.x= TRUE)
-    
+    #slope_vqo[, total_cflb := sum(cflb), by = zoneid ][, wt := cflb/total_cflb][, wt_p2pRatio:= p2pRatio*wt][, wt_vegHeight:= vegHeight*wt]
     #calculate the area weighted p2p and VEG height
-    vqo_adj<-slope_vqo[, .(p2p = mean(p2pRatio), veg = mean(vegHeight)), by = zoneid ]
+    vqo_adj<-slope_vqo[, .(p2p = mean(p2pRatio), veg = mean(vegHeight), cflb = .N), by = zoneid ]
     
+    #Get the permisable alteration
+    evqo<-getTableQuery(paste0("select evqo_cd as vqo, ", P(sim, "namePolyIDVisualInventory", "p2pVQOCastor")," as zoneid from ", P(sim, "nameVisualInventory", "p2pVQOCastor"), " where ", P(sim, "namePolyIDVisualInventory", "p2pVQOCastor"), " in (", paste(vqo_adj$zoneid, collapse = ","), ");"))
+    vqo_adj<-merge(vqo_adj, evqo, by = "zoneid")
+    vqo_adj<-merge(vqo_adj, sim$permisable_alteration, by = "vqo")
+    vqo_adj[, perm_alt_adj:= round(permis_alteration*p2p, 1)][, veght:=round(veg,1)]
     #Update the zoneConstraint table in the database
     #browser()
     dbBegin(sim$castordb)
-      rs<-dbSendQuery(sim$castordb, glue::glue("UPDATE zoneConstraints set threshold = :veg, percentage = percentage*:p2p where reference_zone ='", P(sim, "nameVQORaster","p2pVQOCastor"),"' and zoneid =:zoneid;"),vqo_adj[,c("zoneid", "p2p", "veg")])
+      rs<-dbSendQuery(sim$castordb, glue::glue("UPDATE zoneConstraints set threshold = :veght, percentage = :perm_alt_adj where reference_zone ='", P(sim, "nameVQORaster","p2pVQOCastor"),"' and zoneid =:zoneid;"),vqo_adj[,c("zoneid", "perm_alt_adj", "veght")])
     dbClearResult(rs)
     dbCommit(sim$castordb)
 
@@ -112,9 +125,13 @@ Init <- function(sim) {
 
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("p2pRatioVegHt", sim)){
-    sim$p2pRatios<-data.table(slope_class = c(0,5.1,10.1,15.1,20.1,25.1,30.1,35.1,40.1,45.1,50.1,55.1,60.1,65.1,70.1,100),
-                              p2pRatio =c(4.68,4.23,3.77,3.41,3.04,2.75,2.45,2.22,1.98,1.79,1.6,1.45,1.29,1.17,1.04,1.04),
+    sim$p2pRatios<-data.table(slope_class = c(0,5.1,10.1,15.1,20.1,25.1,30.1,35.1,40.1,45.1,50.1,55.1,60.1,65.1,70.1,500),
+                              p2pRatio =c(4.68,4.68,3.77,3.77,3.04,3.04,2.45,2.45,1.98,1.98,1.6,1.6,1.29,1.29,1.04,1.04),
                               vegHeight =c(3,3.5,4,4.5,5,5.5,6,6.5,6.5,7,7.5,8,8.5,8.5,8.5,8.5))
+  }
+  
+  if(!suppliedElsewhere("permisable_alteration", sim)){
+    sim$permisable_alteration <- data.table(vqo =c('R', 'PR', 'M', 'MM'), permis_alteration =c(0.8, 4.3, 12.6, 24.1))
   }
   return(invisible(sim))
 }

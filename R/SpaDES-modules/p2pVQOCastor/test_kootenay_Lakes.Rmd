@@ -42,7 +42,8 @@ parameters <-  list (
                           nameBoundaryGeom = 'wkb_geometry',
                           nameCompartmentRaster = "rast.tsa_aac_boundary", 
                           nameCompartmentTable = "vat.tsa_aac_bounds_vat", 
-                          nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2022',  
+                          nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2022',
+                          nameContributingLandbaseRaster = 'rast.tsa13_cflb',
                           nameZoneRasters = c ("rast.zone_cond_beo","rast.zone_cond_vqo"),
                           nameZoneTable = "zone.constraints", 
                           # natural and managed stands yield curves are the same    
@@ -63,8 +64,11 @@ parameters <-  list (
                           nameForestInventoryQMD = "quad_diam_125",
                           nameForestInventorySiteIndex = "site_index" 
                           ),
-        p2pVQOCastor =list(nameSlopeRaster= "rast.bc_ha_slope",
-                           nameVQORaster = "rast.zone_cond_vqo")
+        p2pVQOCastor =list(nameSlopeRaster= "rast.slope_tsa13",
+                           nameVQORaster = "rast.zone_cond_vqo",
+                           nameVisualInventory = "rec_vlnd_polygon",
+                           namePolyIDVisualInventory = "vli_id"
+                           )
         
         )
 
