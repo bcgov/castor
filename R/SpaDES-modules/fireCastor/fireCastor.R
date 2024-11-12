@@ -1262,6 +1262,7 @@ occ<-sim$downdat[!is.na(est),][, fire:= rnbinom(n = 1, size = 0.416, mu = est), 
 
 
 message("determine fire size")
+#browser()
  
  if (nrow(occ)>0){
    occ<-occ[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(occ))]
@@ -1312,7 +1313,7 @@ fire.size.sim2[, sigma:= exp(0.59023  +
                  (-0.36171* frt_14) +
                  (-0.46048  * frt_15))]
 
-
+#browser()
 fire.size.sim2[, fire_size_diff:= rGA(1, mu=mu, sigma= sigma),by=.I]
 fire.size.sim2$fire_size_adj<-fire.size.sim2$fire.size-fire.size.sim2$fire_size_diff
 
