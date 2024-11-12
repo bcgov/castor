@@ -180,7 +180,7 @@ warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FAL
 
 Init <- function(sim) {
   
-  sim$perFireReport<-data.table(timeperiod= integer(),ignition_location=integer(), pixelid10km = integer(), areaburned_estimated = numeric())
+  sim$perFireReport<-data.table(timeperiod= integer(),ignition_location=integer(), pixelid10km = integer(),fire_perimeter_size=numeric(), areaburned_estimated = numeric())
   
   sim$firedisturbanceTable<-data.table(scenario = scenario$name, pixelid = sim$pts$pixelid, numberTimesBurned = as.numeric(0))
   
@@ -1282,6 +1282,7 @@ for(f in 1:length(occ$fire)){
 # Note the above fire size is the size of the perimeter its not actual area burned. So here I adjust the number i.e. reduce it slightly according to a gamma distributed model looking at the relationship between the perimeter size and actual area burned by frt.
 
 
+
 fire.size.sim<-merge(sim$downdat[, c("pixelid10km", "frt")], fire.size.sim, by.x="pixelid10km", by.y="pixelid10km", all.y=TRUE)
 
 fire.size.sim[, frt_5:=0][frt=="5",frt_5:=1]
@@ -1295,12 +1296,24 @@ fire.size.sim[, frt_14:=0][frt=="14",frt_14:=1]
 fire.size.sim[, frt_15:=0][frt=="15",frt_15:=1]
 
 fire.size.sim2<-fire.size.sim[fire.size>=100,]
+if (length(fire.size.sim2$pixelid10km)>0) {
+message("adjust fire size to area burned")
 
+fire.size.sim2[, mu:=0.25107 + log(fire.size)*0.06989 + frt_5*(-0.22225) + frt_7*(-0.22225) + frt_9 *(-0.24396)  + frt_10*(0.07252) + frt_11*(-0.24396) + frt_12*(-0.03361) + frt_14*(-0.35982) + frt_15*(-0.27279)]
+fire.size.sim2[, mu:= exp(mu)/(1+exp(mu))]
 
-fire.size.sim2[, mu:=exp(-0.3287 + log(fire.size)*0.9149 + frt_5*(-0.5805) + frt_7*0.2137 + frt_9 *(-0.4651)  + frt_10*(-0.4921) + frt_11*(-0.1464) + frt_12*(-0.4940) + frt_13*(-0.5405)  + frt_14*(-0.1440) + frt_15 *(-0.3500))]
+fire.size.sim2[, sigma:= 0.31491   +
+                 (-0.15672 *log(fire.size)) +
+                 (0.83093  * frt_5) +
+                  (0.83093  * frt_7) +
+                 ( 0.72873 * frt_9) +
+                 (0.48165   * frt_10) +
+                 ( 0.72873 * frt_11) +
+                 (0.35856 * frt_12) +
+                 (0.55746 * frt_14) +
+                 (-0.03608* frt_15)]
 
-
-
+fire.size.sim2[, sigma:= exp(sigma)/(1+exp(sigma))]
 fire.size.sim2[, sigma:= exp(0.59023  +
                  (-0.07018*log(fire.size)) +
                  (-0.18501  * frt_5) +
@@ -1313,26 +1326,29 @@ fire.size.sim2[, sigma:= exp(0.59023  +
                  (-0.36171* frt_14) +
                  (-0.46048  * frt_15))]
 
-#browser()
-fire.size.sim2[, fire_size_diff:= rGA(1, mu=mu, sigma= sigma),by=.I]
-fire.size.sim2$fire_size_adj<-fire.size.sim2$fire.size-fire.size.sim2$fire_size_diff
+fire.size.sim2[, fire_size_prop:= rGB1(1, mu=mu, sigma= sigma, nu=exp(2.35), tau=exp(-1.726)),by=.I]
+fire.size.sim2$fire_size_adj<-fire.size.sim2$fire.size*fire.size.sim2$fire_size_prop
+
 
 fire.size.sim2[, c("sigma", "mu", "fire_size_diff"):=NULL]
 
 fire.size.sim3<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
 
 fire.size.sim4<-rbind(fire.size.sim3, fire.size.sim2)
-
-#check that adjusted fire size is within the expected range and throw an error if not
-fire.size.sim4[, good:= ifelse(fire_size_adj > 0 & fire_size_adj <= fire.size,0,1)]
-
-if(sum(fire.size.sim4$good)>0) {
-  message("adjusted fire size beyond expected range")
-  browser()
+} else {
+  fire.size.sim4<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
 }
 
+#check that adjusted fire size is within the expected range and throw an error if not
+# fire.size.sim4[, good:= ifelse(fire_size_adj > 0 & fire_size_adj <= fire.size,0,1)]
+# 
+# if(sum(fire.size.sim4$good)>0) {
+#   message("adjusted fire size beyond expected range")
+#   browser()
+# }
 
-sim$fire.size<-fire.size.sim4[, good:=NULL]
+
+sim$fire.size<-fire.size.sim4
 
 
  } else {message("no fires simulated")
@@ -1350,7 +1366,7 @@ spreadProcess <- function(sim) {
     
     # create empty fire report
     
-    tempperFireReport<-data.table(timeperiod= integer(),ignition_location=integer(), pixelid10km = integer(), areaburned_estimated = numeric())
+    tempperFireReport<-data.table(timeperiod= integer(),ignition_location=integer(), pixelid10km = integer(), fire_perimeter_size = numeric(),areaburned_estimated = numeric())
     
     if (!is.null(sim$fire.size)) {
     sim$fire.size$ignit_location<-0
@@ -1402,19 +1418,20 @@ spreadProcess <- function(sim) {
     
     # create temp fire report
     
-    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location=sim$fire.size$ignit_location, pixelid10km = sim$fire.size$pixelid10km, areaburned_estimated = sim$fire.size$fire_size_adj)
+    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location=sim$fire.size$ignit_location, pixelid10km = sim$fire.size$pixelid10km, fire_perimeter_size = sim$fire.size$fire.size,  areaburned_estimated = sim$fire.size$fire_size_adj)
     
     } else {
       message("no fires simulated")
       numberstarts = 0
       totalareaburned = 0
+      fireperimetersize=0
       thlbburned = 0
     
     
     message("updating fire Report")
 
     # create individual fire size report with starting locations   
-    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location="NA", pixelid10km = "NA", areaburned_estimated = totalareaburned)
+    tempperFireReport<-data.table(timeperiod = time(sim), ignition_location="NA", pixelid10km = "NA", fire_perimeter_size=totalareaburned, areaburned_estimated = totalareaburned)
     
     }
     
