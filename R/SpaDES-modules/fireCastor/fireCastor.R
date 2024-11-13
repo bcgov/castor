@@ -1297,12 +1297,12 @@ fire.size.sim[, frt_15:=0][frt=="15",frt_15:=1]
 
 fire.size.sim2<-fire.size.sim[fire.size>=100,]
 if (length(fire.size.sim2$pixelid10km)>0) {
-message("adjust fire size to area burned")
+  message("adjust fire size to area burned")
+  #browser()
+  fire.size.sim2[, mu:=0.25107 + log(fire.size)*0.06989 + frt_5*(-0.22225) + frt_7*(-0.22225) + frt_9 *(-0.24396)  + frt_10*(0.07252) + frt_11*(-0.24396) + frt_12*(-0.03361) + frt_14*(-0.35982) + frt_15*(-0.27279)]
+  fire.size.sim2[, mu:= exp(mu)/(1+exp(mu))]
 
-fire.size.sim2[, mu:=0.25107 + log(fire.size)*0.06989 + frt_5*(-0.22225) + frt_7*(-0.22225) + frt_9 *(-0.24396)  + frt_10*(0.07252) + frt_11*(-0.24396) + frt_12*(-0.03361) + frt_14*(-0.35982) + frt_15*(-0.27279)]
-fire.size.sim2[, mu:= exp(mu)/(1+exp(mu))]
-
-fire.size.sim2[, sigma:= 0.31491   +
+  fire.size.sim2[, sigma:= 0.31491   +
                  (-0.15672 *log(fire.size)) +
                  (0.83093  * frt_5) +
                   (0.83093  * frt_7) +
@@ -1313,28 +1313,28 @@ fire.size.sim2[, sigma:= 0.31491   +
                  (0.55746 * frt_14) +
                  (-0.03608* frt_15)]
 
-fire.size.sim2[, sigma:= exp(sigma)/(1+exp(sigma))]
-fire.size.sim2[, sigma:= exp(0.59023  +
-                 (-0.07018*log(fire.size)) +
-                 (-0.18501  * frt_5) +
-                  (-0.44022  * frt_7) +
-                 (-0.08539 * frt_9) +
-                 (-0.26163  * frt_10) +
-                 (-0.33795 * frt_11) +
-                 (-0.34944 * frt_12) +
-                 (-0.59684 * frt_13) +
-                 (-0.36171* frt_14) +
-                 (-0.46048  * frt_15))]
+  fire.size.sim2[, sigma:= exp(sigma)/(1+exp(sigma))]
+#fire.size.sim2[, sigma:= exp(0.59023  +
+#                 (-0.07018*log(fire.size)) +
+#                 (-0.18501  * frt_5) +
+#                  (-0.44022  * frt_7) +
+#                 (-0.08539 * frt_9) +
+#                 (-0.26163  * frt_10) +
+#                 (-0.33795 * frt_11) +
+#                 (-0.34944 * frt_12) +
+#                 (-0.59684 * frt_13) +
+#                 (-0.36171* frt_14) +
+#                 (-0.46048  * frt_15))]
 
-fire.size.sim2[, fire_size_prop:= rGB1(1, mu=mu, sigma= sigma, nu=exp(2.35), tau=exp(-1.726)),by=.I]
-fire.size.sim2$fire_size_adj<-fire.size.sim2$fire.size*fire.size.sim2$fire_size_prop
+  fire.size.sim2[, fire_size_prop:= rGB1(1, mu=mu, sigma= sigma, nu=exp(2.35), tau=exp(-1.726)),by=.I]
+  fire.size.sim2$fire_size_adj<-fire.size.sim2$fire.size*fire.size.sim2$fire_size_prop
 
-
-fire.size.sim2[, c("sigma", "mu", "fire_size_diff"):=NULL]
-
-fire.size.sim3<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
-
-fire.size.sim4<-rbind(fire.size.sim3, fire.size.sim2)
+  fire.size.sim2$sigma<-NULL
+  fire.size.sim2$mu<-NULL
+  fire.size.sim2$fire_size_prop<-NULL
+  
+  fire.size.sim3<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
+  fire.size.sim4<-rbind(fire.size.sim3, fire.size.sim2)
 } else {
   fire.size.sim4<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
 }
@@ -1361,11 +1361,8 @@ return(invisible(sim))
 
   
 spreadProcess <- function(sim) {  
-    #browser()
     message("get ignition locations")
-    
     # create empty fire report
-    
     tempperFireReport<-data.table(timeperiod= integer(),ignition_location=integer(), pixelid10km = integer(), fire_perimeter_size = numeric(),areaburned_estimated = numeric())
     
     if (!is.null(sim$fire.size)) {
