@@ -454,6 +454,7 @@ simHarvestQueue <- function(sim) {
   land_pixels <- data.table()
   #browser()
   ras.h.blocks<-sim$harvestSchedule[[paste0("hsq_", time(sim)*sim$updateInterval)]]
+  ras.h.blocks[ras.h.blocks[]==0]<-NA
   h.blocks<-data.table(blockid = ras.h.blocks[])[, pixelid:=seq_len(.N)]
   setnames(h.blocks, c("blockid", "pixelid"))
   h.blocks<-h.blocks[!is.na(blockid),]
@@ -479,7 +480,6 @@ simHarvestQueue <- function(sim) {
                                   avail_thlb = NA) #,  harvest_type = 'live'
   
   sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
-  
   
   #Resetting the age to zero - clear cutting prescriptions
   dbBegin(sim$castordb)

@@ -447,7 +447,6 @@ createVegetationTable <- function(sim) {
   
   # Get bec zone if is not in VRI table
 
-
   #**************FOREST INVENTORY - VEGETATION VARIABLES*******************#
   #----------------------------#
   #----Set forest attributes----
@@ -486,6 +485,7 @@ createVegetationTable <- function(sim) {
       fuel_attributes_castordb<-Filter(Negate(is.null), fuel_attributes_castordb) #remove any nulls
       
       if(length(fuel_attributes_castordb) > 0){
+       
         print(paste0("getting inventory attributes to create fuel types: ", paste(fuel_attributes_castordb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
         attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataCastor"), " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",P(sim, "nameForestInventoryTable","dataCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "dataCastor") ," IN (",
@@ -526,6 +526,7 @@ createVegetationTable <- function(sim) {
 
 
 calcProbEscapeSpread<-function(sim){
+  
  if(!is.null(sim$fire.size)) {
   vri<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, frt, height, age, dist_infra, slope, aspect_cardinal, zone, basalarea, (1-dec_pcnt)*100 AS conifer_pct_cover_total, 
   case when height >=4 and basalarea >= 8 and 1-dec_pcnt >= 0.75 then 1 
@@ -1397,7 +1398,7 @@ spreadProcess <- function(sim) {
     sim$out <- spread2(area, start = sim$fire.size$ignit_location, spreadProbRel =spreadRas, exactSize=sim$fire.size$fire_size_adj,maxRetriesPerID=20, asRaster = FALSE, allowOverlap=FALSE)
  
     message("resetting age and volume in pixels table")
-    
+
     dbBegin(sim$castordb)
     rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0, basalarea = 0, height = 0 WHERE pixelid = :pixels", sim$out[, "pixels"])
     dbClearResult(rs)
