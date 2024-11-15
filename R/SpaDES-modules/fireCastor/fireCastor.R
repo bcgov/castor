@@ -1282,23 +1282,24 @@ for(f in 1:length(occ$fire)){
 
 # Note the above fire size is the size of the perimeter its not actual area burned. So here I adjust the number i.e. reduce it slightly according to a gamma distributed model looking at the relationship between the perimeter size and actual area burned by frt.
 
-
-
-fire.size.sim<-merge(sim$downdat[, c("pixelid10km", "frt")], fire.size.sim, by.x="pixelid10km", by.y="pixelid10km", all.y=TRUE)
-
-fire.size.sim[, frt_5:=0][frt=="5",frt_5:=1]
-fire.size.sim[, frt_7:=0][frt=="7",frt_7:=1]
-fire.size.sim[, frt_9:=0][frt=="9",frt_9:=1]
-fire.size.sim[, frt_10:=0][frt=="10",frt_10:=1]
-fire.size.sim[, frt_11:=0][frt=="11",frt_11:=1]
-fire.size.sim[, frt_12:=0][frt=="12",frt_12:=1]
-fire.size.sim[, frt_13:=0][frt=="13",frt_13:=1]
-fire.size.sim[, frt_14:=0][frt=="14",frt_14:=1]
-fire.size.sim[, frt_15:=0][frt=="15",frt_15:=1]
-
 fire.size.sim2<-fire.size.sim[fire.size>=100,]
+
 if (length(fire.size.sim2$pixelid10km)>0) {
   message("adjust fire size to area burned")
+  
+
+fire.size.sim2<-merge(sim$downdat[, c("pixelid10km", "frt")], fire.size.sim2, by.x="pixelid10km", by.y="pixelid10km", all.y=TRUE)
+
+fire.size.sim2[, frt_5:=0][frt=="5",frt_5:=1]
+fire.size.sim2[, frt_7:=0][frt=="7",frt_7:=1]
+fire.size.sim2[, frt_9:=0][frt=="9",frt_9:=1]
+fire.size.sim2[, frt_10:=0][frt=="10",frt_10:=1]
+fire.size.sim2[, frt_11:=0][frt=="11",frt_11:=1]
+fire.size.sim2[, frt_12:=0][frt=="12",frt_12:=1]
+fire.size.sim2[, frt_13:=0][frt=="13",frt_13:=1]
+fire.size.sim2[, frt_14:=0][frt=="14",frt_14:=1]
+fire.size.sim2[, frt_15:=0][frt=="15",frt_15:=1]
+
   #browser()
   fire.size.sim2[, mu:=0.25107 + log(fire.size)*0.06989 + frt_5*(-0.22225) + frt_7*(-0.22225) + frt_9 *(-0.24396)  + frt_10*(0.07252) + frt_11*(-0.24396) + frt_12*(-0.03361) + frt_14*(-0.35982) + frt_15*(-0.27279)]
   fire.size.sim2[, mu:= exp(mu)/(1+exp(mu))]
@@ -1315,39 +1316,34 @@ if (length(fire.size.sim2$pixelid10km)>0) {
                  (-0.03608* frt_15)]
 
   fire.size.sim2[, sigma:= exp(sigma)/(1+exp(sigma))]
-#fire.size.sim2[, sigma:= exp(0.59023  +
-#                 (-0.07018*log(fire.size)) +
-#                 (-0.18501  * frt_5) +
-#                  (-0.44022  * frt_7) +
-#                 (-0.08539 * frt_9) +
-#                 (-0.26163  * frt_10) +
-#                 (-0.33795 * frt_11) +
-#                 (-0.34944 * frt_12) +
-#                 (-0.59684 * frt_13) +
-#                 (-0.36171* frt_14) +
-#                 (-0.46048  * frt_15))]
 
   fire.size.sim2[, fire_size_prop:= rGB1(1, mu=mu, sigma= sigma, nu=exp(2.35), tau=exp(-1.726)),by=.I]
   fire.size.sim2$fire_size_adj<-fire.size.sim2$fire.size*fire.size.sim2$fire_size_prop
+  
 
   fire.size.sim2$sigma<-NULL
   fire.size.sim2$mu<-NULL
   fire.size.sim2$fire_size_prop<-NULL
+  fire.size.sim2$frt_5<-NULL
+  fire.size.sim2$frt_7<-NULL
+  fire.size.sim2$frt_9<-NULL
+  fire.size.sim2$frt_10<-NULL
+  fire.size.sim2$frt_11<-NULL
+  fire.size.sim2$frt_12<-NULL
+  fire.size.sim2$frt_13<-NULL
+  fire.size.sim2$frt_14<-NULL
+  fire.size.sim2$frt_15<-NULL
+  fire.size.sim2$frt<-NULL
+  
+  #fire.size.sim2[,c("frt_5","frt_7", "frt_9", "frt_10", "frt_11", "frt_12", "frt_13","frt_14", "frt_15" ):=NULL]
+  
+  print(fire.size.sim2$fire_size_adj)
   
   fire.size.sim3<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
   fire.size.sim4<-rbind(fire.size.sim3, fire.size.sim2)
 } else {
   fire.size.sim4<-fire.size.sim[fire.size<100,][,fire_size_adj:=fire.size]
 }
-
-#check that adjusted fire size is within the expected range and throw an error if not
-# fire.size.sim4[, good:= ifelse(fire_size_adj > 0 & fire_size_adj <= fire.size,0,1)]
-# 
-# if(sum(fire.size.sim4$good)>0) {
-#   message("adjusted fire size beyond expected range")
-#   browser()
-# }
-
 
 sim$fire.size<-fire.size.sim4
 
@@ -1443,17 +1439,9 @@ spreadProcess <- function(sim) {
 
 savefirerast<-function(sim){
   
-  message("saving fire rasters")
+  if(!is.null(sim$fire.size)) {
   
-  # firepts<-sim$pts[,c("pixelid", "treed")]
-  # firepts[, burned:=0]
-  # 
-  # firepts[pixelid %in% sim$out$pixels, burned := 1]
-  # firepts[pixelid %in% sim$out$initialPixels, burned := 2]
-  # 
-  # burnpts<-sim$ras
-  # burnpts[]<-firepts$burned
-  # terra::writeRaster(burnpts, file = paste0 (outputPath(sim), "/burn_polygons_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
+  message("saving fire rasters")
   
   sim$probFireRast<-sim$probFireRast[order(pixelid)]
   escapeRas<-sim$ras
@@ -1463,6 +1451,10 @@ savefirerast<-function(sim){
   spreadRas<-sim$ras
   spreadRas[]<-sim$probFireRast$prob_ignition_spread
   terra::writeRaster(spreadRas, file = paste0 (outputPath(sim),"/Prob_spread_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
+  }
+  else {
+    message("no fires simulated")
+  }
   
   
   return(invisible(sim))
