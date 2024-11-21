@@ -52,7 +52,7 @@ parameters <-  list (
                          saveCastorDB = TRUE,
                           sqlite_dbname = "quesnel_fire", 
                           nameBoundaryFile = "public.tsa", 
-                          nameBoundaryColumn = "tsa_name", 
+                          nameBoundaryColumn = "tsnmbrdscr", 
                           nameBoundary = "Quesnel_TSA", 
                           nameBoundaryGeom = 'wkb_geometry',
                           nameCompartmentRaster = "rast.tsa", 
@@ -116,13 +116,14 @@ parameters <-  list (
                     pixelid_10kmRast = "rast.pixelId10km",
                     nameFirepixel10km = "vat.spatially_varying_10km_vat",
                     numberFireReps = 1),
-        climateCastor= list(gcm='MPI-ESM1-2-HR', #"ACCESS_ESM1_5", "CanESM5", "MPI_ESM1_2_HR" Note that MPI_ESM1_2HR seems to only have r1i1p1f1 and r2i1p1f1 for ssp 126 and ssp245. 
-                            gcmname='MPI_ESM1_2_HR', 
-                            ssp ='ssp370', #"ssp126", ""ssp245", "ssp370"
+        climateCastor= list(gcm= 'CanESM5',#'MPI-ESM1-2-HR'"ACCESS_ESM1_5", "CanESM5", "MPI_ESM1_2_HR" Note that MPI_ESM1_2HR seems to only have r1i1p1f1 and r2i1p1f1 for ssp 126 and ssp245. 
+                            gcmname='CanESM5', 
+                            ssp ='ssp245', #"ssp126", ""ssp245", "ssp370"
                             climateData = "future",
                             run = "r1i1p1f1",
-                            maxRun =2,
-                            climateYears = 2021:2060, nameClimateIdnoRast ='rast.climate_prism_base_layer', nameClimateTable='vat.climate_prism_lat_lon_lookup', vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
+                            maxRun =3,
+                            climateYears = 2021:2080, 
+                            nameClimateIdnoRast ='rast.climate_prism_base_layer', nameClimateTable='vat.climate_prism_lat_lon_lookup', vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
 nameProvCMITable = "public.prov_cmi_ave",
                                vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
         disturbanceCastor = list(calculateInterval =  1, 

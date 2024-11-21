@@ -40,7 +40,7 @@ inputDir <- file.path (paste0 (here::here (), "/R/scenarios/quesnel_fire/inputs"
 outputDir <- file.path (paste0 (here::here (), "/R/scenarios/quesnel_fire/outputs")) %>% reproducible::checkPath (create = TRUE)
 
 
-times <- list (start = 0, end = 37)
+times <- list (start = 0, end = 57)
 parameters <-  list (
         .progress = list (type = NA, interval = NA),
         .globals = list (),
@@ -51,10 +51,10 @@ parameters <-  list (
                     dbPass= keyring::key_get('dbpass', keyring = 'postgreSQL'),
                          saveCastorDB = FALSE,
                           dbName = 'castor',
-                          useCastorDB = "boundary_fire_castordb.sqlite",
+                          useCastorDB = "quesnel_fire_castordb.sqlite",
                           sqlite_dbname = "quesnel_fire", 
                           nameBoundaryFile = "public.tsa", 
-                          nameBoundaryColumn = "tsa_name", 
+                          nameBoundaryColumn = "tsnmbrdscr", 
                           nameBoundary = "Quesnel_TSA", 
                           nameBoundaryGeom = 'wkb_geometry',
                           nameCompartmentRaster = "rast.tsa", 
@@ -113,13 +113,13 @@ parameters <-  list (
                     pixelid_10kmRast = "rast.pixelId10km",
                     nameFirepixel10km = "vat.spatially_varying_10km_vat",
                     numberFireReps = 1),
-        climateCastor= list(gcm='MPI-ESM1-2-HR', #"ACCESS_ESM1_5", "CanESM5", "MPI_ESM1_2_HR" Note that MPI_ESM1_2HR seems to only have r1i1p1f1 and r2i1p1f1 for ssp 126 and ssp245. 
-                            gcmname='MPI_ESM1_2_HR', 
-                            ssp ='ssp370', #"ssp126", ""ssp245", "ssp370"
+        climateCastor= list(gcm='CanESM5', #"ACCESS_ESM1_5", "CanESM5", "MPI_ESM1_2_HR" Note that MPI_ESM1_2HR seems to only have r1i1p1f1 and r2i1p1f1 for ssp 126 and ssp245. 
+                            gcmname='CanESM5', 
+                            ssp ='ssp245', #"ssp126", ""ssp245", "ssp370"
                             climateData = "future",
-                            run = "r1i1p1f1", #r10i1p1f1","r1i1p1f1","r2i1p1f1", "r3i1p1f1"
-                            maxRun =2,
-                            climateYears = 2021:2060, 
+                            run = "r2i1p1f1", #r10i1p1f1","r1i1p1f1","r2i1p1f1", "r3i1p1f1"
+                            maxRun =3,
+                            climateYears = 2021:2080, 
                             nameClimateIdnoRast ='rast.climate_prism_base_layer', 
                             nameClimateTable='vat.climate_prism_lat_lon_lookup', 
                             vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
@@ -136,7 +136,7 @@ parameters <-  list (
                                              keyring::key_get ("vmdbname", keyring="postgreSQL")))
         )
 
-scenario = data.table (name = "harv_castor_MPI_ESM1_2_HR_ssp370_r1i1p1f1", description = "dataCastor output")
+scenario = data.table (name = "harv_castor_canesm5_ssp245_r2i1p1f1", description = "dataCastor output")
 
 modules <- list("dataCastor",
                 "growingStockCastor",
@@ -151,13 +151,13 @@ modules <- list("dataCastor",
 
 #harvestSchedule <- rast("boundary_fire_hsq.tif")
 harvestFlow <- rbindlist(list(
-                              data.table (compartment ="Boundary_TSA",
+                              data.table (compartment ="Quesnel_TSA",
                                           partition = ' vol > 100 AND age > 79 ', #
                                           period = rep( seq (from = 1,
-                                                           to = 37,
+                                                           to = 57,
                                                            by = 1),
                                                      1),
-                                          flow = 800500, 
+                                          flow = 1300000, 
                                           partition_type = 'live')))
  
 #objects <- list(harvestSchedule  = harvestSchedule, scenario = scenario)
@@ -184,7 +184,7 @@ mysimout<-simInitAndExperiment(times = times,
                  params = parameters, 
                  modules = modules,
                  objects = objects,
-                 paths = paths, replicates = 16, clearSimEnv = TRUE)
+                 paths = paths, replicates = 30, clearSimEnv = TRUE)
                  
 #SpaDES.core::experiment(mySim, replicates = 15, saveExperiment = FALSE, clearSimEnv = TRUE, .plotInitialTime = NA) # no plotting
 #mysimout<-spades(mySim)
