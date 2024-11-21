@@ -533,7 +533,7 @@ getHarvestQueue <- function(sim) {
         partition_sql<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
         partition_case<-""
       }
-      browser()
+     # browser()
       #Queue pixels for silvicultural treatments that are committed
       silv_candidates<-data.table(dbGetQuery(sim$castordb, paste0("WITH cte as (SELECT pixelid, thlb, vol, blockid, age, height, basalarea, silvsystem from pixels where silvSystem > 1) 
       select pixelid, thlb*vol as hvol, blockid, age, height, basalarea, cte.silvsystem, entry_var, entry_req, 
