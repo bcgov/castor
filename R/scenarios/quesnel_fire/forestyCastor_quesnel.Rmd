@@ -1,0 +1,194 @@
+<!--
+Copyright 2020 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "Database creation for Quesnel"
+author: "Kyle Lochhead"
+date: "26-Nov-2024"
+output: pdf_document
+---
+
+# Overview
+Simulate climate impacted fire regimes in the Quesnel TSA. Build the castordb to allow the forest structure to change given harvest schedule determined by STSM.
+
+# Usage
+Set parameters for creating the database in the code chunk below.
+
+```{r module_usage}
+library (SpaDES)
+library (SpaDES.core)
+library (data.table)
+library (keyring)
+library (terra)
+
+source (here::here("R/functions/R_Postgres.R"))
+
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+
+moduleDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules"))
+inputDir <- file.path (paste0 (here::here (), "/R/scenarios/quesnel_fire/inputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here::here (), "/R/scenarios/quesnel_fire/outputs")) %>% reproducible::checkPath (create = TRUE)
+
+
+times <- list (start = 0, end = 37)
+parameters <-  list (
+        .progress = list (type = NA, interval = NA),
+        .globals = list (),
+        dataCastor = list(dbHost=keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                          dbName = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                    dbPort='5432' ,
+                    dbUser=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                    dbPass= keyring::key_get('dbpass', keyring = 'postgreSQL'),
+                         saveCastorDB = FALSE,
+                          dbName = 'castor',
+                          useCastorDB = "boundary_fire_castordb.sqlite",
+                          sqlite_dbname = "quesnel_fire", 
+                          nameBoundaryFile = "public.tsa", 
+                          nameBoundaryColumn = "tsa_name", 
+                          nameBoundary = "Quesnel_TSA", 
+                          nameBoundaryGeom = 'wkb_geometry',
+                          nameCompartmentRaster = "rast.tsa", 
+                          nameCompartmentTable = "vat.tsa", 
+                          nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2022',  
+                          nameZoneRasters = c ("rast.zone_cond_nharv","rast.zone_cond_beo", 
+                                               "rast.zone_cond_vqo",
+                                               "rast.zone_wha_2021", 
+                                               "rast.zone_uwr_2021"
+                                               ),
+                          nameZoneTable = "zone.constraints", 
+                          # natural and managed stands yield curves are the same    
+                          nameYieldsRaster = "rast.ycid_vdyp_2020", 
+                          nameYieldTable = "yc_vdyp_2020", 
+                          nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
+                          nameYieldCurrentTable = "tipsy_prov_current_2020",
+                          nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+                          nameYieldTransitionTable = "tipsy_prov_2020",  
+                          nameForestInventoryRaster = "rast.vri2023_id", 
+                          nameForestInventoryKey = "feature_id", 
+                          nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2023",
+                          nameForestInventoryAge = "proj_age_1",  
+                          nameForestInventoryHeight = "proj_height_1",
+                          nameForestInventoryCrownClosure = "crown_closure",                             
+                          nameForestInventoryTreed = "bclcs_level_2",
+                          nameForestInventoryBasalArea= "basal_area",
+                          nameForestInventoryQMD = "quad_diam_125",
+                          nameForestInventorySiteIndex = "site_index" 
+                          ),
+        growingStockCastor = list (periodLength = 1),
+        blockingCastor = list(blockMethod = 'pre', 
+                              patchZone = 'rast.zone_cond_beo',
+                              patchVariation = 6,
+                              nameCutblockRaster ="rast.cns_cutblk_2023",
+                              useLandingsArea = FALSE),
+        roadCastor = list (roadMethod = 'mst',
+                           nameCostSurfaceRas = 'rast.rd_cost_surface',
+                           nameRoads =  'rast.ce_road_2022'
+                           ),
+        forestryCastor = list(harvestBlockPriority = " dist, vol/culvar DESC "),
+        fireCastor = list(calculateInterval =1,
+                    ignitionMethod = 'poissonProcess', # options are poissonProcess, historicalDist, static
+                    #calendarStartYear = 2020,
+                    nameFrtRaster = "rast.frt",
+                    nameAspectRaster = "rast.bc_ha_aspect",
+                    nameSlopeRaster = "rast.bc_ha_slope",
+                    nameDistInfrastructureRaster = "rast.dist_infrastructure",
+                    nameRoadsRast = "rast.ce_road_2022",
+                    #recovery = 300,
+                    nameElevationRaster = "rast.dem",
+                    simStartYear = 2023,
+                    nameBecRast = "rast.bec_current",
+                    nameBecTable = "vat.bec_zone_vat",
+                    nameForestInventorybclcs_level_1 = "bclcs_level_1",
+                    nameForestInventorybec_zone_code = '99999',
+                    pixelid_10kmRast = "rast.pixelId10km",
+                    nameFirepixel10km = "vat.spatially_varying_10km_vat",
+                    numberFireReps = 1),
+        climateCastor= list(gcm='MPI-ESM1-2-HR', #"ACCESS_ESM1_5", "CanESM5", "MPI_ESM1_2_HR" Note that MPI_ESM1_2HR seems to only have r1i1p1f1 and r2i1p1f1 for ssp 126 and ssp245. 
+                            gcmname='MPI_ESM1_2_HR', 
+                            ssp ='ssp370', #"ssp126", ""ssp245", "ssp370"
+                            climateData = "future",
+                            run = "r1i1p1f1", #r10i1p1f1","r1i1p1f1","r2i1p1f1", "r3i1p1f1"
+                            maxRun =2,
+                            climateYears = 2021:2060, 
+                            nameClimateIdnoRast ='rast.climate_prism_base_layer', 
+                            nameClimateTable='vat.climate_prism_lat_lon_lookup', 
+                            vars_aoi=c("PPT_03","PPT_04", "PPT_05","PPT_06","PPT_07", "PPT_08", "PPT_09","Tmax_04", "Tmax_05", "Tmax_06", "Tmax_07", "Tmax_08", "Tmax_09", "Tave_03","Tave_04", "Tave_05", "Tave_06", "Tave_07", "Tave_08", "Tave_09", "Tmin_03", "Tmin_04", "Tmin_05", "Tmin_06", "Tmin_07", "Tmin_08" ,"CMD_04", "CMD_05", "CMD_06", "CMD_07", "CMD_08", "CMI_03", "CMI_04", "CMI_05", "CMI_06", "CMI_07", "CMI_08", "CMI_09"),
+
+                            nameProvCMITable = "public.prov_cmi_ave",
+                               vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
+        disturbanceCastor = list(calculateInterval =  1, 
+                                 permDisturbanceRaster = "rast.mine_ag_wind_rail",
+                                 recovery = 300),
+        uploadCastor = list(aoiName = 'boundary',
+                              dbInfo  = list(keyring::key_get ("vmdbhost", keyring="postgreSQL"),
+                                             keyring::key_get ("vmdbuser", keyring="postgreSQL"),
+                                             keyring::key_get ("vmdbpass", keyring="postgreSQL"), 
+                                             keyring::key_get ("vmdbname", keyring="postgreSQL")))
+        )
+
+scenario = data.table (name = "harv_castor_MPI_ESM1_2_HR_ssp370_r1i1p1f1", description = "dataCastor output")
+
+modules <- list("dataCastor",
+                "growingStockCastor",
+                "blockingCastor", 
+                "roadCastor",
+                "forestryCastor",
+                "disturbanceCastor",
+                "climateCastor",
+                "fireCastor"
+                #"uploadCastor"
+                )
+
+#harvestSchedule <- rast("boundary_fire_hsq.tif")
+harvestFlow <- rbindlist(list(
+                              data.table (compartment ="Boundary_TSA",
+                                          partition = ' vol > 100 AND age > 79 ', #
+                                          period = rep( seq (from = 1,
+                                                           to = 37,
+                                                           by = 1),
+                                                     1),
+                                          flow = 800500, 
+                                          partition_type = 'live')))
+ 
+#objects <- list(harvestSchedule  = harvestSchedule, scenario = scenario)
+objects <- list(harvestFlow=harvestFlow, scenario = scenario)
+
+paths <- list(modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+
+
+#mysimout<-spades(mySim)
+
+library(SpaDES.experiment)
+mysimout<-simInitAndExperiment(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths, replicates = 16, clearSimEnv = TRUE)
+                 
+#SpaDES.core::experiment(mySim, replicates = 15, saveExperiment = FALSE, clearSimEnv = TRUE, .plotInitialTime = NA) # no plotting
+#mysimout<-spades(mySim)
+
+
+```
+
