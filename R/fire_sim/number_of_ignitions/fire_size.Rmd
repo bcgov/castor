@@ -30,21 +30,32 @@ library(terra)
 ## Data: merge in from fire_occurence.rmd
 ```{r}
 library(sdmTMB)
-data.count<-readRDS("data.lightning.rds")
+data.count<-readRDS("data_lightning_occurence_10k.rds")
 number<-data.count[, .(nfires = sum(count)), by = 'FIRE_YEAR']
-data.size<-readRDS("data.lightning.size.rds")
+avgCMI<-data.count[, .(avgCMIProv=sum(CMI)/.N), by = c("FIRE_YEAR")]
+
+data.size<-readRDS("data_lightning_size_10k.rds")
 data.size<-merge(data.size, number, by.x = "FIRE_YEAR", by.y = "FIRE_YEAR", all.x =T )
-data.size<-data.size[,flammable:=con + mix + dec + young + veg][flammable >0, ][!is.na(CURRENT_SIZE),][flammable >0,][,dCMI3yr:=CMI-(CMI3yr/3)][,frt:=as.factor(frt)][,year:=as.factor(FIRE_YEAR)][is.na(ndt), ndt:=3]
-threshold<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/avgCMIProv.rds")
-data.size<-merge(data.size, threshold, by = "FIRE_YEAR")
+data.size<-merge(data.size, avgCMI, by.x = "FIRE_YEAR", by.y = "FIRE_YEAR", all.x =T )
+data.size<-data.size[,flammable:=con + mix + dec + young + veg][flammable >0, ][!is.na(CURRENT_SIZE),][flammable >0,][,dCMI3yr:=CMI-(CMI3yr/3)][,year:=as.factor(FIRE_YEAR)][is.na(ndt), ndt:=3]
 
-m8<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
-
+model<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/ignit_lightning_10k_m9.rds")
 #get the random spatial effect
-data.size2<-predict(m8, data = data.size, type = "link", re_form = NULL)
-data.size<-data.size[,frt:=as.factor(frt)]
-data.size<-cbind(data.size, model.matrix( ~ 0+frt, data=data.size )) 
-data.size<-data.size[ ,est:= exp(-17.0 -0.0576*CMI_MIN-0.124*dCMI3yr-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
+preds.all<-predict(model, re.form =NULL)
+spat.int<-unique(data.table(preds.all)[, c("pixelid", "omega_s")])
+
+data.size<-merge(data.size,spat.int, by = "pixelid" )
+
+coefs<-tidy(model)
+fc.coef<-data.table(fire_centre = c(1, 2,3,4,5,6), fc_coef = c(0, filter(coefs, term == "as.factor(fire_centre)2")$estimate ,filter(coefs, term == "as.factor(fire_centre)3")$estimate,filter(coefs, term == "as.factor(fire_centre)4")$estimate,filter(coefs, term == "as.factor(fire_centre)5")$estimate,filter(coefs, term == "as.factor(fire_centre)6")$estimate))
+
+frt.coef<-data.table(frt = c(3, 5,7,9,10,11,12,13,14,15), frt_coef = c(0, filter(coefs, term == "as.factor(frt)5")$estimate ,                    filter(coefs, term == "as.factor(frt)7")$estimate, filter(coefs, term == "as.factor(frt)9")$estimate,  filter(coefs, term == "as.factor(frt)10")$estimate,  filter(coefs, term == "as.factor(frt)11")$estimate,  filter(coefs, term == "as.factor(frt)12")$estimate, filter(coefs, term == "as.factor(frt)13")$estimate,  filter(coefs, term == "as.factor(frt)14")$estimate,  filter(coefs, term == "as.factor(frt)15")$estimate))
+
+
+data.size<-merge(data.size, frt.coef, by = "frt")
+data.size<-merge(data.size, fc.coef, by = "fire_centre")
+
+data.size<-data.size[ ,est:= exp(filter(coefs, term == "(Intercept)")$estimate + filter(coefs, term == "CMI_MIN")$estimate*CMI_MIN + filter(coefs, term == "dCMI3yr")$estimate*dCMI3yr + filter(coefs, term == "avgCMIProv")$estimate*avgCMIProv + filter(coefs, term == "log(con + 1)")$estimate*log(con+1) + filter(coefs, term == "log(dec + 1)")$estimate*log(dec+1) + frt_coef  + omega_s + log(flammable))]
 
 ```
 
@@ -55,9 +66,9 @@ data.size<-data.size[ ,est:= exp(-17.0 -0.0576*CMI_MIN-0.124*dCMI3yr-0.363*avgCM
 #data.size[duration<0, duration:=0][is.na(duration), duration:=0]
 #data.size[, ignit_month:= month(IGNITION_DATE)]
 
-model.size <- data.size[!is.na(est),][, size:= log(CURRENT_SIZE)]
+model.size <- data.size[!is.na(est),][, size:= log(CURRENT_SIZE)][,lroad:=log(road+1)][, frt:=as.factor(frt)]
 
-fit.model.size<-model.size[,c("CURRENT_SIZE", "size","IGNITION_DATE", "CMI", "dCMI3yr", "avgCMIProv", "flammable", "DD18_sm", "TEMP_MAX", "FIRE_CENTRE", "nfires", "duration", "CMI05","CMI06", "CMI07", "CMI08", "CMI_MIN", "con", "dec", "mix", "young", "veg", "PPT_sm", "est", "frt", "ndt", "x", "y")][size>0, ]
+fit.model.size<-model.size[,c("CURRENT_SIZE", "size","IGNITION_DATE", "CMI", "dCMI3yr", "avgCMIProv", "flammable", "DD18_sm", "TEMP_MAX", "FIRE_CENTRE", "nfires", "CMI05","CMI06", "CMI07", "CMI08", "CMI_MIN", "con", "dec", "mix", "young", "veg", "PPT_sm", "lroad", "est", "frt", "ndt", "x", "y")][size>0, ]
 ```
 
 # Models
@@ -93,11 +104,11 @@ nm0_ga<-gamlssMX(formula = size ~  1 ,
            data = fit.model.size)
 wp(nm0_ga , ylim.all = T)
 plot.new() #individual components for gamma
-curve(dgamma(x, shape = exp(1.789), scale = exp(-1.026)), from = 0, to = 13, col = "red")
-curve(dgamma(x, shape = exp(0.745), scale = exp(-0.178)), from = 0, to = 13, col = "black", add=T)
+curve(dgamma(x, shape = exp(1.841), scale = exp(-1.08)), from = 0, to = 13, col = "red")
+curve(dgamma(x, shape = exp(0.81), scale = exp(-0.1728)), from = 0, to = 13, col = "black", add=T)
 
 plot.new() #mixture distribution for gamma
-fyGA<-dMX(y=seq(0,13,0.01), mu=list(exp(1.789),exp(0.745)), sigma=list(exp(-1.026 ), exp(-0.178)), pi=list(0.3472833, 0.6528167), family=list("GA","GA") )
+fyGA<-dMX(y=seq(0,13,0.01), mu=list(exp(1.841),exp(0.81)), sigma=list(exp(-1.08 ), exp(-0.1728)), pi=list(0.332, 0.6678), family=list("GA","GA") )
 plot(fyGA~seq(0,13,.01), type="l")
 
 nm0_wei<-gamlssMX(formula = size ~  1 ,
@@ -228,45 +239,52 @@ nm8_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI+ est + log(con+1),
            family = list(WEI3(), WEI3()),
            data = fit.model.size)
 
-wp(nm1_wei, ylim.all = TRUE)
-AIC(nm0_wei, nm1_wei, nm2_wei, nm3_wei, nm4_wei, nm5_wei, nm6_wei, nm7_wei, nm8_wei)
+wp(nm8_wei, ylim.all = TRUE)
+
+nm9_wei<-gamlssMX(formula = size ~  1 + lroad + PPT_sm + CMI+ est + log(con+1),
+           K=2,
+           sigma.formula = ~ 1,
+           pi.formula = ~1 + frt + avgCMIProv + TEMP_MAX,
+           family = list(WEI3(), WEI3()),
+           data = fit.model.size)
+AIC(nm0_wei, nm1_wei, nm2_wei, nm3_wei, nm4_wei, nm5_wei, nm7_wei, nm8_wei, nm9_wei)
 
 #nm1_wei_perturb<-gamlssMXfits(n=20, formula = size ~  1 + log(mix+1)  + exp(est) + PPT_sm, K=2,sigma.formula = ~ 1, pi.formula = ~dCMI3yr + frt,family = list(WEI3(), WEI3()),data = fit.model.size) # 1 out of 20 failed to fit
 
-nm8_wei_simulate<-fit.model.size[, mu1:= 2.158738 -0.001108*PPT_sm -0.011496*CMI + -0.719612*est  -0.020594*log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921*CMI +1.918825*est -0.209590*log(con + 1) ][, sigma2:= 0.27]
+nm9_wei_simulate<-fit.model.size[, mu1:= 2.287 -0.00033*PPT_sm -0.0407*CMI + -0.560*est  -0.047*log(con + 1) - 0.0323*lroad][, sigma1:=  1.108][ , mu2:= 3.36 -0.001323*PPT_sm -0.035*CMI + 2.17*est  -0.24088*log(con + 1) - 0.0814*lroad ][, sigma2:= 0.2489]
 
-nm8_wei_simulate<-cbind(nm8_wei_simulate, model.matrix( ~ frt, data=fit.model.size ))
+nm9_wei_simulate<-cbind(nm9_wei_simulate, model.matrix( ~ frt, data=fit.model.size ))
 
-nm8_wei_simulate[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*avgCMIProv+0.1055167*TEMP_MAX )))][,pi1:=1-pi2]
+nm9_wei_simulate[, pi2:=1/(1+exp(-1*(1.7346+ -3.69*frt5-2.966*frt7-4.6608*frt9 -4.23*frt10 -5.214*frt11  -3.769*frt12-4.088*frt13-3.276159*frt14  -3.98859*frt15+ 0.6145*avgCMIProv+0.12586*TEMP_MAX )))][,pi1:=1-pi2]
 
-nm8_wei_simulate[, pixel_order:=seq_len(.N)][, c("size", "mu1", "sigma1", "mu2", "sigma2", "pixel_order",  "duration", "CMI", "nfires", "IGNITION_DATE", "x", "y", "pi1", "pi2")]
+nm9_wei_simulate[, pixel_order:=seq_len(.N)][, c("size", "mu1", "sigma1", "mu2", "sigma2", "pixel_order",  "CMI", "nfires", "IGNITION_DATE", "x", "y", "pi1", "pi2")]
 
-nm8_wei_simulate[pi1 < 0.5, k:=2][pi1 >=0.5, k:=1]
+nm9_wei_simulate[pi1 < 0.5, k:=2][pi1 >=0.5, k:=1]
 
-nm8_wei_simulate<-nm8_wei_simulate[k==1,mu_est:= exp(mu1)][k==2,mu_est:= exp(mu2)][k==1,sigma_est:= exp(sigma1)][k==2,sigma_est:= exp(sigma2)]
+nm9_wei_simulate<-nm9_wei_simulate[k==1,mu_est:= exp(mu1)][k==2,mu_est:= exp(mu2)][k==1,sigma_est:= exp(sigma1)][k==2,sigma_est:= exp(sigma2)]
 
 #### assuming known class membership
-ggplot(data = nm8_wei_simulate, aes(x = mu_est, y = size, group = k, col=k)) + geom_point() + geom_smooth() + geom_abline()
+ggplot(data = nm9_wei_simulate, aes(x = mu_est, y = size, group = k, col=k)) + geom_point() + geom_smooth() + geom_abline()
 
 #### map prediction
 #bcbounds<-bcdata::bcdc_get_data("ba9f835f-bc72-4c35-b320-15003898d6dc")
 #ggplot(data = merge(nm1_wei_simulate, number, by = "nfires"), aes(x=x*1000,y=y*1000, color = size))  + geom_sf(data = bcbounds, inherit.aes = FALSE)+ geom_point() + facet_wrap(~FIRE_YEAR)
 
 #Simulate the fire size distribution
-n=nrow( nm8_wei_simulate)
+n=nrow( nm9_wei_simulate)
 test_wei2<-rbindlist(lapply(1:500, function(x){
   set.seed(x)
-  nm8_wei_simulate<-nm8_wei_simulate[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(nm8_wei_simulate))]
+  nm9_wei_simulate<-nm9_wei_simulate[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(nm9_wei_simulate))]
    #nm1_wei_simulate<-nm1_wei_simulate[ pi1>=0.5, k_sim:=1][pi1<0.5,k_sm:=2]
-  nm8_wei_simulate<-nm8_wei_simulate[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
-  nm8_wei_simulate<-nm8_wei_simulate[, wei_sim:= rWEI3(1, mu = mu_sim, sigma =sigma_sim), by =seq_len(nrow(nm8_wei_simulate)) ]
+  nm9_wei_simulate<-nm9_wei_simulate[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
+  nm9_wei_simulate<-nm9_wei_simulate[, wei_sim:= rWEI3(1, mu = mu_sim, sigma =sigma_sim), by =seq_len(nrow(nm9_wei_simulate)) ]
   
-  out<-data.table(rep =x, ex = sort(nm8_wei_simulate$wei_sim))
+  out<-data.table(rep =x, ex = sort(nm9_wei_simulate$wei_sim))
   out[,pixel_order := 1:n/n]
 }))
 
 sim_ci_wei2<-test_wei2[, .(lower = quantile(ex,p =0.025), med = quantile(ex,p =0.5), upper = quantile(ex,p =0.975)), by = pixel_order]
-sim_ci_wei2$size<- sort(nm8_wei_simulate$size)
+sim_ci_wei2$size<- sort(nm9_wei_simulate$size)
 
 ##predicted cdfs
 x <-sort(sim_ci_wei2$size)
@@ -284,8 +302,8 @@ lines(exp(x_wei), (1-(1:n)/n), col="red", lwd =2)
 lines(exp(x_wei_upper), (1-(1:n)/n), col="red", lty = 2)
 
 plot.new()
-fnWeismall<-getpdfMX(nm8_wei, observation=68)
-fnWeibig<-getpdfMX(nm8_wei, observation=165)
+fnWeismall<-getpdfMX(nm9_wei, observation=68)
+fnWeibig<-getpdfMX(nm9_wei, observation=165)
 truehist(fit.model.size$size)
 lines(seq(0,14,1) ,fnWeibig(seq(0,14,1)), col ='red')
 points(fit.model.size$size[165], y =0, col = 'red')

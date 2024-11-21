@@ -18,6 +18,7 @@ library(sdmTMB)
 library(raster)
 library(terra)
 library(gamlss.mx)
+library(INLA)
 ```
 
 ## Data objects
@@ -25,27 +26,41 @@ The following simulates the annual area burned from two model: fire occurrence a
 
 ```{r data_objects, echo=FALSE}
 #The chosen fire occurrence model (see fire_occurrence.rmd)
-m8<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
+m9<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m9.rds")
 
-preds.all<-predict(m8, newdata = m8$data) #get the random spatial effect
-sim.data<-preds.all[, c("FIRE_YEAR", "pixelid", "con", "young", "dec", "mix", "CMI_MIN", "dCMI3yr", "avgCMIProv", "PPT_sm", "TEMP_MAX", "flammable", "frt", "fire_centre", "PPT_sm","est_rf","est", "est_non_rf", "CMI","CMI3yr")][,frt:=as.factor(frt)]
-
+preds.all<-predict(m9) #get the random spatial effect
+sim.data.estrf<-unique(preds.all[, c( "pixelid", "est_rf")])
+sim.data<- occ.model.data[,frt:=as.factor(frt)]
+sim.data<-merge(sim.data, sim.data.estrf, by.x= "pixelid", by.y= "pixelid")
 sim.data<-cbind(sim.data, model.matrix( ~ 0 + frt, data=sim.data )) #add in the indicator structure for frt - homogenous fire regime types
 ```
 
 ## Fire Occurence Model Parameters
 The following estimates the mu of the negative binomial glmm. Note: that sdmTMB does not include the offset in the prediction. 
 ```{r}
-sim.data<-sim.data[ ,est:= exp(-17.0 -0.0576*CMI_MIN-0.124*dCMI3yr-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
+model = m9
+coefs<-tidy(model)
+fc.coef<-data.table(fire_centre = c(1, 2,3,4,5,6), fc_coef = c(0, filter(coefs, term == "as.factor(fire_centre)2")$estimate ,filter(coefs, term == "as.factor(fire_centre)3")$estimate,filter(coefs, term == "as.factor(fire_centre)4")$estimate,filter(coefs, term == "as.factor(fire_centre)5")$estimate,filter(coefs, term == "as.factor(fire_centre)6")$estimate))
+                                                                    
+frt.coef<-data.table(frt = c(3, 5,7,9,10,11,12,13,14,15), frt_coef = c(0, filter(coefs, term == "as.factor(frt)5")$estimate ,                    filter(coefs, term == "as.factor(frt)7")$estimate, filter(coefs, term == "as.factor(frt)9")$estimate,  filter(coefs, term == "as.factor(frt)10")$estimate,  filter(coefs, term == "as.factor(frt)11")$estimate,  filter(coefs, term == "as.factor(frt)12")$estimate, filter(coefs, term == "as.factor(frt)13")$estimate,  filter(coefs, term == "as.factor(frt)14")$estimate,  filter(coefs, term == "as.factor(frt)15")$estimate))
+frt.coef$frt<-as.factor(frt.coef$frt)
+sim.data<-merge(sim.data, frt.coef, by = "frt")
+sim.data<-merge(sim.data, fc.coef, by = "fire_centre")
+
+preds.all<-predict(model, re.form =NULL)
+spat.int<-unique(data.table(preds.all)[, c("pixelid", "omega_s")])
+sim.data<-merge(sim.data,spat.int, by = "pixelid" )
+
+sim.data<-sim.data[ ,est:= exp(filter(coefs, term == "(Intercept)")$estimate + filter(coefs, term == "CMI_MIN")$estimate*CMI_MIN + filter(coefs, term == "dCMI3yr")$estimate*dCMI3yr + filter(coefs, term == "avgCMIProv")$estimate*avgCMIProv + filter(coefs, term == "log(con + 1)")$estimate*log(con+1) + filter(coefs, term == "log(dec + 1)")$estimate*log(dec+1) + frt_coef  + omega_s + log(flammable))]
 
 ```
 
 ## Fire Size
 The fire size model has two components or subpopulations. For each component the pdfs are parameterized with a mu and sigma parameter for the weibull distribution.Additionally, there is a multinomial (binomial) model for the mixing probabilities which determine component membership.
 ```{r}
-sim.data[, mu1:= 2.158738 -0.001108*PPT_sm -0.011496*CMI + -0.719612*est  -0.020594*log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921*CMI +1.918825*est -0.209590*log(con + 1) ][, sigma2:= 0.27]
+sim.data[, mu1:= 2.287 -0.00033*PPT_sm -0.0407*CMI + -0.560*est  -0.047*log(con + 1) - 0.0323*lroad][, sigma1:=  1.108][ , mu2:= 3.36 -0.001323*PPT_sm -0.035*CMI + 2.17*est  -0.24088*log(con + 1) - 0.0814*lroad ][, sigma2:= 0.2489]
 
-sim.data[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*avgCMIProv+0.1055167*TEMP_MAX )))][,pi1:=1-pi2]
+sim.data[, pi2:=1/(1+exp(-1*(1.7346+ -3.69*frt5-2.966*frt7-4.6608*frt9 -4.23*frt10 -5.214*frt11  -3.769*frt12-4.088*frt13-3.276159*frt14  -3.98859*frt15+ 0.6145*avgCMIProv+0.12586*TEMP_MAX )))][,pi1:=1-pi2]
 ```
 
 ## Simulate
@@ -53,11 +68,11 @@ The following simulates the two fire regime models independantly for each year. 
 ```{r}
 sim.data[,year:=FIRE_YEAR]
 runs<-rbindlist(lapply(1:1000, function(x){
-  rbindlist(lapply(2009:2022, function(i){
+  rbindlist(lapply(2009:2023, function(i){
     occ<-sim.data[year == i, ]
-    selected.seed<-sample(1:1000,1)
+    selected.seed<-sample(1:10000000,1)
     set.seed(selected.seed)
-    occ<-occ[, fire:= rnbinom(n = 1, size = 0.416, mu =est), by=1:nrow(occ)][fire>0,]
+    occ<-occ[, fire:= rnbinom(n = 1, size = 0.33, mu =est), by=1:nrow(occ)][fire>0,]
     occ<-occ[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(occ))]
     occ<-occ[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
     aab<-data.table(aab = as.numeric(), fire_centre = as.integer())
@@ -70,7 +85,7 @@ runs<-rbindlist(lapply(1:1000, function(x){
     out
   }))
 }))
-runs.bounds<-runs[, .(nf_low = quantile(nfires,p =0.25), nf_med = quantile(nfires,p =0.5), nf_up = quantile(nfires,p =0.75), aab_low = quantile(aab,p =0.25), aab_med = quantile(aab,p =0.5), aab_up = quantile(aab,p =0.75)), by = c('year', 'fire_centre')]
+runs.bounds<-runs[, .(nf_low = quantile(nfires,p =0.25), nf_med = quantile(nfires,p =0.5), nf_up = quantile(nfires,p =0.75),aab_low05 = quantile(aab,p =0.05), aab_low = quantile(aab,p =0.25), aab_med = quantile(aab,p =0.5), aab_up = quantile(aab,p =0.75), aab_up95 = quantile(aab,p =0.95)), by = c('year', 'fire_centre')]
 runs.bounds[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
 
 obs.occ<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/data.lightning.rds")
@@ -85,28 +100,38 @@ ggplot(data=runs.bounds[!is.na(fire_centre),]) +
   geom_line(aes(x = year, y = nf_med),col = 'blue', lwd =1.5)+ 
   geom_line(aes(x = year, y = nf_low), col = 'blue', linetype = "dashed")+ geom_line(aes(x = year, y = nf_up), col = 'blue', linetype = "dashed") + 
   geom_line(data = obs.occ[!is.na(fire_centre),], aes(x=FIRE_YEAR, y = nfires), color = "red") + 
-  xlab("Year") + ylab("Count of Fires (>1 ha)") + facet_wrap(~fc, scales = 'free', ncol =3)
+  xlab("Year") + ylab("Count of Fires (>1 ha)") + facet_wrap(~fc, scales = 'free', ncol =3) 
 
 obs.aab<-data.size
 obs.aab<-obs.aab[, .(aab = sum(CURRENT_SIZE, na.rm = T)), by = c('FIRE_YEAR', 'fire_centre')][aab>0, ]
 #fill in zero aab
 obs.aab<- merge(obs.aab,data.table(FIRE_YEAR = rep(seq(2009, 2022,1), 6), fire_centre = rep(c(1,2,3,4,5,6), each = 14)), by= c("FIRE_YEAR", "fire_centre"), all.y =T)[is.na(aab), aab := 0]
 obs.aab[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
+library(ggh4x)
+custom_y <- list(
+  scale_y_continuous(limits = c(0, obs.aab[fire_centre == 1, max(aab)]*1.2)),
+  scale_y_continuous(limits = c(0, obs.aab[fire_centre == 2, max(aab)]*1.8)),
+  scale_y_continuous(limits = c(0, obs.aab[fire_centre == 3, max(aab)]*1.8)),
+  scale_y_continuous(limits = c(0, obs.aab[fire_centre == 4, max(aab)]*1.2)),
+  scale_y_continuous(limits = c(0, obs.aab[fire_centre == 5, max(aab)]*1.2)),
+  scale_y_continuous(limits = c(0, obs.aab[fire_centre == 6, max(aab)]*2.8))
+)
 
-ggplot(data=runs.bounds) + 
+ggplot(data=runs.bounds[year<=2022,]) + 
   geom_line(aes(x = as.integer(year), y = aab_med),col = 'blue', lwd =1.5)+ 
-  geom_line(aes(x = as.integer(year), y = aab_low), col = 'blue', linetype = "dashed")+ 
-  geom_line(aes(x = as.integer(year), y = aab_up), col = 'blue', linetype = "dashed") + 
-  geom_line(data = obs.aab, aes(x=as.integer(FIRE_YEAR), y = aab), color = "red") + 
-  xlab("Year") + 
-  ylab("Area Burned (ha)")+ facet_wrap(~fc, scales = 'free', ncol =3) 
+  geom_line(aes(x = as.integer(year), y = aab_low), col = 'blue', linetype = "dashed", lwd =1.1)+ 
+  geom_line(aes(x = as.integer(year), y = aab_up), col = 'blue', linetype = "dashed", lwd =1.1) + 
+  geom_line(aes(x = as.integer(year), y = aab_up95), col = 'lightblue', linetype = "dashed") +
+  geom_line(aes(x = as.integer(year), y = aab_low05), col = 'lightblue', linetype = "dashed") + 
+  geom_line(data = obs.aab, aes(x=as.integer(FIRE_YEAR), y = aab), color = "red", lwd =1.5) + 
+  xlab("Year") +  annotate("rect", xmin = 2017.5, xmax = 2022, ymin = 0, ymax = Inf,
+           alpha = .1,fill = "blue") + 
+  ylab("Area Burned (ha)")+ facet_wrap(~fc, scales = 'free_y', ncol =2)+
+  facetted_pos_scales(y = custom_y)
 
 runs.bounds<-runs.bounds[,FIRE_YEAR :=year]
-test.cors<-merge(runs.bounds, obs.occ, by = c('FIRE_YEAR', 'fire_centre'))
-test.cors<-merge(test.cors, obs.aab, by = c('FIRE_YEAR', 'fire_centre'))
-
-cor(test.cors[,c('nf_med', 'nfires')])
+test.cors<-merge(runs.bounds, obs.aab, by = c('FIRE_YEAR', 'fire_centre'))
 cor.test(test.cors$aab_med, test.cors$aab)
-       
+plot(test.cors$aab_med, test.cors$aab)     
 
 ```

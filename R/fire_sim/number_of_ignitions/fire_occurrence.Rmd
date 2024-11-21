@@ -13,72 +13,79 @@ library(tidyverse)
 library(glmmTMB)
 library(DHARMa)
 library(sdmTMB)
+library(INLA)
 ```
 
 In this script we model the occurrence of lightning cause wildfires. This includes the number of fires and where they occur. to do this we rely on the historical incidents data reported in the data catalog of BC. The number of fires within a 10 km grid are estimated along with various predictor variables that relate to landcover and climate.The landcover data comes from the VRI using the previous year of the fire as the estimate of the amount of landcover types within the 10 km voxel.
 
 ## Data
 ```{r}
-data.lightning<-readRDS("data_lightning_5k.rds")
-occ.model.data<-data.lightning[!is.na(CMI3yr),][,dCMI3yr:=CMI-(CMI3yr/3)][, coast:=0][frt==15, coast:=1][,flammable:=con + mix + dec + young + veg][flammable >0, ][, year:= as.factor(FIRE_YEAR)][!is.na(fire_centre),]
+data.person<-readRDS("data_person_occurence_10k.rds")
+data.person<-data.person[, count_person:= count]
+data.lightning<-readRDS("data_lightning_occurence_10k.rds")
+data.all<-merge(data.lightning, data.person[,c("pixelid", "FIRE_YEAR", "count_person")], by.x = c("pixelid", "FIRE_YEAR"), by.y = c("pixelid", "FIRE_YEAR"))
+occ.model.data<-data.all[!is.na(CMI3yr),][,dCMI3yr:=CMI-(CMI3yr/3)][, coast:=0][frt==15, coast:=1][,flammable:=con + mix + dec + young + veg][flammable >0, ][, year:= as.factor(FIRE_YEAR)][!is.na(fire_centre),][, pcon:=(con/flammable)*100][, pdec:=(dec/flammable)*100][, pyoung:=(young/flammable)*100][, pmix:=(mix/flammable)*100][, proad:=scale(road/flammable)][,lroad:=log(road+1)]
 
-occ.model.data<-occ.model.data[, avgCMIProv:=sum(CMI)/.N, by = c("FIRE_YEAR")][,dry:=0][avgCMIProv < -0.47, dry :=1]
+occ.model.data<-occ.model.data[, avgCMIProv:=sum(CMI)/.N, by = c("FIRE_YEAR")][,dry:=0][,year:=as.integer(year)]
 
-# Determine threshold
-#threshold<-occ.model.data[, .(count = sum(count), avgCMIProv = min(avgCMIProv) ), by = FIRE_YEAR]
-#saveRDS(threshold, "avgCMIProv.rds")
+#Set the trainingset
+occ.model.data.train<-occ.model.data[FIRE_YEAR < 2018, ]
+spde <- make_mesh(occ.model.data.train[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 100)
+
 ```
 
 ## Model
 ```{r}
-
-l12_nb_3yr <- glmmTMB(count ~ 1 + CMI + CMI3yr +avgCMIProv, offset = log(flammable), family = nbinom2(link = "log"), ziformula = ~0, data=occ.model.data)
-
-simulationOutput <- simulateResiduals(fittedModel = l12_nb_3yr)
-plot(simulationOutput)
-
-occ.model.data$pred_mu<-data.table(mu= predict(l12_nb_3yr, newdata = occ.model.data[, c("flammable", "CMI", "CMI3yr", "avgCMIProv")][,FIRE_YEAR := NA][,frt := NA], type="response"))
-ggplot2::ggplot(data=occ.model.data[ FIRE_YEAR %in% c( 2012, 2016, 2017, 2018, 2020, 2022)], aes(x=x, y=y, color = pred_mu)) + facet_wrap(~FIRE_YEAR) + geom_point()
-occ.model.data[, sim:= rnbinom(n = 1, size = 0.251, mu =pred_mu )]
- 
-sim1=simulate(l12_nb_3yr, nsim = 1)
-Simdat=occ.model.data[!is.na(CMI3yr),]
-Simdat$count=sim1[[1]]
-Simdat=transform(Simdat,  
-            type="simulated")
-occ.model.data$type = "observed"  
-Dat=rbind(occ.model.data[!is.na(CMI3yr),], Simdat) 
-ggplot(Dat[, sum(count), by = c("FIRE_YEAR", "type")],  aes(x=FIRE_YEAR, y =V1, colour=type))+geom_line()
-ggplot(Dat,  aes(x=CMI, y =as.factor(count), colour=type))+geom_boxplot() + facet_grid(~type)
-
-#Set the trainingset
-occ.model.data.train<-occ.model.data[FIRE_YEAR < 2018, ]
-spde <- make_mesh(occ.model.data.train[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-
 m0 <- sdmTMB(data = occ.model.data.train, count ~ 1  , offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = F, spatiotemporal = FALSE, reml=F)
+
+per0 <- sdmTMB(data = occ.model.data.train, count_person ~ 1  , offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = F, spatiotemporal = FALSE, reml=F)
 
 m0_gmrf <- sdmTMB(data = occ.model.data.train, count ~ 1  , offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
 
-m0_gmrf_fc <- sdmTMB(data = occ.model.data.train, count ~ 1 + as.factor(fire_centre) , offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+per0_gmrf <- sdmTMB(data = occ.model.data.train, count_person ~ 1  , offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
 
-m1 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+m0_gmrf_fc <- sdmTMB(data = occ.model.data.train, count ~ 1 + as.factor(fire_centre) , offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = 'iid', reml=F)
+
+m1 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN, offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
+per1 <- sdmTMB(data = occ.model.data.train, count_person ~ 1 + CMI, offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
+per1b <- sdmTMB(data = occ.model.data.train, count_person ~ 1 + CMI + CMI06, offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
 
 m2 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  +  dCMI3yr + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
+per2 <- sdmTMB(data = occ.model.data.train, count_person ~ 1 + CMI + CMI06+  lroad , offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
+
 m3 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN + dCMI3yr + avgCMIProv + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
+per3 <- sdmTMB(data = occ.model.data.train, count_person ~ 1 + CMI+ CMI06  +  lroad  + avgCMIProv, offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
+
 m4 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN + dCMI3yr + avgCMIProv + as.factor(frt) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
+
+per4 <- sdmTMB(data = occ.model.data.train, count_person ~ 1 + CMI + CMI06 +  lroad  + avgCMIProv + as.factor(frt), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
 ##Vegetation typing
 m5 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(veg+1) + log(dec+1) + log(mix+1) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE)
 
-m6 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr+ avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+per5 <- sdmTMB(data = occ.model.data.train, count_person ~ 1 + CMI  + CMI06+  lroad  + avgCMIProv + as.factor(frt) +  log(con+1) + log(young+1) + log(veg+1) + log(dec+1) + log(mix+1), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
-m7 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = F, spatiotemporal = FALSE, reml=F)
+m6 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr+ avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(mix+1) + log(dec+1) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
+per6 <- sdmTMB(data = occ.model.data.train, count_person ~ 1 + CMI + CMI06 +  lroad  + avgCMIProv + as.factor(frt) + log(young+1) + log(dec+1) , offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
+
+m7 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
+per7 <- sdmTMB(data = occ.model.data.train, count_person ~ 1 + CMI + CMI06 +  lroad  + avgCMIProv + as.factor(frt) +log(young+1)+ log(dec+1)  + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
 m7.reml <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=T)
 
-m8 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=T)
+m8 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv +as.factor(frt) + scale(log(con+1)) + scale(log(young+1)) + scale(log(dec+1)) + as.factor(fire_centre), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
+m9 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv +as.factor(frt) + log(con+1) + log(dec+1), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
+m10 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt)+ Tdelta07+ Tdelta08 + log(con+1) + log(dec+1), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
+m11 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt)+ Tdelta07 + log(con+1) + log(dec+1), offset = log(occ.model.data.train$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
 
 #test99<-predict(m6)
 #test99<-test99[, estres:=exp(est)]
@@ -86,75 +93,88 @@ m8 <- sdmTMB(data = occ.model.data.train, count ~ 1 + CMI_MIN  + dCMI3yr + avgCM
 #test99<-test99[, mu2:= mu1*(1 + exp(m6$model$par[["log_ratio_mix"]]))]
 #test99<-test99[, est9:= ((1-plogis(m6$model$par[["logit_p_mix"]]))*mu1 + plogis(m6$model$par[["logit_p_mix"]])*mu2)*flammable]
 
-AIC(m0, m0_gmrf, m0_gmrf_fc, m1, m2, m3, m4, m5,m6, m7)
-saveRDS(m8, "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
-saveRDS(m7.reml, "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m7reml.rds")
+AIC(m0, m0_gmrf, m0_gmrf_fc, m1, m2, m3, m4, m5,m6, m7, m8 , m9)
+saveRDS(m11, "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m11.rds")
+saveRDS(per7, "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/per7.rds")
 
+AIC(per0, per0_gmrf, per1, per2, per3, per4, per5,per6, per7)
 ```
 
 
 ## Diagnostics
 ```{r}
-m7.reml<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m7reml.rds")
-occ.model.data.train$resids <- residuals(m7.reml) # randomized quantile residuals
+#model<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m7reml.rds")
+model<-m11
+#model<-per6
+occ.model.data.train$resids <- residuals(model) # randomized quantile residuals
 qqnorm(occ.model.data.train$resids)
 qqline(occ.model.data.train$resids)
 
-sim1<-simulate(m7.reml, nsim=100, re_form = NULL)
-#sim1<-simulate(m4, nsim=1000)
-Simdat<-occ.model.data.train
-simdata<-rbindlist(lapply(seq(1,100,1), function(rep_sim){
-  Simdat$count<-sim1[,rep_sim]
-  Simdat=transform(Simdat,  
-            type=paste0("simulated_rep",rep_sim))
-}))
+#get the random spatial effect
+preds.all<-predict(model, re.form =NULL)
+spat.int<-unique(data.table(preds.all)[, c("pixelid", "omega_s")])
 
-occ.model.data.train$type = "observed"  
-Dat=rbind(occ.model.data.train, simdata) 
-data_sim_ag<-Dat[, sum(count), by = c("FIRE_YEAR", "type", "fire_centre")]
+occ.model.data.test<-occ.model.data[FIRE_YEAR >= 2018, ]
+occ.model.data.test<-merge(occ.model.data.test,spat.int, by = "pixelid" )
 
+occ.model.data.test<-occ.model.data.test[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
+
+coefs<-tidy(model)
+fc.coef<-data.table(fire_centre = c(1, 2,3,4,5,6), fc_coef = c(0, filter(coefs, term == "as.factor(fire_centre)2")$estimate ,filter(coefs, term == "as.factor(fire_centre)3")$estimate,filter(coefs, term == "as.factor(fire_centre)4")$estimate,filter(coefs, term == "as.factor(fire_centre)5")$estimate,filter(coefs, term == "as.factor(fire_centre)6")$estimate))
+                                                                    
+frt.coef<-data.table(frt = c(3, 5,7,9,10,11,12,13,14,15), frt_coef = c(0, filter(coefs, term == "as.factor(frt)5")$estimate ,                    filter(coefs, term == "as.factor(frt)7")$estimate, filter(coefs, term == "as.factor(frt)9")$estimate,  filter(coefs, term == "as.factor(frt)10")$estimate,  filter(coefs, term == "as.factor(frt)11")$estimate,  filter(coefs, term == "as.factor(frt)12")$estimate, filter(coefs, term == "as.factor(frt)13")$estimate,  filter(coefs, term == "as.factor(frt)14")$estimate,  filter(coefs, term == "as.factor(frt)15")$estimate))
+
+fire.num<-merge(occ.model.data.test, frt.coef, by = "frt")
+fire.num<-merge(fire.num, fc.coef, by = "fire_centre")
+fire.num<-fire.num[, s_con:=scale(con)][, s_dec:=scale(dec)]
+
+fire.num<-fire.num[ ,pred_mu:= exp(filter(coefs, term == "(Intercept)")$estimate + filter(coefs, term == "CMI_MIN")$estimate*CMI_MIN + filter(coefs, term == "dCMI3yr")$estimate*dCMI3yr + filter(coefs, term == "avgCMIProv")$estimate*avgCMIProv + filter(coefs, term == "log(con + 1)")$estimate*log(con+1) + filter(coefs, term == "log(dec + 1)")$estimate*log(dec+1)+ filter(coefs, term == "Tdelta07")$estimate*Tdelta07 + frt_coef  + omega_s + log(flammable))]
+
+#fire.num<-fire.num[ ,pred_mu:= exp(filter(coefs, term == "(Intercept)")$estimate + filter(coefs, term == "CMI")$estimate*CMI +filter(coefs, term == "CMI06")$estimate*CMI06+ filter(coefs, term == "lroad")$estimate*lroad + filter(coefs, term == "avgCMIProv")$estimate*avgCMIProv + filter(coefs, term == "log(young + 1)")$estimate*log(young + 1) + filter(coefs, term == "log(dec + 1)")$estimate*log(dec + 1) + frt_coef + fc_coef + omega_s + log(flammable))]
+
+#disp_parm<-0.32
+disp_parm<-0.33
+runs<-rbindlist(lapply(1:1000, function(x){
+  rbindlist(lapply(2018:2022, function(i){
+    occ<-fire.num[FIRE_YEAR == i, ]
+    selected.seed<-sample(1:1000000,1)
+    set.seed(selected.seed)
+    occ<-occ[, fire:= rnbinom(n = 1, size = disp_parm, mu =pred_mu), by=1:nrow(occ)][fire>0,]
+    
+    occ[,sum(fire), by = fire_centre][,seed:=selected.seed][,FIRE_YEAR:=i][,run:=x]
+  }))
+  }))
+
+obs<-occ.model.data.test[,sum(count), by = c("FIRE_YEAR")]
+obs_fc<-occ.model.data.test[,sum(count), by = c("fire_centre", "FIRE_YEAR")]
+#obs<-occ.model.data.test[,sum(count_person), by = c("FIRE_YEAR")]
+#obs_fc<-occ.model.data.test[,sum(count_person), by = c("fire_centre", "FIRE_YEAR")]
+#obs<-occ.model.data.test[,sum(count_person), by = c("FIRE_YEAR")]
+runs_prov<-runs[, sum(V1), by=c("FIRE_YEAR", "run")]
 
 ggplot()+
-  geom_boxplot(data=data_sim_ag[type != 'observed'],  aes(x=as.factor(FIRE_YEAR), y =V1)) +
-  geom_point(data=data_sim_ag[type == 'observed'],  aes(x=as.factor(FIRE_YEAR), y =V1, color = 'red')) +
-  facet_wrap(~fire_centre, ncol =2, scales = "free") + ylab("Number of fires (>1 ha)")+ xlab("Year")+ theme(legend.position="none")
+  geom_boxplot(data=runs_prov,  aes(x=as.factor(FIRE_YEAR), y =V1)) +
+  geom_point(data=obs,  aes(x=as.factor(FIRE_YEAR), y =V1, color = 'red')) +
+   ylab("Number of fires (>1 ha)")+ xlab("Year")+ theme(legend.position="none")
 
-data.count.pred<-predict(m7.reml, type = "link", re_form = NULL)[, frt:=as.factor(frt)]
+runs[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
+obs_fc[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
 
-data.count.pred<-cbind(data.count.pred, model.matrix( ~ 0 + frt, data=data.count.pred )) 
-#data.count.pred[ ,est_noy:= -17.5 -0.125*CMI_MIN -0.162*dCMI3yr -0.998*frt5 -0.966*frt7 -1.61*frt9  -1.55*frt10  -1.15*frt11  -1.19*frt12 -1.39*frt13  -1.05*frt14  -2.45*frt15 +  0.478*log(con + 1) + 0.0882*log(young + 1) -0.0409*log(dec + 1)+ log(flammable) + est_rf]
-
-#data.count.pred$est2<-exp(data.count.pred$est+log(data.count.pred$flammable))
-data.count.pred$est2<-exp(data.count.pred$est)
-
-
-number<-occ.model.data[, .(nfires = sum(count)), by = c('FIRE_YEAR', 'fire_centre')]
-test_fo<-merge(data.count.pred[,.(pred = sum(est2)), by = c("FIRE_YEAR", 'fire_centre')], number, by = c("FIRE_YEAR", 'fire_centre'))
-
-numberbc<-data.count.pred[, .(nfires = sum(count)), by = c('FIRE_YEAR')]
-test_bc<-merge(data.count.pred[,.(pred = sum(est2)), by = c("FIRE_YEAR")], numberbc, by = c("FIRE_YEAR"))
-plot(test_bc[,c("pred", "nfires")])
-abline(1,1)
-
-library(dplyr)
-test_fo<-test_fo[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
-r_label<-test_fo %>%
-  group_by(fc) %>%
-  summarize(COR=cor(pred,nfires))
-r_label<-data.table(r_label)[,label:=paste0('r=',round(COR,3))]
-
-ggplot(data=test_fo, aes(x = pred, y = nfires)) + geom_point()+ geom_abline( slope=1, intercept=0, col = 'black') + geom_smooth(method='lm',se=T) + ylab("Observed")+ xlab("Predicted")+ theme(legend.position="none") + facet_wrap(~fc, scales = "free", ncol =3) + geom_text(data = r_label, aes(Inf, -Inf, label = label), col = "red",  hjust = 1, vjust = -1)
+ggplot()+
+  geom_boxplot(data=runs[FIRE_YEAR<2023,],  aes(x=as.factor(FIRE_YEAR), y =V1)) +
+  geom_point(data=obs_fc[FIRE_YEAR<2023,],  aes(x=as.factor(FIRE_YEAR), y =V1, color = 'red')) +
+  facet_wrap(~fc, ncol =2, scales = "free") + ylab("Number of fires (>1 ha)")+ xlab("Year")+ theme(legend.position="none")
 
 if(FALSE){
   
 nd <- data.frame(
     dCMI3yr = mean(occ.model.data$dCMI3yr),  
     con = mean(occ.model.data$con), dec = mean(occ.model.data$dec), CMI_MIN = mean(occ.model.data$CMI_MIN), young = mean(occ.model.data$young), frt = 14,
-    year = as.factor(2020), avgCMIProv = seq(min(occ.model.data$avgCMIProv), max(occ.model.data$avgCMIProv), length = 100), flammable = mean(occ.model.data$flammable), x = mean(occ.model.data$x), y = mean(occ.model.data$y))
+    year = as.integer(2020), avgCMIProv = seq(min(occ.model.data$avgCMIProv), max(occ.model.data$avgCMIProv), length = 100), flammable = mean(occ.model.data$flammable), x = mean(occ.model.data$x), y = mean(occ.model.data$y))
 
-p <- predict(m8, newdata = nd, se_fit = T, re_form = NA)
+p <- predict(m8_iid, extra_time = 2020:2025, se_fit = T, re_form = NA)
 
-ggplot(p, aes(avgCMIProv, exp(est), 
+ggplot(p, aes(CMI, exp(est), 
               ymin = exp(est - 1.96 * est_se), 
               ymax = exp(est + 1.96 * est_se))) +
     geom_line() + geom_ribbon(alpha = 0.4)
@@ -205,200 +225,9 @@ yy <- lapply(1:nrow(params), function(j) {
 
 #Conclusion: the nu parameter adds inflections, the range parameter add smoothness
 ```
-## Global model - train and test
-```{r}
-models.g<-readRDS("m7reml.rds")
-spde_loo<- make_mesh(occ.model.data[FIRE_YEAR >= 2018, c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-
-test.g<-lapply(1:1000, function(x){
-  test<-data.table(sdmTMB_simulate(formula = ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1)+ as.factor(fire_centre), data = occ.model.data[FIRE_YEAR >= 2018 , ],  mesh =spde_loo, range = tidy(models.g, 'ran_par')$estimate[1], sigma_O = tidy(models.g, 'ran_par')$estimate[3],   phi =  tidy(models.g, 'ran_par')$estimate[2], B = tidy(models.g)$estimate, time = "year", family = nbinom2(), offset = log(occ.model.data[FIRE_YEAR >= 2018, ]$flammable)))
-  
-test$fire_centre<-occ.model.data[FIRE_YEAR >= 2018 ,]$fire_centre
-
-out<-test[, .(pred = sum(mu)), by = c('fire_centre', 'year')]
-out
-})
-
-out<-rbindlist(test.g)
-out<-out[, FIRE_YEAR:= as.integer(as.character(year))]
-out.bounds<-out[, .(nf_low = quantile(pred,p =0.025), nf_med = quantile(pred,p =0.5), nf_up = quantile(pred,p =0.975)), by = c('FIRE_YEAR', 'fire_centre')]
-
-check.out<-merge(number, out.bounds, by.x = c('fire_centre', 'FIRE_YEAR'), by.y = c('fire_centre', 'FIRE_YEAR'), all.y =T)
-
-saveRDS(check.out, "checkout.rds")
-```
-
-## Cariboo
-```{r}
-#Cariboo
-  data.fit.fc1 <- occ.model.data[ FIRE_YEAR < 2018 & fire_centre == 1,]
-  spde_fc1_loo <- make_mesh(data.fit.fc1[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-  models.fc1 <- sdmTMB(data = data.fit.fc1 , count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(data.fit.fc1$flammable), family = nbinom2(), time = "year", mesh = spde_fc1_loo , spatial = T, spatiotemporal = FALSE, reml=T)
-
-saveRDS(models.fc1, "loo_local_fc1_fit.rds")
-
-spde_fc1_loo<- make_mesh(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==1, c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-test.fc1<-lapply(1:1000, function(x){
-  test<-data.table(sdmTMB_simulate(formula = ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), data = occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==1, ],  mesh =spde_fc1_loo, range = tidy(models.fc1, 'ran_par')$estimate[1], sigma_O = tidy(models.fc1, 'ran_par')$estimate[3],   phi =  tidy(models.fc1, 'ran_par')$estimate[2], B = tidy(models.fc1)$estimate, time = "year", family = nbinom2(), offset = log(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==1, ]$flammable)))
-  
-test$fire_centre<-1
-
-out<-test[, .(pred = sum(mu)), by = c('fire_centre', 'year')]
-out
-})
-
-out.fc1<-rbindlist(test.fc1)
-out.fc1<-out.fc1[, FIRE_YEAR:= as.integer(as.character(year))]
-out.fc1.bounds<-out.fc1[, .(nf_low = quantile(pred,p =0.025), nf_med = quantile(pred,p =0.5), nf_up = quantile(pred,p =0.975)), by = c('FIRE_YEAR', 'fire_centre')]
-
-check.out.fc1<-merge(number, out.fc1.bounds, by.x = c('fire_centre', 'FIRE_YEAR'), by.y = c('fire_centre', 'FIRE_YEAR'), all.y =T)
-```
-
-## Coast
-```{r}
-#Cariboo
-  data.fit.fc2 <- occ.model.data[ FIRE_YEAR < 2018 & fire_centre == 2,]
-  spde_fc2_loo <- make_mesh(data.fit.fc2[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-  models.fc2 <- sdmTMB(data = data.fit.fc2 , count ~ 1 + CMI_MIN + log(con + 1), offset = log(data.fit.fc2$flammable), family = nbinom2(), time = "year", mesh = spde_fc2_loo , spatial = F, spatiotemporal = FALSE, reml=T)
-
-saveRDS(models.fc2, "loo_local_fc2_fit.rds")
-
-spde_fc2_loo<- make_mesh(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==2, c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-test.fc2<-lapply(1:100, function(x){
-  test<-data.table(sdmTMB_simulate(formula = ~ 1+ CMI_MIN + log(con + 1) , data = occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==2, ],  mesh =spde_fc2_loo, range = NULL, phi =  tidy(models.fc2, 'ran_par')$estimate[1], B = tidy(models.fc2)$estimate, time = "year", family = nbinom2(),spatial = F, offset = log(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==2, ]$flammable)))
-  
-test$fire_centre<-2
-
-out<-test[, .(pred = sum(mu)), by = c('fire_centre', 'year')]
-out
-})
-
-out.fc2<-rbindlist(test.fc2)
-out.fc2<-out.fc2[, FIRE_YEAR:= as.integer(as.character(year))]
-out.fc2.bounds<-out.fc2[, .(nf_low = quantile(pred,p =0.025), nf_med = quantile(pred,p =0.5), nf_up = quantile(pred,p =0.975)), by = c('FIRE_YEAR', 'fire_centre')]
-
-check.out.fc2<-merge(number, out.fc2.bounds, by.x = c('fire_centre', 'FIRE_YEAR'), by.y = c('fire_centre', 'FIRE_YEAR'), all.y =T)
-```
-
-## Kamloops
-```{r}
-  data.fit.fc3 <- occ.model.data[ FIRE_YEAR < 2018 & fire_centre == 3,]
-  spde_fc3_loo <- make_mesh(data.fit.fc3[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-  models.fc3 <- sdmTMB(data = data.fit.fc3 , count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(data.fit.fc3$flammable), family = nbinom2(), time = "year", mesh = spde_fc3_loo , spatial = T, spatiotemporal = FALSE, reml=T)
-
-saveRDS(models.fc3, "loo_local_fc3_fit.rds")
-
-spde_fc3_loo<- make_mesh(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==3, c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-test.fc3<-lapply(1:1000, function(x){
-  test<-data.table(sdmTMB_simulate(formula = ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), data = occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==3, ],  mesh =spde_fc3_loo, range = tidy(models.fc3, 'ran_par')$estimate[1], sigma_O = tidy(models.fc3, 'ran_par')$estimate[3],   phi =  tidy(models.fc3, 'ran_par')$estimate[2], B = tidy(models.fc3)$estimate, time = "year", family = nbinom2(), offset = log(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==3, ]$flammable)))
-  
-test$fire_centre<-3
-
-out<-test[, .(pred = sum(mu)), by = c('fire_centre', 'year')]
-out
-})
-
-out.fc3<-rbindlist(test.fc3)
-out.fc3<-out.fc3[, FIRE_YEAR:= as.integer(as.character(year))]
-out.fc3.bounds<-out.fc3[, .(nf_low = quantile(pred,p =0.025), nf_med = quantile(pred,p =0.5), nf_up = quantile(pred,p =0.975)), by = c('FIRE_YEAR', 'fire_centre')]
-
-check.out.fc3<-merge(number, out.fc3.bounds, by.x = c('fire_centre', 'FIRE_YEAR'), by.y = c('fire_centre', 'FIRE_YEAR'), all.y =T)
-```
-## Northwest
-```{r}
-#Cariboo
-  data.fit.fc4 <- occ.model.data[ FIRE_YEAR < 2018 & fire_centre == 4,]
-  spde_fc4_loo <- make_mesh(data.fit.fc4[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-  models.fc4 <- sdmTMB(data = data.fit.fc4 , count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(data.fit.fc4$flammable), family = nbinom2(), time = "year", mesh = spde_fc4_loo , spatial = T, spatiotemporal = FALSE, reml=T)
-
-saveRDS(models.fc4, "loo_local_fc4_fit.rds")
-
-spde_fc4_loo<- make_mesh(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==4, c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-test.fc4<-lapply(1:1000, function(x){
-  test<-data.table(sdmTMB_simulate(formula = ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), data = occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==4, ],  mesh =spde_fc4_loo, range = tidy(models.fc4, 'ran_par')$estimate[1], sigma_O = tidy(models.fc4, 'ran_par')$estimate[3],   phi =  tidy(models.fc4, 'ran_par')$estimate[2], B = tidy(models.fc4)$estimate, time = "year", family = nbinom2(), offset = log(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==4, ]$flammable)))
-  
-test$fire_centre<-4
-
-out<-test[, .(pred = sum(mu)), by = c('fire_centre', 'year')]
-out
-})
-
-out.fc4<-rbindlist(test.fc4)
-out.fc4<-out.fc4[, FIRE_YEAR:= as.integer(as.character(year))]
-out.fc4.bounds<-out.fc4[, .(nf_low = quantile(pred,p =0.025), nf_med = quantile(pred,p =0.5), nf_up = quantile(pred,p =0.975)), by = c('FIRE_YEAR', 'fire_centre')]
-
-check.out.fc4<-merge(number, out.fc4.bounds, by.x = c('fire_centre', 'FIRE_YEAR'), by.y = c('fire_centre', 'FIRE_YEAR'), all.y =T)
-```
 
 
-## PG
-```{r}
-  data.fit.fc5 <- occ.model.data[ FIRE_YEAR < 2018 & fire_centre == 5,]
-  spde_fc5_loo <- make_mesh(data.fit.fc5[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-  models.fc5 <- sdmTMB(data = data.fit.fc5 , count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(data.fit.fc5$flammable), family = nbinom2(), time = "year", mesh = spde_fc5_loo , spatial = T, spatiotemporal = FALSE, reml=T)
-
-saveRDS(models.fc5, "loo_local_fc5_fit.rds")
-
-spde_fc5_loo<- make_mesh(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==5, c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-test.fc5<-lapply(1:1000, function(x){
-  test<-data.table(sdmTMB_simulate(formula = ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), data = occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==5, ],  mesh =spde_fc5_loo, range = tidy(models.fc5, 'ran_par')$estimate[1], sigma_O = tidy(models.fc5, 'ran_par')$estimate[3],   phi =  tidy(models.fc5, 'ran_par')$estimate[2], B = tidy(models.fc5)$estimate, time = "year", family = nbinom2(), offset = log(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==5, ]$flammable)))
-  
-test$fire_centre<-5
-
-out<-test[, .(pred = sum(mu)), by = c('fire_centre', 'year')]
-out
-})
-
-out.fc5<-rbindlist(test.fc5)
-out.fc5<-out.fc5[, FIRE_YEAR:= as.integer(as.character(year))]
-out.fc5.bounds<-out.fc5[, .(nf_low = quantile(pred,p =0.025), nf_med = quantile(pred,p =0.5), nf_up = quantile(pred,p =0.975)), by = c('FIRE_YEAR', 'fire_centre')]
-
-check.out.fc5<-merge(number, out.fc5.bounds, by.x = c('fire_centre', 'FIRE_YEAR'), by.y = c('fire_centre', 'FIRE_YEAR'), all.y =T)
-```
-
-## Southeast
-```{r}
-#Cariboo
-  data.fit.fc6 <- occ.model.data[ FIRE_YEAR < 2018 & fire_centre == 6,]
-  spde_fc6_loo <- make_mesh(data.fit.fc6[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-  models.fc6 <- sdmTMB(data = data.fit.fc6 , count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(data.fit.fc6$flammable), family = nbinom2(), time = "year", mesh = spde_fc6_loo , spatial = T, spatiotemporal = FALSE, reml=T)
-
-saveRDS(models.fc6, "loo_local_fc6_fit.rds")
-
-spde_fc6_loo<- make_mesh(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==6, c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-test.fc6<-lapply(1:1000, function(x){
-  test<-data.table(sdmTMB_simulate(formula = ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), data = occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==6, ],  mesh =spde_fc6_loo, range = tidy(models.fc6, 'ran_par')$estimate[1], sigma_O = tidy(models.fc6, 'ran_par')$estimate[3],   phi =  tidy(models.fc6, 'ran_par')$estimate[2], B = tidy(models.fc6)$estimate, time = "year", family = nbinom2(), offset = log(occ.model.data[FIRE_YEAR >= 2018 & fire_centre ==6, ]$flammable)))
-  
-test$fire_centre<-6
-
-out<-test[, .(pred = sum(mu)), by = c('fire_centre', 'year')]
-out
-})
-
-out.fc6<-rbindlist(test.fc6)
-out.fc6<-out.fc6[, FIRE_YEAR:= as.integer(as.character(year))]
-out.fc6.bounds<-out.fc6[, .(nf_low = quantile(pred,p =0.025), nf_med = quantile(pred,p =0.5), nf_up = quantile(pred,p =0.975)), by = c('FIRE_YEAR', 'fire_centre')]
-
-check.out.fc6<-merge(number, out.fc6.bounds, by.x = c('fire_centre', 'FIRE_YEAR'), by.y = c('fire_centre', 'FIRE_YEAR'), all.y =T)
-```
-
-##compare forecasts
-```{r}
-#locals
-local.fits<-rbindlist(list(check.out.fc1,check.out.fc3,check.out.fc4,check.out.fc5,check.out.fc6))[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
-check.out<-check.out[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
-local.fits[fire_centre==2, nf_up := NA]
-
-ggplot() + 
-  geom_line(data = check.out, aes(x = FIRE_YEAR, y= nfires), col = 'red', lwd = 1.2)+ 
-  geom_line(data = check.out, aes(x = FIRE_YEAR, y= nf_med), col = 'blue', lwd = 1.1)+ 
-  geom_line(data = check.out, aes(x = FIRE_YEAR, y= nf_low), col = 'blue', lty = 2)+ 
-  geom_line(data = check.out, aes(x = FIRE_YEAR, y= nf_up), col = 'blue', lty = 2)+
-  geom_line(data = local.fits, aes(x = FIRE_YEAR, y= nf_med), col = 'green', lwd = 1.1)+ 
-  geom_line(data = local.fits, aes(x = FIRE_YEAR, y= nf_low), col = 'green', lty = 2)+ 
-  geom_line(data =local.fits, aes(x = FIRE_YEAR, y= nf_up), col = 'green', lty = 2)+ facet_wrap(~fc, scales="free_y")
-```
-## sim with a raster
+#### sim with a raster
 ```{r}
 # Matern correlation
 cMatern <- function(h, nu, kappa) {

@@ -47,20 +47,20 @@ prov.ras <- raster::raster ( # standardized provincial raster with no data in it
 m8<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
 
 #get the random spatial effect
-preds.all<-predict(m8, newdata = m8$data)
+preds.all<-predict(m8_iid)
 spat.int<-data.table(preds.all)[, c("pixelid", "est_rf")]
 
 est_rf <- prov.ras
 spat.int<-unique(spat.int)
 est_rf[spat.int$pixelid]<-spat.int$est_rf
-writeRaster(est_rf, "m8_est_rf.tif",overwrite=TRUE)
+writeRaster(est_rf, "m8_iid_est_rf.tif",overwrite=TRUE)
 
 ```
 
 ## Dynamic variables in the forecast
 Get the information/covariates to parameterize the model. In this example using the information from 2012
 ```{r}
-dynamic_vars<-preds.all[FIRE_YEAR == 2015, c("pixelid", "con", "young", "dec", "CMI_MIN", "dCMI3yr", "PPT_sm", "TEMP_MAX", "flammable", "frt")]
+dynamic_vars<-preds.all[FIRE_YEAR == 2015, c("pixelid", "con", "young", "dec", "CMI_MIN", "dCMI3yr", "PPT_sm", "TEMP_MAX", "flammable", "frt", "avgCMIProv")]
 ras.flam<-prov.ras
 ras.flam[dynamic_vars$pixelid]<-dynamic_vars$flammable
 ras.frt<-prov.ras
@@ -69,31 +69,30 @@ ras.pixelid<-prov.ras
 ras.pixelid[dynamic_vars$pixelid]<-dynamic_vars$pixelid
 ras.con<-prov.ras
 ras.con[dynamic_vars$pixelid]<-dynamic_vars$con
-ras.veg<-prov.ras
-ras.veg[dynamic_vars$pixelid]<-dynamic_vars$veg
-ras.young<-prov.ras
-ras.young[dynamic_vars$pixelid]<-dynamic_vars$young
+ras.dec<-prov.ras
+ras.dec[dynamic_vars$pixelid]<-dynamic_vars$dec
 ras.cmi_min<-prov.ras
 ras.cmi_min[dynamic_vars$pixelid]<-dynamic_vars$CMI_MIN
-ras.dcmi3yr<-prov.ras
-ras.dcmi3yr[dynamic_vars$pixelid]<-dynamic_vars$dCMI3yr
+ras.avgCMIProv<-prov.ras
+ras.avgCMIProv[dynamic_vars$avgCMIProv]<-dynamic_vars$avgCMIProv
 
-fire.num <- data.table(pixelid = ras.pixelid[], flammable = ras.flam[], frt = ras.frt[], con = ras.con[], veg = ras.veg[],young = ras.young[],CMI_MIN = ras.cmi_min[], dCMI3yr = ras.dcmi3yr[], est_rf = est_rf[] )
+
+fire.num <- data.table(pixelid = ras.pixelid[], flammable = ras.flam[], frt = ras.frt[], con = ras.con[], dec = ras.dec[],CMI_MIN = ras.cmi_min[], dCMI3yr = ras.dcmi3yr[], avgCMIProv = ras.avgCMIProv[], est_rf = est_rf[] )
 ```
 
 ### Predict the negative binomial mu
 ```{r}
-frt.coef<-data.table(frt = c(5,7,9,10,11,12,13,14,15), frt_coef = c(-1.00, -0.923, -1.69,  -1.53,  -0.932,  -1.14, -1.29,  -0.827,  -2.49))
+frt.coef<-data.table(frt = c(5,7,9,10,11,12,13,14,15), frt_coef = c(-0.739 , -1.87, -2.00,  -1.97,  -1.37,  -1.48, -1.76,  -1.29,  -3.17))
 fire.num<-merge(fire.num, frt.coef, by = "frt")
 
-fire.num<-fire.num[ ,pred_mu:= exp(-17.6-0.0714*CMI_MIN -0.176*dCMI3yr + 0.47*log(con + 1)+ 0.110*log(young + 1) + frt_coef + est_rf + log(flammable))]
+fire.num<-fire.num[ ,pred_mu:= exp(-16.6-0.104*CMI_MIN -0.203*dCMI3yr + 0.279*avgCMIProv + 0.480*log(con + 1) -0.0561*log(dec + 1) + frt_coef + est_rf + log(flammable))]
 fire.num<-fire.num[!is.na(pred_mu),]
 ```
 
 ### Take random draws as an inhomogenous poisson process
 ```{r}
 set.seed(sample(1:1000,1))
-fire.num$sim_fire<-unlist(lapply (fire.num$pred_mu, function (x) { rnbinom(n = 1, size = 0.47, mu =x ) })) # note that the rnbinom follows same parameterization as rbinom2 in sdmTMB. Also, the dispersion parameter is fixed at 0.45 as per the model assumptions. This could change if we use another type of approach via distribution regression or other.
+fire.num$sim_fire<-unlist(lapply (fire.num$pred_mu, function (x) { rnbinom(n = 1, size = 0.56, mu =x ) })) # note that the rnbinom follows same parameterization as rbinom2 in sdmTMB. Also, the dispersion parameter is fixed at 0.45 as per the model assumptions. This could change if we use another type of approach via distribution regression or other.
 
 sum(fire.num$sim_fire, na.rm=T)
 fire.locations<-prov.ras
