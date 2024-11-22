@@ -1141,19 +1141,20 @@ downScaleData<-function(sim){
   
   dat_veg<-merge(est_rf_table, downVeg, by.x = "pixelid10km", by.y = "pixelid10km")
   
-  dat_climate<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid_climate, ppt_05, ppt_06, ppt_07, ppt_08, tmax_05, tmax_06, tmax_07, tmax_08, cmi_05, cmi_06, cmi_07, cmi_08, cmi, cmi3yr FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor"), " AND run = '", P(sim, "run", "climateCastor"), "';")))
+  dat_climate<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid_climate, ppt_05, ppt_06, ppt_07, ppt_08, tmax_05, tmax_06, tmax_07, tmax_08, tmin_07, cmi_05, cmi_06, cmi_07, cmi_08, cmi, cmi3yr FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor"), " AND run = '", P(sim, "run", "climateCastor"), "';")))
   
   message("get climate for aoi")
 
   dat_climate<-dat_climate[, cmi_min:= do.call(pmin, .SD),.SDcols=c("cmi_05", "cmi_06","cmi_07","cmi_08") ]
   dat_climate<-dat_climate[, `:=`(PPT_sm = rowSums(.SD, na.rm=T)), .SDcols=c("ppt_05", "ppt_06","ppt_07","ppt_08")]
   dat_climate<-dat_climate[, TEMP_MAX:= do.call(pmax, .SD),.SDcols=c("tmax_05","tmax_06","tmax_07","tmax_08") ]
+  dat_climate<-dat_climate[, Tdelta07 := tmax_07-tmin_07]
   
   pixelid_info<-data.table(dbGetQuery(sim$castordb, "SELECT pixelid, pixelid_climate, pixelid10km FROM pixels"))
   
   dat_climate2<-merge(pixelid_info, dat_climate, by.x="pixelid_climate", by.y="pixelid_climate", all.x=TRUE)
   
-  dat_climate2[, c("pixelid_climate", "pixelid", "ppt_05", "ppt_06", "ppt_07", "ppt_08", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "cmi_05", "cmi_06", "cmi_07", "cmi_08"):=NULL]
+  dat_climate2[, c("pixelid_climate", "pixelid", "ppt_05", "ppt_06", "ppt_07", "ppt_08", "tmax_05", "tmax_06", "tmax_07", "tmax_08","tmin_07" "cmi_05", "cmi_06", "cmi_07", "cmi_08"):=NULL]
   
   # Aggregate data at 10km scale
   agg = aggregate(dat_climate2,
@@ -1186,7 +1187,7 @@ downScaleData<-function(sim){
 }
   
 poissonProcessModel<-function(sim){
- sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*cmi_min-0.124*(cmi-cmi3yr/3)-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
+ sim$downdat<-sim$downdat[ ,est:= exp(-17.9 -0.0336*cmi_min-0.249*(cmi-cmi3yr/3)-0.185*avgCMIProv  -0.753*frt5 -1.56*frt7 -1.63*frt9  -1.54*frt10  -1.07*frt11  -1.10*frt12 -1.39*frt13  -0.894*frt14  -2.39*frt15 + 0.122*Tdelta07+ 0.487*log(con + 1) -0.0544 *log(dec + 1) + est_rf  + log(flammable) )]
  #Lightning caused fires - m9 see r/fire_sim/number_of_ignitions/fire_occurrence.rmd   
  #sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0772*cmi_min-0.268*(cmi-cmi3yr/3)-0.214*avgCMIProv  -0.710*frt5 -1.43*frt7 -1.58*frt9  -1.54*frt10  -0.96*frt11  -1.02*frt12 -1.36*frt13  -0.763*frt14  -2.47*frt15 + 0.51*log(con + 1) - 0.0442 *log(dec + 1) +est_rf  + log(flammable) )]
  #Person caused fires - per7 see r/fire_sim/number_of_ignitions/fire_occurrence.rmd   
