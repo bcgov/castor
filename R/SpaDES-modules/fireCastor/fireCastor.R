@@ -1154,7 +1154,7 @@ downScaleData<-function(sim){
   
   dat_climate2<-merge(pixelid_info, dat_climate, by.x="pixelid_climate", by.y="pixelid_climate", all.x=TRUE)
   
-  dat_climate2[, c("pixelid_climate", "pixelid", "ppt_05", "ppt_06", "ppt_07", "ppt_08", "tmax_05", "tmax_06", "tmax_07", "tmax_08","tmin_07" "cmi_05", "cmi_06", "cmi_07", "cmi_08"):=NULL]
+  dat_climate2[, c("pixelid_climate", "pixelid", "ppt_05", "ppt_06", "ppt_07", "ppt_08", "tmax_05", "tmax_06", "tmax_07", "tmax_08","tmin_07", "cmi_05", "cmi_06", "cmi_07", "cmi_08"):=NULL]
   
   # Aggregate data at 10km scale
   agg = aggregate(dat_climate2,
