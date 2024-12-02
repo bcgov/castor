@@ -1392,7 +1392,8 @@ spreadProcess <- function(sim) {
     sim$fire.size$fire_size_adj<-round(sim$fire.size$fire_size_adj,0)
     
     message("simulating fire")
-    sim$out <- spread2(area, start = sim$fire.size$ignit_location, spreadProbRel =spreadRas, exactSize=sim$fire.size$fire_size_adj,maxRetriesPerID=20, asRaster = FALSE, allowOverlap=FALSE)
+    # I get an error sometimes but I think the issues is that the adjusted fire size is someitmes zero. so for not Ill use the original size rather than the adjusted size.
+    sim$out <- spread2(area, start = sim$fire.size$ignit_location, spreadProbRel =spreadRas, exactSize=sim$fire.size$fire.size,maxRetriesPerID=20, asRaster = FALSE, allowOverlap=FALSE)
  
     message("resetting age and volume in pixels table")
 
