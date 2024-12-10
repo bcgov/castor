@@ -51,12 +51,12 @@ Overall, we found that the average annual volume of timber harvested in the bau 
 
 ```{r, echo=FALSE, fig.cap = "Figure 1. Annual total volume of harvest timber (m3) simulated over 200 years. ubc_gbrn_bau = fisheries sensitive watersheds, wildlife habitat areas, and biodiversity, mining and tourism areas included as constraints. ubc_gbrn_with_art = fisheries sensitive watersheds, wildlife habitat areas, biodiversity, mining and tourism areas, and average retention targets"}
 
-connvm<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                     host='206.12.91.188', 
-                     dbname = 'clus', 
-                     port='5432', 
-                     user='appuser', 
-                     password='sHcL5w9RTn8ZN3kc')
+connvm<-DBI::dbConnect (RPostgreSQL::PostgreSQL(), 
+                        host=keyring::key_get('vmdbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('vmdbname', keyring = 'postgreSQL'), 
+                        port='5432',
+                        user = keyring::key_get('vmdbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
 harvest<- dbGetQuery(connvm, 'SELECT * FROM ubc_gbr_study.harvest') 
 dbDisconnect (connvm) # connKyle
 
@@ -127,12 +127,12 @@ p6
 
 ```{r, echo = F, fig.cap = "Figure 6: Area of available timber harvest landbase (THLB) available for harvest  ."}
 # Growing Stock
-connvm<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                     host='206.12.91.188', 
-                     dbname = 'clus', 
-                     port='5432', 
-                     user='appuser', 
-                     password='sHcL5w9RTn8ZN3kc')
+connvm<-DBI::dbConnect (RPostgreSQL::PostgreSQL(), 
+                        host=keyring::key_get('vmdbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('vmdbname', keyring = 'postgreSQL'), 
+                        port='5432',
+                        user = keyring::key_get('vmdbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
 gs<- dbGetQuery(connvm, 'SELECT * FROM ubc_gbr_study.growingstock') 
 dbDisconnect (connvm) # connKyle
 
