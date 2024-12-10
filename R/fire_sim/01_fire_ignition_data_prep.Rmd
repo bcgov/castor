@@ -96,12 +96,53 @@ ggplot(data=fire.ignt.frt, (aes(x=CURRENT_SIZE))) +
 ```
 
 
-## Extract distance to road and infrastructure and get elevation, slope, aspect, and elevation
+## Extract distance to infrastructure and get elevation, slope, aspect, and elevation
 ```{r}
 # bring distance rasters back in
-# import roads distance raster
-roads_dist <- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
-crs(roads_dist)
+#Get road development
+rds.prov<-rast("D:/Fire/fire_data/raw_data/prov_rd_yr.tif")
+prov.rast100 <- raster::raster ( # standardized provincial raster with no data in it
+  nrows = 15744, ncols = 17216,
+  xmn = 159587.5, xmx = 1881187.5,
+  ymn = 173787.5, ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = 100,
+  vals = NA)
+
+rds.prov<-merge(rds.prov, rast(prov.rast100))
+rm(bc.bnd, fire.ignition.clipped, fire.ignition_sf, FRT, frt_clipped, frt_sf, ignit, prov.bnd)
+gc()
+
+rds.table<-rbindlist(lapply(2009:2022, function(x){
+  temp<-rds.prov
+  temp[temp[] <= x]<-1
+  temp[temp[] > 1]<-0
+  temp[is.na(temp[])]<-0
+  
+  #test<-aggregate(temp, fact =100, fun =sum, na.rm =TRUE)
+  test2<-crop(temp, prov.rast100)
+  out<-data.table(year = x, road = values(test2))[,pixelid := seq_len(.N)]
+  
+  XYs<-xyFromCell(prov.rast100, out$pixelid)
+  out<-cbind(out, XYs)
+  out[road.lyr.1 > 0, field := 0] 
+      nearNeigh_rds <- RANN::nn2(out[field == 0, c('x', 'y')], 
+                                 out[is.na(field), c('x', 'y')], 
+                                 k = 1)
+      
+      out<-out[is.na(field) , rds_dist := nearNeigh_rds$nn.dists] # assign the distances
+      out[is.na(rds_dist), rds_dist:=0] # those that are the distance to pixels, assign 
+      out
+  
+}))
+
+# now get x y locations of igntion points and year the fires started and merge out with it.
+
+
+
+
+#setnames(rds.table, "road.lyr.1", "road")
+
 
 # import infrastructure data
 dist_rail<- rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
@@ -407,4 +448,7 @@ dim(dat_joined3)
 st_write(dat_joined3, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\ignition_all_2009_2023.gpkg")
 ```
 
+```{r}
+dat_joined3<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\ignition_all_2009_2023.gpkg")
+```
 
