@@ -1136,7 +1136,7 @@ downScaleData<-function(sim){
   sum(case when height >= 4 and basalarea >= 8 and 1-dec_pcnt >= 0.75 then 1 else 0 end) as con,
   sum(case when height >= 4 and basalarea >= 8 and dec_pcnt >= 0.75 then 1 else 0 end) as dec,
   sum(case when ((basalarea < 8 or basalarea is NULL) or (height < 4 or height is NULL)) and treed = 1 then 1 else 0 end) as young,
-  sum(case when bclcs_level_1 = 'V' then 1 else 0 end) as flammable
+  sum(case when bclcs_level_1 = 'V' then 1 else 0 end) as flammable, sum(case when roadtype >=0 then 1 else 0 end) as road
   FROM pixels group by pixelid10km;")) 
   
   dat_veg<-merge(est_rf_table, downVeg, by.x = "pixelid10km", by.y = "pixelid10km")
@@ -1250,10 +1250,13 @@ fireSize <- function(sim) {
     }
   
   
-  sim$downdat[, mu1:= 2.158738 - 0.001108 * PPT_sm - 0.011496 * cmi + -0.719612 * est  -0.020594 * log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921 * cmi +1.918825 * est -0.209590*log(con + 1) ][, sigma2:= 0.27]
+  sim$downdat[, mu1:= 2.287 -0.00033*PPT_sm -0.0407*cmi + -0.560*est  -0.047*log(con + 1) - 0.0323*(log(road+1))][, sigma1:=  1.108][ , mu2:= 3.36 -0.001323*PPT_sm -0.035*cmi + 2.17*est  -0.24088*log(con + 1) - 0.0814*(log(road+1)) ][, sigma2:= 0.2489]
+  #[, mu1:= 2.158738 - 0.001108 * PPT_sm - 0.011496 * cmi + -0.719612 * est  -0.020594 * log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921 * cmi +1.918825 * est -0.209590*log(con + 1) ][, sigma2:= 0.27]
   
   
-  sim$downdat[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*avgCMIProv+0.1055167*TEMP_MAX )))][,pi1:=1-pi2]
+  
+  sim$downdat[, pi2:=1/(1+exp(-1*(1.7346+ -3.69*frt5-2.966*frt7-4.6608*frt9 -4.23*frt10 -5.214*frt11  -3.769*frt12-4.088*frt13-3.276159*frt14  -3.98859*frt15+ 0.6145*avgCMIProv+0.12586*TEMP_MAX )))][,pi1:=1-pi2]
+  #[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*avgCMIProv+0.1055167*TEMP_MAX )))][,pi1:=1-pi2]
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
