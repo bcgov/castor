@@ -1,0 +1,67 @@
+---
+title: "Methods for fire ignition and spread locations"
+author: "Elizabeth Kleynhans"
+date: "2024-09-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+fireCastor is a model that predicts wildfire for the province of British Columbia. 
+Predicting the location of a fire igntion followed by predicting where the fire will spread to after ignition is an important aspect of wildfire modelling. 
+
+***Give some background of what other people have done***
+
+## Methods
+
+## Results
+
+## Discussion
+
+
+## Relevant literature
+
+#Barber et al. (2024) The Canadian Fire Spread Dataset
+This paper outlines the data included in a dataset that looks at fire spread (daily fire progression mapping) for fires taht occured between 2002 and 2021. In this dataset the authors included 50 environmental covariates for every pixel maped.
+
+These covariates  include:
+Fire weather: Temperature, relative humidity, wind speed,  and 24hr accumulated precipitation. These variables were then changes to calculate Fine fuel moisture code, duff moisture code, drought code, initial spread index and buildup index and fire weather index.
+
+Vegetation/Fuels: Percent deciduous, percent coniferous, biomass in tonnes/ha, crown closure percent.
+
+Topography: Elevation, slope, aspect, topographic wetness index
+
+peatlands and surface water: proportion of surface water within 2km, 5km, and 25km of each pixel was calculated.
+
+Anthropogenic: road densities and distance to roads
+
+Ecozones:large geographic areas sharing biophysical characteristics
+
+Location of poiint: lat and longitude
+
+##########################################
+Coop et al. 2022. Extreme fire spread events and area burned under recent and futureclimate in the western USA. Global Ecology and Biogeography.
+Climate data used: climate water deficite, mean maximum temperature and mean vapour pressure deficit ... these variables have all been found to be correlated with annual area burned, annual area burned at high severity, and mean fire severity
+
+############################################
+Abatzoglou et al. (2021) Compound extremes drive the western oregon wildfires of September 2020. Geophysical research letters
+
+
+In the plain language summary they say that limited precipitation in the 60 days before the fires togetehr with unusually warm conditions cause the fuels to be very dry and combustible. They say this lead to very large fires in Oregon and allowed them to spread rapidly. 
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
