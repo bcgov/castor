@@ -51,7 +51,9 @@ ignit<-try(
 )
 
 #get FRT
-FRT<-getSpatialQuery("SELECT * FROM public.frt_canada")
+#FRT<-getSpatialQuery("SELECT * FROM public.frt_canada")
+
+FRT<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\frt_clipped.shp")
 
 #get provincial boundary for clipping the layers to the area of interest
 prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
@@ -93,6 +95,10 @@ ggplot(data=fire.ignt.frt, (aes(x=CURRENT_SIZE))) +
   geom_histogram()+
   facet_wrap(~Cluster, scales="free")+
   labs(x = "fire size", y = "Number")
+
+rm(bc.bnd, fire.ignition.clipped, fire.ignition_sf, FRT, frt_clipped, frt_sf, ignit, prov.bnd)
+gc()
+
 ```
 
 
@@ -110,10 +116,7 @@ prov.rast100 <- raster::raster ( # standardized provincial raster with no data i
   vals = NA)
 
 rds.prov<-merge(rds.prov, rast(prov.rast100))
-rm(bc.bnd, fire.ignition.clipped, fire.ignition_sf, FRT, frt_clipped, frt_sf, ignit, prov.bnd)
-gc()
-
-rds.table<-rbindlist(lapply(2009:2022, function(x){
+rds.table<-rbindlist(lapply(2009:2011, function(x){
   temp<-rds.prov
   temp[temp[] <= x]<-1
   temp[temp[] > 1]<-0
@@ -122,9 +125,16 @@ rds.table<-rbindlist(lapply(2009:2022, function(x){
   #test<-aggregate(temp, fact =100, fun =sum, na.rm =TRUE)
   test2<-crop(temp, prov.rast100)
   out<-data.table(year = x, road = values(test2))[,pixelid := seq_len(.N)]
+      out
   
-  XYs<-xyFromCell(prov.rast100, out$pixelid)
-  out<-cbind(out, XYs)
+}))
+gc()
+
+XYs<-xyFromCell(prov.rast100, rds.table[year==2014,]$pixelid)
+
+rds.table.dist<-rbindlist(lapply(2009:2011, function(x){
+  temp<-rds.table[year==x,]
+  out<-cbind(temp, XYs)
   out[road.lyr.1 > 0, field := 0] 
       nearNeigh_rds <- RANN::nn2(out[field == 0, c('x', 'y')], 
                                  out[is.na(field), c('x', 'y')], 
@@ -132,15 +142,22 @@ rds.table<-rbindlist(lapply(2009:2022, function(x){
       
       out<-out[is.na(field) , rds_dist := nearNeigh_rds$nn.dists] # assign the distances
       out[is.na(rds_dist), rds_dist:=0] # those that are the distance to pixels, assign 
+      out[,c("x","y","field"):=NULL]
+      rm(temp)
+      gc()
+      
       out
-  
 }))
 
-# now get x y locations of igntion points and year the fires started and merge out with it.
+write.csv(rds.table.dist,"D:/Fire/fire_data/raw_data/rds.table.dist.09_11.csv")
+
+rm(nearNeigh_rds, XYs, rds.table, rds.table.dist)
+gc()
+
+```
 
 
-
-
+```{r}
 #setnames(rds.table, "road.lyr.1", "road")
 
 
