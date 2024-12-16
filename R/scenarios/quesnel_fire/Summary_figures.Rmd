@@ -19,6 +19,7 @@ source (here::here("R/functions/R_Postgres.R"))
 ```
 
 
+
 Create map of Quesnel and plot the historical fires on it.
 ```{r Quesnel_map, echo=FALSE, fig.cap = "**Figure 1.** Map of Boundary TSA with the locations of actual fires caused by lightning in 2023"}
 
@@ -140,7 +141,7 @@ fire2<-ggplot() +
   #geom_line(data=base_summary_01, aes(x=timeperiod, y=V1, group=rep),colour="grey") +
   geom_line(data=base_summary_02, aes(x=timeperiod, y=V1, group=rep),colour="skyblue") +
   #geom_line(data=base_summary_summary_01, aes(x=FIRE_YEAR, y=V1), col="black", linewidth=1) +
-  geom_line(data=base_summary_summary_02, aes(x=period, y=V1), col="blue", linewidth=1.25) +
+  geom_line(data=base_summary_summary_02, aes(x=FIRE_YEAR, y=V1), col="blue", linewidth=1.25) +
   #geom_line(data=perim_subset_total, aes(x=FIRE_YEAR, y=V1), col="red", linewidth=1) +
   #geom_point(data=perim_subset_total, aes(x=FIRE_YEAR, y=V1), col="red")+
   #xlim(2008, 2060) +
@@ -157,6 +158,37 @@ fire_plot1<-ggplot() +
   geom_line(data=perim_subset_total, aes(x=FIRE_YEAR, y=log(V1+1)), col="red", linewidth=1) +
   xlim(2001, 2060) +
   ylab("Log area burned (ha)") + xlab("Year")
+```
+
+Try looking at total area burned in 10yr chunks
+```{r}
+base_summary_01[timeperiod<=2030, decade:="23-30"][timeperiod %between% c(2031,2040), decade:="31-40"][timeperiod %between% c(2041, 2050), decade:="41-50"][timeperiod %between% c(2051, 2060), decade:="51-60"]
+
+base_summary_01_decade<-base_summary_01[, sum(V1), by = c("decade","rep")]
+base_summary_01_decade[,prop_burned:=(V1/1280000) * 100]
+base_summary_01_decade[prop_burned<=2.5, bin:="0-2.5"][prop_burned %between% c(2.501,5), bin:="2.5-5"][prop_burned %between% c(5.001, 10), bin:="5-10"][prop_burned %between% c(10.001, 25), bin:="10-25"][prop_burned %between% c(25.001, 50), bin:="25-50"][prop_burned >50, bin:=">50"]
+base_summary_01_decade$bin <- factor(base_summary_01_decade$bin, levels=c('0-2','2-4', '4-10', '10-25','25-50','>50'))
+base_summary_01_decade$bin <- factor(base_summary_01_decade$bin, levels=c('5-10','2.5-5','0-2.5'))
+
+ggplot(data=base_summary_01_decade) +
+  geom_boxplot(aes(x=decade, y=prop_burned))
+ggplot(base_summary_01_decade,aes(x = decade,fill = bin)) + 
+    geom_bar(position = "fill")
+
+
+base_summary_02[timeperiod<=2030, decade:="23-30"][timeperiod %between% c(2031,2040), decade:="31-40"][timeperiod %between% c(2041, 2050), decade:="41-50"][timeperiod %between% c(2051, 2060), decade:="51-60"]
+
+
+base_summary_02_decade<-base_summary_02[, sum(V1), by = c("decade","rep")]
+base_summary_02_decade[,prop_burned:=(V1/1280000) * 100]
+base_summary_02_decade[prop_burned<=2.5, bin:="0-2.5"][prop_burned %between% c(2.501,5), bin:="2.5-5"][prop_burned %between% c(5.001, 10), bin:="5-10"][prop_burned %between% c(10.001, 25), bin:="10-25"][prop_burned %between% c(25.001, 50), bin:="25-50"][prop_burned >50, bin:=">50"]
+base_summary_02_decade$bin <- factor(base_summary_02_decade$bin, levels=c('>50','25-50','10-25','5-10','2.5-5','0-2.5'))
+
+ggplot(data=base_summary_02_decade) +
+  geom_boxplot(aes(x=decade, y=V1))
+ggplot(base_summary_02_decade,aes(x = decade,fill = bin)) + 
+    geom_bar(position = "fill")
+
 ```
 
 Now look at the difference between harvest and no harvest
