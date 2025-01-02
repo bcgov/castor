@@ -33,7 +33,7 @@ library (terra)
 
 source (here::here("R/functions/R_Postgres.R"))
 
-Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-23.0.1') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
 
 moduleDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules"))
 inputDir <- file.path (paste0 (here::here (), "/R/scenarios/boundary_fire/inputs")) %>% reproducible::checkPath (create = TRUE)
@@ -127,12 +127,7 @@ nameProvCMITable = "public.prov_cmi_ave",
                                vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
         disturbanceCastor = list(calculateInterval =  1, 
                                  permDisturbanceRaster = "rast.mine_ag_wind_rail",
-                                 recovery = 300),
-        uploadCastor = list(aoiName = 'boundary',
-                              dbInfo  = list(keyring::key_get ("vmdbhost", keyring="postgreSQL"),
-                                             keyring::key_get ("vmdbuser", keyring="postgreSQL"),
-                                             keyring::key_get ("vmdbpass", keyring="postgreSQL"), 
-                                             keyring::key_get ("vmdbname", keyring="postgreSQL")))
+                                 recovery = 300)
         )
 
 scenario = data.table (name = "load_data_2024oct10", description = "dataCastor output")

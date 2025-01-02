@@ -5,13 +5,14 @@ library(DBI)
 library(raster)
 #library(jdx)
 
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-23.0.1') 
 .jinit(classpath= paste0(here::here(),"/Java/castor/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
 .jaddClassPath(paste0(here::here(), "/Java/castor/sqlite-jdbc-3.41.2.1.jar"))
 jgc <- function() .jcall("java/lang/System", method = "gc")
 
 cocelaClass<-.jnew("castor.CellularAutomata")
 cocelaClass$setRParms(
-  as.character(paste0(here::here(),"/R/SpaDES-modules/disturbanceCastor/test_castordb.sqlite")), # db_location
+  as.character(paste0(here::here(),"/R/scenarios/boundary_fire/boundary_fire_r2_castordb.sqlite")), # db_location
   as.integer(210000), #harvMin
   as.integer(309000), #harvMaxm
   .jfloat(0.85), #growstockPercentage 
@@ -29,7 +30,7 @@ rm(cocelaClass)
 gc()
 
 test<-function(){
-userdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/disturbanceCastor/test_castordb.sqlite") ) 
+userdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/boundary_fire/boundary_fire_r2_castordb.sqlite") ) 
 ras.info<-dbGetQuery(userdb, "Select * from raster_info limit 1;")
 ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0, crs = 3005)
 ca<-dbGetQuery(userdb, "select * from ca_result_age order by pixelid;")

@@ -1299,11 +1299,11 @@ public class CellularAutomata {
 	     */
 		public void setDefaultParams() {
 			// TODO Auto-generated method stub
-			this.castordb = "C:/Users/klochhea/castor/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb2.sqlite";
+			this.castordb = "C:\\Users\\klochhea\\castor\\R\\scenarios\\boundary_fire\\boundary_fire_r2_castordb.sqlite";
 			this.harvestMin = 691000;
 			this.harvestMax = 694000;
 			this.gsMinPer = 0.0f;
-			this.landscape.setLandscapeParameters( 100, 200,  5,  149.0f); // int ageThres, int planHorizon, int planLength, float minHarvestVolume
+			this.landscape.setLandscapeParameters( 100, 60,  5,  149.0f); // int ageThres, int planHorizon, int planLength, float minHarvestVolume
 			this.harvestClusterWeight = 0.001f;
 			this.ageClusterWeight = 0.0f;
 		}

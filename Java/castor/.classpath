@@ -6,12 +6,12 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/klochhea/castor/Java/castor/sqlite-jdbc-3.41.2.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/klochhea/castor/Java/castor/sqlite-jdbc-3.41.2.1.jar"/>
 	<classpathentry kind="lib" path="C:/Program Files/GLPK/glpk-4.65/w64/glpk-java.jar">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Program Files/Java/lpsolve55j.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/LpSolve/lp_solve_5.5.2.11_java/lp_solve_5.5_java/lib/lpsolve55j.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
