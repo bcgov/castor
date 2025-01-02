@@ -2,41 +2,41 @@
     path = castor.wiki
     url = https://github.com/bcgov/castor.wiki.git
 [submodule "forestryCastor"]
-	path = forestryCastor
+	path = modules/forestryCastor
 	url = https://github.com/bcgov/forestryCastor
 [submodule "blockingCastor"]
-	path = blockingCastor
+	path = modules/blockingCastor
 	url = https://github.com/bcgov/blockingCastor
 [submodule "backCastor"]
-	path = backCastor
+	path = modules/backCastor
 	url = https://github.com/bcgov/backCastor
 [submodule "dataCastor"]
-	path = dataCastor
+	path = modules/dataCastor
 	url = https://github.com/bcgov/dataCastor
 [submodule "growingStockCastor"]
-	path = growingStockCastor
+	path = modules/growingStockCastor
 	url = https://github.com/bcgov/growingStockCastor
 [submodule "roadCastor"]
-	path = roadCastor
+	path = modules/roadCastor
 	url = https://github.com/bcgov/roadCastor
 [submodule "climateCastor"]
-	path = climateCastor
+	path = modules/climateCastor
 	url = https://github.com/bcgov/climateCastor
 [submodule "disturbanceCastor"]
-	path = disturbanceCastor
+	path = modules/disturbanceCastor
 	url = https://github.com/bcgov/disturbanceCastor
 [submodule "fireCastor"]
-	path = fireCastor
+	path = modules/fireCastor
 	url = https://github.com/bcgov/fireCastor
 [submodule "p2pVQOCastor"]
-	path = p2pVQOCastor
+	path = modules/p2pVQOCastor
 	url = https://github.com/bcgov/p2pVQOCastor
 [submodule "uploadCastor"]
-	path = uploadCastor
+	path = modules/uploadCastor
 	url = https://github.com/bcgov/uploadCastor
 [submodule "caribouSurvivalCastor"]
-	path = caribouSurvivalCastor
+	path = modules/caribouSurvivalCastor
 	url = https://github.com/bcgov/caribouSurvivalCastor
 [submodule "volumeReportCastor"]
-	path = volumeReportCastor
+	path = modules/volumeReportCastor
 	url = https://github.com/bcgov/volumeReportCastor
