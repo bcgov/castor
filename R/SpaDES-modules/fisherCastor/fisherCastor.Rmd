@@ -1,8 +1,0 @@
----
-title: "fisherCastor"
-author: ""
-date: "7 Dec 2022"
-output: pdf_document
----
-
-
