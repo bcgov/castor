@@ -15,9 +15,10 @@ For an overview of how the Castor model works, we recommend reading our [wiki](h
 ## 1. Download Software
 Castor is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R software. You can download program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, and therefore we also recommend that you download the free version of [RStudio](https://rstudio.com/products/rstudio/download/). RStudio is an integrated development environment for working with R code. It provides various windows and tabs for interacting with and running R code, downloading and loading R packages, interfacing with GitHub (more on that below), and managing R ['objects'](https://www.datacamp.com/community/tutorials/data-types-in-r). We also recommend you download ['git' software](https://gitforwindows.org/) to interface and work with the model code. 
 
-To work with our databases, you will need to download [PostgreSQL](https://www.postgresql.org/download/) and [pgAdmin](https://www.pgadmin.org/) software. This software will allow you to connect to and work with PostgreSQL databases, which are the key data structure used by Castor. 
+To work with the castor model, you will need to download [PostgreSQL](https://www.postgresql.org/download/). Usually  when PostgreSQL is installed pgAdmin is also installed but if it is missing you can download it separately from here [pgAdmin](https://www.pgadmin.org/) software. pgAdmin is useful software that will allow you to connect to and work with your spatial layers stored in PostgreSQL databases, which are the key data structure used by Castor. 
 
-To manage and work with spatial data, you will also need to download [OSGeo4W](https://trac.osgeo.org/osgeo4w/). This contains QGIS, GDAL/OGR, and GRASS open source software programs that are needed to do some spatial data manipulation.
+To work with spatial data, you may also want to install OSGeo4W. OSGeo4W provides a convenient bundle of open‑source geospatial tools, including QGIS, GDAL/OGR, and GRASS GIS. QGIS (an open‑source alternative to ArcGIS) is especially helpful for visually inspecting and exploring your spatial layers.
+Many R packages that rely on GDAL/OGR now include these libraries internally, so a separate installation is often unnecessary on Windows. However, Mac users still need to install GDAL/OGR manually, as these tools are not bundled with macOS versions of the relevant R packages.
 
 If you are a government employee, you may want to download these software as approved by your information technology department.
 
@@ -27,8 +28,8 @@ In summary, the first step of working with Castor is to download the following s
 * [RStudio](https://rstudio.com/products/rstudio/download/)
 * [git](https://gitforwindows.org/)
 * [PostgreSQL](https://www.postgresql.org/download/)
-* [pgAdmin](https://www.pgadmin.org/)
-* [OSGeo4W](https://trac.osgeo.org/osgeo4w/)
+* [pgAdmin](https://www.pgadmin.org/) (optional)
+* [OSGeo4W](https://trac.osgeo.org/osgeo4w/) (optional)
 
 ### 1.1 R Packages
 When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packages must meet certain QA/QC
@@ -58,7 +59,7 @@ You should see a list of file paths (e.g., *C:\\Program Files\\....* ). Click on
 ## 2. Download the Model Code from GitHub
 Once you are up and running with R Studio you can 'clone' the Castor model code (i.e., make a local copy of it) so you can run and edit it from your computer. We store the Castor model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/main/BC-Open-Source-Development-Employee-Guide/README.md) on the use of GitHub. As part of this process you will be asked to create two-factor authentication.
 
-Once you have created and verified your account this, you will need to request permission to have 'admin' access to the Castor repository. Contact the Castor team with your GitHub ID to request this access. Once this access is granted you should be able to read, clone, and push code to the repository. Note that the GitHub password may only work temporarily, in which case, after you have created an authenticated GitHub account you will also need to set-up a ['personal access token' (PAT)](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Follow [these inrstuctions](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) to set up a PAT. Select the scopes, or permissions, you'd like to grant this token as everything except *admin:org_hook*. Note that there is no need to complete step 10 in the instructions. 
+Once you have created and verified your account, and you are planning on developing or improving a current module you can request permission to have 'admin' access to the Castor repository. Contact the Castor team with your GitHub ID to request this access. Once this access is granted you should be able to read, clone, and push code to the repository. Note that the GitHub password may only work temporarily, in which case, after you have created an authenticated GitHub account you will also need to set-up a ['personal access token' (PAT)](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Follow [these inrstuctions](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) to set up a PAT. Select the scopes, or permissions, you'd like to grant this token as everything except *admin:org_hook*. Note that there is no need to complete step 10 in the instructions. 
 
 You can now use your PAT token as the password to clone the Castor repository from GitHub. Instead of manually entering your PAT for every HTTPS Git operation, you can set the username and password using the Windows Credential Manager. Open the Windows Credential Manager by searching for "Credential Manager" on your Windows search bar. Once open, click on "Windows Credential Manager", then "Add a generic credential". 
 
@@ -66,7 +67,9 @@ You can now use your PAT token as the password to clone the Castor repository fr
 
 In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create another credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replace xxxxxx with your username). This will tell your computer to use the PAT credentials when connecting to GitHub.
 
-The Castor repository is located [here](https://github.com/bcgov/castor.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'main' copy of the code for all of the repository users. GitHub allows for multiple people to work with the code simultaneously, with the GitHub version housing a stable and recent version of the code. Cloning the repository enables you to work with a local copy of the code. 
+The Castor repository is located [here](https://github.com/bcgov/castor.git). You will notice the GitHub webpage contains a 'folder' structure code.  
+
+This can be considered as a 'main' copy of the code for all of the repository users. GitHub allows for multiple people to work with the code simultaneously, with the GitHub version housing a stable and recent version of the code. Cloning the repository enables you to work with a local copy of the code. 
 
 To clone the Castor repository, open RStudio, click on the "File" tab in the top left and then click "New Project". This will open a new window:
 
@@ -76,9 +79,21 @@ In this window, select "Version Control" and then select "Git". This will open a
 
 ![](images/git_repo.jpg)
 
-Once you create the repository, it will copy the code to the folder directory you created. You will notice it has the same folder structure as the website. 
+When you click Create Project, RStudio will clone the Castor repository into the selected folder. You’ll see that the directory structure matches the GitHub view. However, the subfolders inside the modules/ directory will initially appear empty. This is expected.
 
-In your RStudio console, the bottom-right window "Files" tab shows the directory for the code repository. We will describe later how to navigate these folders to run Castor. In the next section we will describe more how to use Git and GitHub.
+### 2.1 Initializing the Castor Modules (Git Submodules)
+The Castor repository uses Git submodules to manage each module separately. This keeps the top‑level repository lightweight and ensures each version of Castor points to specific versions of its modules.
+To populate the module directories, open the Terminal pane in RStudio and run:
+
+git submodule update --init --recursive
+
+This command downloads and initializes all the module repositories referenced by the version of Castor you have cloned.
+
+### 2.2 Alternative: Clone Castor and all modules in one step
+Alternatively, you can clone Castor and all the submodules at once by pasting this command into the terminal window:
+git clone --recurse-submodules https://github.com/bcgov/castor.git
+This automatically retrieves the main repository along with every submodule.
+
 
 ## 3. Version Control and Working with GitHub
 In the top-right window of RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-box" symbol. This indicates the repository you are currently using. It should say "castor". You will also notice a symbol with two purple rectangles, beside some text that says "main". This indicates the 'branch' of the repository that you are working in.
@@ -129,11 +144,25 @@ Our general approach to using Git/GitHub version control is to: create a new ind
 To clarify this process, an independent branch is a working copy of the code. As you work within this branch, you make changes to it independent of the main, or any other branch. When you open, edit and then save a script (e.g., a .Rmd or .R file) within your working branch, you are overwriting the script file, similar to how you work with a local text file, like a Word document. When you do a Git 'commit' of a script file, you are saving a specific version of the file that you are working on locally, similar to saving a text file with a different name then the original (e.g., file_version2.doc), because you want to preserve the original and new version. Each new "commit' is therefore like saving a specific version of the script. You can also save these commits remotely, in the GitHub repository, by doing a "Push" after you commit. This is similar to backing up a text file on an external hard drive. You can also "Pull" from the GitHub, which will take the version of the file on GitHub and update your local version with any changes. However, if you are the only person working in a branch, a "Pull" is not necessary, as there should be no changes, with the exception of when you do a "Pull Request". You do a "Pull Request" when you want to integrate the work of others into your branch, and vice-versa. This is similar to saving edits to scripts from other users into your version of the scripts, and saving the changes you made into other peoples files. Pull requests don't need to be done as regularly as 'commits', and it is good practice to complete Pull Requests when you have completed specific scripting tasks (e.g., when you create a new script, change the process for how data is analyzed within a script, etc.).
 
 ## 4. Set-up a Keyring
-Castor uses networked PostgreSQL databases to store and manage data. To keep these databases and the network secure, we do not post the database access credentials (e.g., user names and passwords) in the Castor code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally in the Windows "Credentials Manager" and use the "keyring" function to call those credentials from R scripts. 
+Castor now uses locally managed PostgreSQL databases rather than a shared network machine. To keep database credentials secure, usernames and passwords are not stored directly in the Castor code. Instead, Castor uses the R package keyring to store your credentials securely on your computer (e.g., in the Windows Credential Manager or macOS Keychain). This allows R scripts to retrieve credentials at runtime without exposing them in plain text.
 
-We have developed an R markdown document for setting up a keyring. In the Castor repository, navigate to R-> functions->[keyring_init.Rmd](https://github.com/bcgov/castor/blob/main/R/functions/keyring_init.Rmd) and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Prior to creating the keyring, you will need to contact the Castor core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain a user name and password credentials for accessing the PostgreSQL databases. Note that these are different then the credentials used to set-up GitHub. GitHub and PostrgeSQL are independent components of the Castor framework.
+We use keyring because credentials remain local, encrypted, and never committed to Git.
+Scripted workflows can securely authenticate to your PostgreSQL database.
+All castor modules already contain calls to keyring::key_get() for connecting to Postgres so setting up the keyring is the easiest way to access your local PostgreSQL database
 
-Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. For example, in the 'Castor' database on our government network computer, within the "public" schema, there is a table called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. In addition, within the 'documentation' folder of Castor, there is a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to do so. 
+
+How to set up your keyring
+An R Markdown helper document is provided in the Castor repository:
+functions/keyring_init.Rmd
+<https://github.com/bcgov/castor/blob/main/functions/keyring_init.Rmd>
+Open and run this Rmd file in RStudio. It walks you through:
+
+Creating a keyring (if one does not already exist)
+Adding your PostgreSQL username and password
+Testing that Castor can retrieve these credentials successfully
+
+Note: These credentials are only for your PostgreSQL database.
+They are not the same as your GitHub credentials—GitHub and PostgreSQL are completely independent systems.
 
 ## 5. Castor SQLite Database
 The simulator modules within the Castor model do not run directly off of the PostgreSQL database. Instead Castor has a module called *dataCastor* that consolidates data from the PostgreSQL database into a portable SQLite database. The SQLite database contains all the data needed to run the simulator modules for a defined area of interest. This approach provides a lot of flexibility, as it creates a self-contained, relatively low memory database that can be shared among users. One way to think about the Castor data structure, is that the PostgreSQL database serves as the central repository for stable, provincial-scale datasets, such as for example, the forest inventory. The *dataCastor* compiles a specified subset of this data for an area of interest and group the information into an SQLite database.  
@@ -142,7 +171,7 @@ The simulator modules within the Castor model do not run directly off of the Pos
 
 In this section you will use the *dataCastor* module to create a simple SQLite database. The purpose of this simple database is to get acquainted with how to connect to the castor SQLite database and how it is structured so that you can preform queries to get information. 
 
-To start, go to the the *dataCastor* module located in the "R->SpaDES-modules" folder. Within the folder you will find a single dataCastor.R file and  dataCastor.Rmd. The .R file is the script that contains the functions that manipulate the data. This script should only be changed if there is a need to modify or add to the fundamental process of creating the SQLite database. The .Rmd file is used to define the scenario specific parameters that get implemented in the .R file. Thus, the two scripts work together, where the .Rmd is the more flexible script where you define the modifiable parameters that get implemented by the .R script. The. Rmd can be copied and modified as needed, for specific scenarios, whereas the .R file should have only one copy and is rarely changed.  
+To start, go to the the *dataCastor* module located in the "castor->modules" folder. Within the folder you will find a single dataCastor.R file and  dataCastor.Rmd. The .R file is the script that contains the functions that manipulate the data. This script should only be changed if there is a need to modify or add to the fundamental process of creating the SQLite database. The .Rmd file is used to define the scenario specific parameters that get implemented in the .R file. Thus, the two scripts work together, where the .Rmd is the more flexible script where you define the modifiable parameters that get implemented by the .R script. The. Rmd can be copied and modified as needed, for specific scenarios, whereas the .R file should have only one copy and is rarely changed.  
 
 Within the .Rmd you will notice features of the SpaDES module structure. It starts with a text description of the .Rmd. Beneath that is a code "chunk" (*r module_usage*). Within this chunk are listed the modules, parameters and objects needed to run the .R code. 
 
@@ -158,10 +187,10 @@ library(SpaDES.core)
 library(data.table)
 library(dplyr)
 
-source(here::here("R/functions/R_Postgres.R"))
+source(here::here("functions/R_Postgres.R"))
 paths <- list(
-  modulePath = paste0(here::here(),"/R/SpaDES-modules"),
-  outputPath = paste0(here::here(),"/R/SpaDES-modules/dataCastor")
+  modulePath = paste0(here::here(),"/SpaDES-modules"),
+  outputPath = paste0(here::here(),"/SpaDES-modules/dataCastor")
 )
 
 times <- list(start = 0, end = 0)
