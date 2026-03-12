@@ -1,0 +1,99 @@
+---
+title: "Study Area Boundaries"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(data.table)
+library(sf)
+library(tidyverse)
+library(bcdata)
+library(ggplot2)
+library(fasterize)
+
+#Create a provincial raster
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs", resolution = c(100, 100), vals = 0)
+```
+
+
+## Get area of interest e.g. Okanagan TSA, 100 Mile House TSA, and Kamloops TSA
+```{r, data}
+# ─────────────────────────────────────────────
+# Load TSA / TFL Boundaries
+# ─────────────────────────────────────────────
+tsa_vals <- c("Okanagan TSA", "100 Mile House TSA", "Kamloops TSA")
+
+tsa_raw <- bcdc_query_geodata("8daa29da-d7f4-401c-83ae-d962e3a28980") %>%
+  filter(TSA_NUMBER_DESCRIPTION %in% tsa_vals) %>%  # match any of these
+  collect()
+
+tsa <- tsa_raw %>%
+  group_by(TSA_NUMBER, TSA_NUMBER_DESCRIPTION) %>%
+  summarise(do_union = TRUE) %>%
+  st_make_valid()
+
+plot(tsa["TSA_NUMBER"])
+
+# ─────────────────────────────────────────────
+# Create Clean TSA Identifier Table
+# ─────────────────────────────────────────────
+tsa_ids <- tsa %>%
+  st_drop_geometry() %>%
+  select(TSA_NUMBER, TSA_NUMBER_DESCRIPTION) %>%
+  distinct() %>%
+  mutate(
+    tsa_name = gsub(" ", "_", TSA_NUMBER_DESCRIPTION),
+    tsa_id   = as.numeric(TSA_NUMBER)
+  )
+
+# Join back to geometry
+tsa_clean <- tsa %>%
+  left_join(tsa_ids, by = c("TSA_NUMBER", "TSA_NUMBER_DESCRIPTION")) %>%
+  select(tsa_id, tsa_name, shape = geometry)
+
+# ─────────────────────────────────────────────
+# Save Clean Shapefile and write it to your local postgres database
+# ─────────────────────────────────────────────
+
+
+con <- dbConnect(RPostgres::Postgres(),host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL')) 
+st_write(st_as_sf(tsa_clean, crs=3005), con, Id(schema = "public", table = "test_tsa"))
+dbDisconnect(con)
+
+# ─────────────────────────────────────────────
+# Create the look up table
+# ─────────────────────────────────────────────
+tsa_clean_vat <- as.data.table (st_drop_geometry (tsa_clean))
+tsa_clean_vat<-tsa_clean_vat %>% 
+  rename(value=tsa_id)
+
+# ─────────────────────────────────────────────
+# Rasterize 
+# ─────────────────────────────────────────────
+tsa_rast <- fasterize(
+  st_cast(tsa_clean, "MULTIPOLYGON"),
+  prov.rast,
+  field = "tsa_id"
+)
+
+plot(tsa_rast)
+writeRaster(tsa_rast, "tsa_boundary.tif", overwrite = TRUE)
+
+# ─────────────────────────────────────────────
+# write data to postgres
+# ─────────────────────────────────────────────
+
+conn<-DBI::dbConnect (dbDriver("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL'))
+setnames (tsa_clean_vat, c ("value", "tsa_name")) # Note use convention; always name these value and attribute
+DBI::dbWriteTable(conn, c("public", "vat_test_tsa"), value = tsa_clean_vat, row.names = FALSE, overwrite = TRUE)
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ',  here::here("functions//tsa_boundary.tif"),' -t 100x100 public.rast_test_tsa | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get ('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+dbDisconnect(conn)
+
+
+```
