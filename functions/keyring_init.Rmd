@@ -14,7 +14,7 @@ library(keyring)
 ```
 
 ### 1. Create the keyring
-First, you will create a keyring. This information gets put into the Windows "Credentials Manager". Name the keyring "postgreSQL", so that it is consistent with other CASTOR users, and because we "hard code" this name into the CASTOR code.
+First, you will create a keyring. This information gets put into the Windows "Credentials Manager". Name the keyring "postgreSQL", because we "hard code" this name into the CASTOR code.
 
 When you run the *keyring_create()* function you will be prompted to add a password that will be used to open the keyring. This will be the password you use at the start of an R session. You can keep this simple as you will be the primary, and likely only user on your computer.
 
@@ -30,11 +30,13 @@ keyring_unlock("postgreSQL")
 ```
 
 ### 3. Set the Credentials
-Here we set the "keys" in the postgreSQL "keyring". These keys contain the credentials for accessing the postgreSQL databases (i.e., database name, host, user name and password). You will need to get the credentials to access two databases from Kyle Lochhead (Kyle.Lochhead@gov.bc.ca). Our 'main' database is hosted on a government network computer. We also have a 'virtual machine' that stores our model outputs on a cloud-based computer. 
+Here we set the "keys" in the postgreSQL "keyring". These keys contain the credentials for accessing the postgreSQL databases (i.e., database name, host, user name and password). You will need to get the credentials to access your local database and if using our 'virtual machine' (currently unavailable) those credentials too, to store our model outputs on a cloud-based computer.
 
-Again, it is important to use the same naming convention that we use here, as these "key" names are "hard coded" into CASTOR code. Use "dbhost" to identify the name of the  government network computer postgreSQL database host, "dbname' to identify the database name on dbhost, "dbuser" to identify your user name for accessing the database on dbhost, and "dbpass" to identify your password for accessing the database on dbhost. Similarly, use "vmdbhost" to identify the name of the 'virtual machine' postgreSQL database host, 'vmdbname' to identify the database name on vmdbhost, "vmdbuser" to identify your user name for accessing the database on vmdbhost, and "vmdbpass" to identify your password for accessing the database on vmdbhost. 
+To get the credentials on your local postgreSQL database open pgAdmin, expand the Servers list, then right‑click your PostgreSQL server and choose Properties. In the Connection tab, you’ll see the host, port, username, and other connection details you need.
+Note: pgAdmin does not display your password—you must enter or remember that separately.  
 
-When you run the *key_set()* function, it will open a new window with a text box prompting you for a 'password'. You *do not* enter a password into the text box, but rather, you enter the value you want to set for that parameter, e.g., for key_set("vmdbhost", keyring ="postgreSQL"), enter the host into the text box.
+We suggest using the same naming convention that we use here, as these "key" names are "hard coded" into CASTOR code. Use "dbhost" to identify the name of your local postgreSQL database host, "dbname' to identify the database name on dbhost, "dbuser" to identify your user name for accessing the database on dbhost, and "dbpass" to identify your password for accessing the database on dbhost. 
+When you run the *key_set()* function, it will open a new window with a text box prompting you for a 'password'. You *do not* enter a password into the text box, but rather, you enter the value you want to set for that parameter, e.g., for key_set("dbhost", keyring ="postgreSQL"), enter the host into the text box, this is likely localhost for your local postgresSQL database.
 
 ```{r, set}
 key_set("dbhost", keyring ="postgreSQL") 
@@ -44,7 +46,23 @@ key_set("dbpass", keyring ="postgreSQL")
 
 #to view the keys in the keyring use:
 key_list(keyring ="postgreSQL") # they will be labeled under 'service'
+```
 
+## Use the keyring in code
+Now, when you need to access data in your local the PostgreSQL database, you can connect using the keyring function calls below to get credentials in place of writing them in the code. You can also now test whether the functions are calling the correct credentials using the code below. 
+
+```{r, use, echo =FALSE}
+key_get("dbhost", keyring="postgreSQL")
+key_get("dbuser", keyring="postgreSQL")
+key_get("dbpass", keyring="postgreSQL")
+key_get("dbname", keyring ="postgreSQL") 
+```
+
+
+## Using the virtual machine (currently unavailable)
+If using the virtual machine we suggest using the following naming convention because it is hard coded in Castor. Use "vmdbhost" to identify the name of the 'virtual machine' postgreSQL database host, 'vmdbname' to identify the database name on vmdbhost, "vmdbuser" to identify your user name for accessing the database on vmdbhost, and "vmdbpass" to identify your password for accessing the database on vmdbhost. 
+
+```{r, set}
 #Virtual machine -  digital ocean
 key_set("vmdbhost", keyring = "postgreSQL") 
 key_set("vmdbname", keyring = "postgreSQL") 
@@ -57,14 +75,11 @@ key_set("vmdbwgname", keyring = "postgreSQL")
 key_set("vmdbwguser", keyring = "postgreSQL")
 key_set("vmdbwgpass", keyring = "postgreSQL")
 ```
+
 ## Use the keyring in code
-Now, when you need to access data in the PostgreSQL database, you can connect using the keyring function calls below to get credentials in place of writing them in the code. You can also now test whether the functions are calling the correct credentials using the code below. 
+As before, when you need to access data in the PostgreSQL database, you can connect using the keyring function calls below to get credentials in place of writing them in the code. You can also now test whether the functions are calling the correct credentials using the code below. 
 
 ```{r, use, echo =FALSE}
-key_get("dbhost", keyring="postgreSQL")
-key_get("dbuser", keyring="postgreSQL")
-key_get("dbpass", keyring="postgreSQL")
-
 key_get("vmdbhost", keyring="postgreSQL")
 key_get("vmdbuser", keyring="postgreSQL")
 key_get("vmdbpass", keyring="postgreSQL")
