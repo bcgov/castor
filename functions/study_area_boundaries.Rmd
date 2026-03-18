@@ -1,7 +1,25 @@
+<!--
+Copyright 2025 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
 ---
 title: "Study Area Boundaries"
+author: "Tyler Muhly and Elizabeth Kleynhans"
+updated: "12/03/2026"
 output: html_document
 ---
+
+This script creates the neccessary study area boundary information needed for Castor to run a simulation on your area of interest. Other required parameters are detailed in other scripts.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -10,7 +28,6 @@ library(data.table)
 library(sf)
 library(tidyverse)
 library(bcdata)
-library(ggplot2)
 library(fasterize)
 
 #Create a provincial raster
@@ -20,10 +37,10 @@ prov.rast <- raster::raster(
 ```
 
 
-## Get area of interest e.g. Okanagan TSA, 100 Mile House TSA, and Kamloops TSA
+## Get area of interest e.g. Okanagan TSA, 100 Mile House TSA, and Kamloops TSA. However, the area can be any area of your choosing.
 ```{r, data}
 # ─────────────────────────────────────────────
-# Load TSA / TFL Boundaries
+# Load TSA / TFL Boundaries or any area that you are interested in using
 # ─────────────────────────────────────────────
 tsa_vals <- c("Okanagan TSA", "100 Mile House TSA", "Kamloops TSA")
 
@@ -59,7 +76,6 @@ tsa_clean <- tsa %>%
 # Save Clean Shapefile and write it to your local postgres database
 # ─────────────────────────────────────────────
 
-
 con <- dbConnect(RPostgres::Postgres(),host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL')) 
 st_write(st_as_sf(tsa_clean, crs=3005), con, Id(schema = "public", table = "test_tsa"))
 dbDisconnect(con)
@@ -94,6 +110,5 @@ DBI::dbWriteTable(conn, c("public", "vat_test_tsa"), value = tsa_clean_vat, row.
 system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ',  here::here("functions//tsa_boundary.tif"),' -t 100x100 public.rast_test_tsa | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get ('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
 
 dbDisconnect(conn)
-
 
 ```
