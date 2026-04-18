@@ -19,7 +19,7 @@ updated: "12/03/2026"
 output: html_document
 ---
 
-This script creates the neccessary study area boundary information needed for Castor to run a simulation on your area of interest. Other required parameters are detailed in other scripts.
+This script creates the necessary study area boundary information needed for Castor to run a simulation on your area of interest. Other required parameters are detailed in other scripts.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -29,6 +29,11 @@ library(sf)
 library(tidyverse)
 library(bcdata)
 library(fasterize)
+library(DBI)
+library(RPostgres)
+library(keyring)
+library(terra)
+
 
 #Create a provincial raster
 prov.rast <- raster::raster(
@@ -37,14 +42,17 @@ prov.rast <- raster::raster(
 ```
 
 
-## Get area of interest e.g. Okanagan TSA, 100 Mile House TSA, and Kamloops TSA. However, the area can be any area of your choosing.
+## Get area of interest e.g. Boundary TSA. However, the area can be any area of your choosing.
 ```{r, data}
 # ─────────────────────────────────────────────
 # Load TSA / TFL Boundaries or any area that you are interested in using
 # ─────────────────────────────────────────────
-tsa_vals <- c("Okanagan TSA", "100 Mile House TSA", "Kamloops TSA")
 
-tsa_raw <- bcdc_query_geodata("8daa29da-d7f4-401c-83ae-d962e3a28980") %>%
+tsa_vals <- c("Boundary TSA")
+# if you want multiple TSA's you define them as below
+#tsa_vals <- c("Okanagan TSA", "100 Mile House TSA", "Kamloops TSA")
+
+tsa_raw <- bcdc_query_geodata("WHSE_ADMIN_BOUNDARIES.FADM_TSA_SV") %>%
   filter(TSA_NUMBER_DESCRIPTION %in% tsa_vals) %>%  # match any of these
   collect()
 
@@ -103,9 +111,22 @@ writeRaster(tsa_rast, "tsa_boundary.tif", overwrite = TRUE)
 # write data to postgres
 # ─────────────────────────────────────────────
 
-conn<-DBI::dbConnect (dbDriver("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL'))
+conn <- DBI::dbConnect(
+  RPostgres::Postgres(),
+  host     = keyring::key_get("dbhost", keyring = "postgreSQL"),
+  dbname   = keyring::key_get("dbname", keyring = "postgreSQL"),
+  port     = 5432,
+  user     = keyring::key_get("dbuser", keyring = "postgreSQL"),
+  password = keyring::key_get("dbpass", keyring = "postgreSQL")
+)
 setnames (tsa_clean_vat, c ("value", "tsa_name")) # Note use convention; always name these value and attribute
-DBI::dbWriteTable(conn, c("public", "vat_test_tsa"), value = tsa_clean_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(
+  conn,
+  DBI::Id(schema = "public", table = "vat_test_tsa"),
+  value = tsa_clean_vat,
+  row.names = FALSE,
+  overwrite = TRUE
+)
 
 system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ',  here::here("functions//tsa_boundary.tif"),' -t 100x100 public.rast_test_tsa | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get ('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
 
