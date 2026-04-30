@@ -225,6 +225,26 @@ Testing that Castor can retrieve these credentials successfully
 Note: These credentials are only for your PostgreSQL database.
 They are not the same as your GitHub credentials—GitHub and PostgreSQL are completely independent systems.
 
+## 5. How to create a Forest Harvest Scenario
+
+Now that you are familiar with the software, some of the model code and some of the Castor data, we want to introduce you to the process of developing a model to address a hypothetical forest management scenario. As an example we will develop the layers necessary to run a scenario for the Boundary TSA. However, this same approach can be used for any area of interest. 
+
+### 5.1 Creating a shapefile for your area of interest
+
+An R Markdown helper document is provided in the Castor repository:
+`functions/study_area_boundaries.Rmd`  
+https://github.com/bcgov/castor/tree/main/functions/study_area_boundaries.Rmd
+
+Open this R Markdown file in RStudio and run it step by step. The document guides you through the process of defining and generating the files required to describe your study area. Specifically, it walks you through:
+
+- specifying the geographic extent of your area of interest;
+- loading or creating spatial boundary data (e.g. polygons defining the study area);
+- projecting and validating spatial layers to ensure they are suitable for use with Castor;
+- creating standardized boundary files used by Castor workflows; and
+- saving the resulting spatial objects in a consistent format and location for use in subsequent analyses.
+
+The helper document is designed to be interactive and explanatory. Users are encouraged to read the narrative text in the document and execute code chunks sequentially, adjusting parameters and file paths as needed for their specific study area.
+
 ## 5. Castor SQLite Database
 
 The simulator modules within the Castor model do not run directly off of the PostgreSQL database. Instead Castor has a module called *dataCastor* that consolidates data from the PostgreSQL database into a portable SQLite database. The SQLite database contains all the data needed to run the simulator modules for a defined area of interest. This approach provides a lot of flexibility, as it creates a self-contained, relatively low memory database that can be shared among users. One way to think about the Castor data structure, is that the PostgreSQL database serves as the central repository for stable, provincial-scale datasets, such as for example, the forest inventory. The *dataCastor* compiles a specified subset of this data for an area of interest and groups the information into an SQLite database.  

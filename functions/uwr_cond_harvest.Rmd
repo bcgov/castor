@@ -159,7 +159,7 @@ uwr_cond_harv<-uwr %>% filter(TIMBER_HARVEST_CODE =="CONDITIONAL HARVEST ZONE")
 ### u-1-009 - black-tailed deer/roosevelt elk
 ```{r, u1009}
 
-u1009<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER=='u-1-009')
+u1009<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER=='u-1-009')
 
 #Harvesting is not to occur unless there is an exemption allowing for accelerating the development of old growth forest 
 
@@ -179,7 +179,7 @@ zone_uwr[label == 'u-1-009',]
 
 ### u-1-011 - black-tailed deer
 ```{r, u1011}
-u1011<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-1-011')
+u1011<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-1-011')
 
 #Harvesting is not to occur unless there is an exemption allowing for enhancing habitat quality; harvesting western red cedar by heli is allowed
 
@@ -200,7 +200,7 @@ zone_uwr[label == 'u-1-011',]
 ### u-1-017 - black-tailed deer/roosevelt elk
 ```{r, u1017}
 
-u1017<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-1-017')
+u1017<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-1-017')
 
 #conditional harvest applies to unit selected here: 47 to 51; within THLB seral stage distribution must be: 25% 0-20 y.o., 25% 21-40 y.o., 25% 41-60 y.o., 25% 61-80 y.o.
 
@@ -229,7 +229,7 @@ zone_uwr[label == 'u-1-017',]
 ### u-2-004 - mtn goat
 ```{r, u2004}
 
-u2004<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-2-004')
+u2004<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-2-004')
 
 # has requirements for 'productive forest' for these units; not clear what that mean, but assume no constraints
 
@@ -255,7 +255,7 @@ library(stringr)
 
 
 u2005 <- uwr_cond_harv %>% 
-  select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE,FEATURE_NOTES, geometry) %>% 
+  dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE,FEATURE_NOTES, geometry) %>% 
   filter(UWR_NUMBER == 'u-2-005',
          str_detect(FEATURE_NOTES, 'DWRRO'))
 
@@ -279,7 +279,7 @@ zone_uwr[label == 'u-2-005',]
 
 # this is a very complex order around maintaining a % of capable habitat as snow interception in a unit based on the 'snow zones' (Deep, moderate, shallow); these snow zones are not identified; here we use the moderate snow zone target (40%) as >=40% crown closure (the CC thresholds is consistent with some other orders, but not clear what is appropriate here)
 
-u2006<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-2-006')
+u2006<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-2-006')
 
 u2006_table <- data.table (u2006) [,c("ogc_fid")]
 u2006_table [, `:=`(reference_zone ='rast.zone_uwr', variable ='crownclosure', type = 'ge', percentage = 40, threshold = 40, ndt = 0, label = 'u-2-006')]
@@ -300,7 +300,7 @@ zone_uwr[label == 'u-2-006',]
 
 # maximum 20% of a unit can be harvested every 20 years
 
-u2008<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-2-008')
+u2008<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-2-008')
 
 u2008_table <- data.table (u2008) [,c("ogc_fid")]
 u2008_table [, `:=`(reference_zone ='rast.zone_uwr', variable ='age', type = 'le', percentage = 20, threshold = 20, ndt = 0, label = 'u-2-008')]
@@ -320,7 +320,7 @@ zone_uwr[label == 'u-2-008',]
 
 # no clear limitations on forest harvest that coudl be implemented in teh model; allow as BAU
 
-u2010<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-2-010')
+u2010<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-2-010')
 
 u2010_table <- data.table (u2010) [,c("ogc_fid")]
 u2010_table [, `:=`(reference_zone ='rast.zone_uwr', variable ='', type = '', percentage = 0, threshold = 0, ndt = 0, label = 'u-2-010')]
@@ -344,7 +344,7 @@ zone_uwr[label == 'u-2-010',]
 #shape_u3003 <- st_read(file.path(temp2, "tuwra_u-3-003.shp"))
 #plot(shape_u3003)
 
-u3003<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-3-003')
+u3003<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER== 'u-3-003')
 
 #In this UWR there are many planning cells that correspond to snow interception cover (SIC) with retention classes of shallow (15%), moderate (33%) and deep (40%). The minimum snow interception cover pertains to BEC units, tree species, stand age and crown closure. This detail would arbitrarily increase the time in the model. http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u3_003.pdf
 
@@ -366,7 +366,7 @@ zone_uwr[label == 'u-3-003',]
 
 ### u-3-004 Caribou 
 ```{r, u3004}
-u3004<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-3-004')
+u3004<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-3-004')
 
 u3004_table<-data.table(u3004)[,c("ogc_fid", "FEATURE_NOTES")]
 
@@ -389,7 +389,7 @@ zone_uwr[label == 'u-3-004',]
 
 ### u-3-006 Goat
 ```{r, u-3-006}
-u3006<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER=='u-3-006')
+u3006<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, geometry) %>% filter(UWR_NUMBER=='u-3-006')
 u3006_table<-data.table(u3006)[,c("ogc_fid")]
 
 #Maintain 66 percent of the area ge than 30 years. See http://www.env.gov.bc.ca/wld/documents/uwr/u-3-006_ORAM_Order.pdf
@@ -410,7 +410,7 @@ zone_uwr[label == 'u-3-006',]
 ### u-4-001 Elk, Deer, Moose 
 ```{r, u4001}
 u4001<-uwr_cond_harv %>% 
-select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% 
+dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% 
 filter(UWR_NUMBER=='u-4-001')
 
 u4001_table<-data.table(u4001)[,c("ogc_fid", "FEATURE_NOTES")]
@@ -452,7 +452,7 @@ zone_uwr[label == 'u-4-001',]
 Primary forest activities must not occur within mountain goat core winter range
 
 ```{r, u4002}
-u4002<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-002')
+u4002<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-002')
 uwr[UWR_NUMBER == 'u-4-002', TIMBER_HARVEST_CODE := "NO HARVEST ZONE"]
 uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-4-002',]
 ```
@@ -470,7 +470,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-4-004',]
 
 ### u-4-006 Elk, Deer, Moose, Sheep, Goat
 ```{r, u4006}
-u4006<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-006')
+u4006<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-006')
 
 u4006_table<-data.table(u4006)[,c("ogc_fid", "FEATURE_NOTES")]
 
@@ -508,7 +508,7 @@ zone_uwr[label == 'u-4-006',]
 
 ### u-4-008 Elk, Deer, Moose, Sheep, Goat
 ```{r, u4008}
-u4008<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-008')
+u4008<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-008')
 
 u4008_table<-data.table(u4008)[,c("ogc_fid", "FEATURE_NOTES")]
 
@@ -548,7 +548,7 @@ zone_uwr[label == 'u-4-008',]
 
 ### u-4-010 Caribou
 ```{r, u4010}
-u4010<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-010')
+u4010<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-010')
 
 u4010_table<-data.table(u4010)[,c("ogc_fid", "FEATURE_NOTES")]
 
@@ -579,7 +579,7 @@ zone_uwr[label == 'u-4-010',]
 
 ### u-4-012 Caribou
 ```{r, u4012}
-#u4012<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-012')
+#u4012<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-4-012')
 
 #u4012_table<-data.table(u4012)[,c("ogc_fid", "FEATURE_NOTES")]
 
@@ -623,7 +623,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-4-014',]
 
 ### u-5-001, u-5-002, u-5-003
 ```{r, u-5}
-u5<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER %in% c('u-5-001', 'u-5-002','u-5-003'))
+u5<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER %in% c('u-5-001', 'u-5-002','u-5-003'))
 u5_table<-data.table(u5)[,c("ogc_fid", "FEATURE_NOTES")]
 
 #87 polygons
@@ -653,7 +653,7 @@ Timber harvesting must not occur in mountain goat winter range.
 https://www.env.gov.bc.ca/wld/documents/uwr/u-6-007_ord.pdf
 
 ```{r}
-u6009<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-007')
+u6009<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-007')
 uwr[UWR_NUMBER == 'u-6-007', TIMBER_HARVEST_CODE := "NO HARVEST ZONE"]
 uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-6-007',]
 
@@ -664,7 +664,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-6-007',]
 ```{r, u6009}
 #Retain > 30 mature forest canopy for snow interception. see http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-009_GAR-order_Sept17.pdf
 
-u6009<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-009')
+u6009<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-009')
 #67 polygons
 # general wildlife measures (GWMs) are very complex here: e.g., <20% of cutblock area can be >100m from mature forest and 80% of security cover must be no greater than 200m from other areas of security cover, etc.
 # simplest criteria for our model here appears to be:
@@ -693,7 +693,7 @@ zone_uwr[label == 'u-6-009',]
 ### u-6-013 Caribou
 ```{r, u6013}
 
-u6013<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-013')
+u6013<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-013')
 
 # this applies to 'medium' value zones, and is a partial harvest constraint, where <30% volume removal per cutblock area every 80 years; here we apply a coarser-level area constraint of 30% area <80y.o.; this should cap total harvest, although not necessarily to the desired pattern 
 
@@ -715,7 +715,7 @@ zone_uwr[label == 'u-6-013',]
 ```{r, u6014}
 #Retain > 30 mature forest canopy for snow interception. see http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-014_GAR-order_Sept17.pdf
 
-u6014<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-014')
+u6014<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-014')
 #67 polygons
 # general wildlife measures (GWMs) are very complex here: e.g., <20% of cutblock area can be >100m from mature forest and 80% of security cover must be no greater than 200m from other areas of security cover, etc.
 # simplest criteria for our model here appears to be:
@@ -742,7 +742,7 @@ zone_uwr[label == 'u-6-014',]
 ```{r, u6018}
 #Retain > 30 mature forest canopy for snow interception. see http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-018_GAR-order_Sept17.pdf
 
-u6018<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-018')
+u6018<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-6-018')
 #67 polygons
 # general wildlife measures (GWMs) are very complex here: e.g., <20% of cutblock area can be >100m from mature forest and 10% of mature forest must be within 100m of mapped forage areas and 80% of security cover must be no greater than 200m from other areas of security cover, etc.
 # simplest criteria for our model here appears to be:
@@ -780,7 +780,7 @@ uwr_cond_harv<-uwr_cond_harv[!(uwr_cond_harv$UWR_NUMBER %in% c('u-6-040')), ]
 ```{r, u-7-001}
 #Log approximately half the entire area at a time on a 100 year rotation so 45-55% is 0-50 years and 45-55 is 50-100 years old. Harvest in large patches (250 to 1400). see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_001.pdf. Equate this to 50% of the area ge 50 years
 
-u7001<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-001')
+u7001<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-001')
 u7001_table<-data.table(u7001)[,c("ogc_fid")]
 u7001_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 50, ndt =0, label = 'u-7-001')]
 setnames(u7001_table, "ogc_fid", "zoneid")
@@ -797,7 +797,7 @@ zone_uwr[label == 'u-7-001',]
 ### u-7-002 Mule Deer
 ```{r, u7002}
 #Within unit numbers 1:5,11,12,14 maintain a minum of 40% of the area in age class 8 with a crown closure of > 56%. Within unit numbers 9,10,15:18 maintain a minimum of 50% stans in age class 8 (> 140 years) with a crown closure of > 66% see - http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_002.pdf
-u7002<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-002')
+u7002<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-002')
 #18 polygons
 
 u7002_table<-data.table(u7002)[,c("ogc_fid","UWR_UNIT_NUMBER")]
@@ -819,7 +819,7 @@ zone_uwr[label == 'u-7-002',]
 
 ### u-7-003 Mountain Caribou
 ```{r, u7003}
-u7003<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-003')
+u7003<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-003')
 
 #Caribou corridor and medium are conditional harvesting. see http://www.env.gov.bc.ca/wld/documents/uwr/u-7-003_order_09Dec09.pdf
 
@@ -850,7 +850,7 @@ zone_uwr[label == 'u-7-003',]
 ### u-7-005 ELk
 ```{r, u7005}
 #Habitat condition Maintiang a minimum of 40% winter range are forested stands in age class 6 (>100 years) or greater with a crown closure > 40% see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_005.pdf
-u7005<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-005')
+u7005<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-005')
 u7005_table<-data.table(u7005)[,c("ogc_fid")]
 u7005_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 40, ndt =0, label = 'u-7-005')]
 setnames(u7005_table, "ogc_fid", "zoneid")
@@ -865,7 +865,7 @@ zone_uwr[label == 'u-7-005',]
 
 ### u-7-007 Northern Caribou
 ```{r, u7007}
-u7007<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-007')
+u7007<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-007')
 #100 polygons
 
 #This UWR has three main General Wildlife Measures: Prevent displacement of caribou, reduce predator effectiveness and maintain forage biomass. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_007.pdf
@@ -891,7 +891,7 @@ zone_uwr[label == 'u-7-007',]
 ### u-7-008 Elk
 ```{r, u7008}
 #Habitat condition Maintiang a minimum of 40% winter range are forested stands in age class 6 (>100 years) or greater with a crown closure > 40% see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_008.pdf
-u7008<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-008')
+u7008<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-008')
 u7008_table<-data.table(u7008)[,c("ogc_fid")]
 u7008_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 40, ndt =0, label = 'u-7-008')]
 setnames(u7008_table, "ogc_fid", "zoneid")
@@ -909,7 +909,7 @@ zone_uwr[label == 'u-7-008',]
 ```{r, u7009}
 #GVM 1 - Corridor: Forest practices within this ungulate winter range will maintain a minimum of 20% of the forested stands as 100 years with no more than 20% of this unit being less than 3 m green up any time. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_009.pdf. The more constricting constraint is no more than 3 m green up at any time.
 
-u7009<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-009')
+u7009<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-009')
 u7009_table<-data.table(u7009)[,c("ogc_fid")]
 u7009_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 80, threshold = 3, ndt =0, label = 'u-7-009')]
 setnames(u7009_table, "ogc_fid", "zoneid")
@@ -927,7 +927,7 @@ zone_uwr[label == 'u-7-009',]
 ```{r, u7010}
 #Snow interception and Thermal Cover - maintain a minimum of 50% of the winter range area in age class 8 and 9 with a minimum of 66% canopy closure. This is suppose to be species specific with RDV-001 focusing on Cedar. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_010.pdf I equate all these zone to ge 66% crown closure for 50% of the area.I'm biased to use crown cover over age -- much easier to measure
 
-u7010<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-010')
+u7010<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-010')
 #3 polygons
 
 u7010_table<-data.table(u7010)[,c("ogc_fid")]
@@ -948,7 +948,7 @@ zone_uwr[label == 'u-7-010',]
 ```{r, u7011}
 #Under GVM 1: maintain crown closure >56%, cc > 66% for stands > 140. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_011.pdf Equating to crown closure > 56% and >66
 
-u7011<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-011')
+u7011<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-011')
 u7011_table<-data.table(u7011)[,c("ogc_fid","UWR_UNIT_NUMBER")]
 #assign all
 u7011_table[UWR_UNIT_NUMBER %in% c("VD-004","VD-003","VD-007"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 56, ndt =0, label = 'u-7-011')]
@@ -969,7 +969,7 @@ zone_uwr[label == 'u-7-011',]
 ```{r, u7012}
 #Manage using a two pass 140 year rotation such that 50% +/- 20% is harvested. This will be interpreted as 50% of the area has to be greater than 140 years. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_012.pdf
 
-u7012<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-012')
+u7012<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-012')
 u7012_table<-data.table(u7012)[,c("ogc_fid")]
 
 #SPC-009 - Primary forestry activites will all for 33% of area less than 3 meters
@@ -989,7 +989,7 @@ zone_uwr[label == 'u-7-012',]
 ```{r, u7013}
 #Under GVM 1: maintain crown closure >56%, cc > 66% for stands > 140. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_013.pdf. Equating to crown closure > 56% 
 
-u7013<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-013')
+u7013<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-013')
 u7013_table<-data.table(u7013)[,c("ogc_fid","UWR_UNIT_NUMBER")]
 #assign all
 u7013_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 56, ndt =0, label = 'u-7-013')]
@@ -1012,7 +1012,7 @@ zone_uwr[label == 'u-7-013',]
 ```{r, u7015}
 #Under GVM 1: harvesting is not to occur in the winter. GVM 2: manage using a two pass 140 year rotation such that 50% +/- 20% is harvested. This will be interpreted as 50% of the area has to be greater than 140 years. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_015.pdf
 
-u7015<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-015')
+u7015<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-015')
 u7015_table<-data.table(u7015)[,c("ogc_fid")]
 
 #SPC-009 - Primary forestry activites will all for 33% of area less than 3 meters
@@ -1032,7 +1032,7 @@ zone_uwr[label == 'u-7-015',]
 
 ### u-7-017 Moose, Mountain Goat and Elk
 ```{r, u7017}
-u7017<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-017')
+u7017<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-7-017')
 #see http://www.env.gov.bc.ca/wld/documents/uwr/u-7-017_order.pdf. Requires under GVM 1 - > 20% ge 100 year, > 25% ge 80 years and < 20 le 20 years
 #Equating to crown closure ge than 40 % for 45% of the area
 u7017_table<-data.table(u7017)[,c("ogc_fid")]
@@ -1051,7 +1051,7 @@ zone_uwr[label == 'u-7-017',]
 
 ### u-7-018 Moose https://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7-018_u7-020_u7-022_u7-024_u7-027.pdf
 ```{r, u7018}
-u7018<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-018' & UWR_UNIT_NUMBER %in% c(2,4,6,9,11,13,15,17,18))
+u7018<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-018' & UWR_UNIT_NUMBER %in% c(2,4,6,9,11,13,15,17,18))
 u7018_table<-data.table(u7018)[,c("ogc_fid")]
 
 # the net area to be reforested for the cutblock must not exceed 60ha or cutblocks must not exceed 100ha and retain at least 40% of basal area. Im going to use the 40% basal area but use height as a proxy for basal area
@@ -1070,7 +1070,7 @@ zone_uwr[label == 'u-7-018',]
 
 ### u-7-20 Moose https://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7-018_u7-020_u7-022_u7-024_u7-027.pdf
 ```{r, u7020}
-u7020<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-020' & UWR_UNIT_NUMBER %in% c(4, 10, 12, 14, 16, 18, 19, 20, 21))
+u7020<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-020' & UWR_UNIT_NUMBER %in% c(4, 10, 12, 14, 16, 18, 19, 20, 21))
 u7020_table<-data.table(u7020)[,c("ogc_fid")]
 
 # the net area to be reforested for the cutblock must not exceed 60ha or cutblocks must not exceed 100ha and retain at least 40% of basal area. Im going to use the 40% basal area but use height as a proxy for basal area
@@ -1089,7 +1089,7 @@ zone_uwr[label == 'u-7-020',]
 
 ### u-7-22 Moose https://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7-018_u7-020_u7-022_u7-024_u7-027.pdf
 ```{r, u7022}
-u7022<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-022' & UWR_UNIT_NUMBER %in% c(3, 7, 9, 11, 13, 15, 17, 19, 21, 25, 27, 28, 29, 30, 31))
+u7022<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-022' & UWR_UNIT_NUMBER %in% c(3, 7, 9, 11, 13, 15, 17, 19, 21, 25, 27, 28, 29, 30, 31))
 u7022_table<-data.table(u7022)[,c("ogc_fid")]
 
 # the net area to be reforested for the cutblock must not exceed 60ha or cutblocks must not exceed 100ha and retain at least 40% of basal area. Im going to use the 40% basal area but use height as a proxy for basal area
@@ -1108,7 +1108,7 @@ zone_uwr[label == 'u-7-022',]
 
 ### u-7-24 Moose https://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7-018_u7-020_u7-022_u7-024_u7-027.pdf
 ```{r, u7024}
-u7024<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-024' & UWR_UNIT_NUMBER %in% c(1))
+u7024<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-024' & UWR_UNIT_NUMBER %in% c(1))
 u7024_table<-data.table(u7024)[,c("ogc_fid")]
 
 # the net area to be reforested for the cutblock must not exceed 60ha or cutblocks must not exceed 100ha and retain at least 40% of basal area. Im going to use the 40% basal area but use height as a proxy for basal area
@@ -1139,7 +1139,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-7-026',]
 
 ### u-7-27 Moose https://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7-018_u7-020_u7-022_u7-024_u7-027.pdf
 ```{r, u7027}
-u7027<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-027' & UWR_UNIT_NUMBER %in% c(2))
+u7027<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER == 'u-7-027' & UWR_UNIT_NUMBER %in% c(2))
 u7027_table<-data.table(u7027)[,c("ogc_fid")]
 
 # the net area to be reforested for the cutblock must not exceed 60ha or cutblocks must not exceed 100ha and retain at least 40% of basal area. Im going to use the 40% basal area but use height as a proxy for basal area
@@ -1165,7 +1165,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-7-028',]
 
 ### u-8-001 Mule Deer
 ```{r, u8001}
-u8001<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-001')
+u8001<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-001')
 
 u8001_table<-data.table(u8001)[,c("ogc_fid", "UWR_UNIT_NUMBER")]
 
@@ -1190,7 +1190,7 @@ zone_uwr[label == 'u-8-001',]
 
 ### u-8-004 Caribou
 ```{r, u8004}
-#u8004<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-004')
+#u8004<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-004')
 
 #u8004_table<-data.table(u8004)[,c("ogc_fid", "UWR_UNIT_NUMBER")]
 
@@ -1205,7 +1205,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-8-004',]
 
 ### u-8-005 Goat
 ```{r, u8005}
-u8005<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-005')
+u8005<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-005')
 
 u8005_table<-data.table(u8005)[,c("ogc_fid", "UWR_UNIT_NUMBER")]
 
@@ -1227,7 +1227,7 @@ zone_uwr[label == 'u-8-005',]
 
 ### u-8-006 Moose
 ```{r, u8006}
-u8006<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-006')
+u8006<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-006')
 
 u8006_table<-data.table(u8006)[,c("ogc_fid", "UWR_UNIT_NUMBER")]
 
@@ -1248,7 +1248,7 @@ zone_uwr[label == 'u-8-006',]
 
 ### u-8-007 Moose
 ```{r, u8007}
-u8007<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-007')
+u8007<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-007')
 
 u8007_table<-data.table(u8007)[,c("ogc_fid", "UWR_UNIT_NUMBER")]
 
@@ -1270,7 +1270,7 @@ zone_uwr[label == 'u-8-007',]
 
 ### u-8-008 Mule Deer
 ```{r, u8008}
-u8008<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-008')
+u8008<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-008')
 
 u8008_table<-data.table(u8008)[,c("ogc_fid", "FEATURE_NOTES")]
 
@@ -1300,7 +1300,7 @@ zone_uwr[label == 'u-8-008',]
 
 ### u-8-009 Goat
 ```{r, u8009}
-u8009<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-009')
+u8009<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-009')
 
 u8009_table<-data.table(u8009)[,c("ogc_fid")]
 
@@ -1319,7 +1319,7 @@ zone_uwr[label == 'u-8-009',]
 
 ### u-8-010 Sheep
 ```{r, u8010}
-#u8010<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-010')
+#u8010<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-010')
 
 #u8010_table<-data.table(u8010)[,c("ogc_fid")]
 
@@ -1332,7 +1332,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-8-010',]
 
 ### u-8-012 Caribou
 ```{r, u8012}
-u8012<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-012')
+u8012<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-8-012')
 
 u8012_table<-data.table(u8012)[,c("ogc_fid")]
 
@@ -1356,7 +1356,7 @@ zone_uwr[label == 'u-8-012',]
 
 ### u-9-001 Elk, Mule Deer, Moose
 ```{r, u9001}
-u9001<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-001')
+u9001<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-001')
 
 u9001_table<-data.table(u9001)[,c("ogc_fid")]
 
@@ -1379,7 +1379,7 @@ zone_uwr[label == 'u-9-001',]
 
 ### u-9-002 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9002}
-u9002<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-002')
+u9002<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-002')
 #2 polygons - spc009(redwillow) and spc-018 (chinook ridge) see http://www.env.gov.bc.ca/wld/documents/uwr/u-9-002_Order.pdf
 u9002_table<-data.table(u9002)[,c("ogc_fid", "UWR_UNIT_NUMBER")]
 
@@ -1402,7 +1402,7 @@ zone_uwr[label == 'u-9-002',]
 
 ### u-9-004 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9004}
-#u9004<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-004')
+#u9004<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-004')
 # No real significant harvest contraints here and thus assumed via fine scale harvesting operations.
 uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-9-004',]
 
@@ -1410,7 +1410,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-9-004',]
 
 ### u-9-009 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9009}
-#u9009<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-009')
+#u9009<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-009')
 # No real significant harvest contraints here and thus removed via fine scale harvesting operations.
 uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-9-009',]
 
@@ -1418,7 +1418,7 @@ uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-9-009',]
 
 ### u-9-010 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9010}
-#u9010<-uwr_cond_harv %>% select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-010')
+#u9010<-uwr_cond_harv %>% dplyr::select(ogc_fid, UWR_UNIT_NUMBER, UWR_NUMBER, FEATURE_CODE, FEATURE_NOTES, geometry) %>% filter(UWR_NUMBER=='u-9-010')
 
 # No real significant harvest contraints here and thus removed via fine scale harvesting operations.
 uwr_cond_harv<-uwr_cond_harv[uwr_cond_harv$UWR_NUMBER != 'u-9-010',]

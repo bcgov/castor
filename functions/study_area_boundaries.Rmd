@@ -62,7 +62,10 @@ tsa <- tsa_raw %>%
   st_make_valid()
 
 plot(tsa["TSA_NUMBER"])
+```
 
+
+```{r, data}
 # ─────────────────────────────────────────────
 # Create Clean TSA Identifier Table
 # ─────────────────────────────────────────────
@@ -126,10 +129,23 @@ DBI::dbWriteTable(
   value = tsa_clean_vat,
   row.names = FALSE,
   overwrite = TRUE
+```
+
+Now write the raster to postgres. The below command does the following:
+It loads a raster file into a PostgreSQL/PostGIS database using the PostGIS utility `raster2pgsql`. The raster is reprojected (or assumed) to BC Albers (EPSG:3005), tiled, indexed, and written to a PostGIS raster table.
+
+Specifically, the command converts the GeoTIFF file `tsa_boundary.tif` into SQL statements using `raster2pgsql`, and then pipes those statements directly into the `psql` client to populate the table `public.rast_test_tsa`. Database connection credentials are retrieved securely from the keyring
+```{r, data}
 )
+
+# Write the raster to postgres
 
 system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ',  here::here("functions//tsa_boundary.tif"),' -t 100x100 public.rast_test_tsa | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get ('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
 
 dbDisconnect(conn)
 
 ```
+
+Note once you have run the above commands open pgAdmin and look under the public schema for the files you uploaded. If you did not alter the names then you should see three files: test_tsa, vat_test_tsa, and rast_test_tsa. 
+
+
