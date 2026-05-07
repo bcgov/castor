@@ -21,7 +21,7 @@ Elizabeth Kleynhans, Team Lead, Strategic Analysis, Forest Analysis and Inventor
 
 ### Contributors
 
-Tyler Muhly, Terrestrial Habitat Manager,  Biodiversity and Ecosystems Branch, Ministry of Water, Land and Resource Stewardship
+Tyler Muhly, Terrestrial Habitat Manager, Biodiversity and Ecosystems Branch, Ministry of Water, Land and Resource Stewardship
 
 Mike Fowler, Spatial Data Analyst, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests
 
