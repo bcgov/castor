@@ -19,7 +19,7 @@ updated: "12/03/2026"
 output: html_document
 ---
 
-This script creates the necessary study area boundary information needed for Castor to run a simulation on your area of interest. Other required parameters are detailed in other scripts.
+This script creates the basic shapefiles, rasters and lookup tables needed to run a simple Castor model. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -42,7 +42,9 @@ prov.rast <- raster::raster(
 ```
 
 
-## Get area of interest e.g. Boundary TSA. However, the area can be any area of your choosing.
+## Get area of interest 
+
+In this example we will use the Boundary TSA to demonstrate what files are needed for a castor workflow. However, the area can be any area of your choosing.
 ```{r, data}
 # ─────────────────────────────────────────────
 # Load TSA / TFL Boundaries or any area that you are interested in using
@@ -129,6 +131,7 @@ DBI::dbWriteTable(
   value = tsa_clean_vat,
   row.names = FALSE,
   overwrite = TRUE
+)
 ```
 
 Now write the raster to postgres. The below command does the following:
@@ -136,7 +139,7 @@ It loads a raster file into a PostgreSQL/PostGIS database using the PostGIS util
 
 Specifically, the command converts the GeoTIFF file `tsa_boundary.tif` into SQL statements using `raster2pgsql`, and then pipes those statements directly into the `psql` client to populate the table `public.rast_test_tsa`. Database connection credentials are retrieved securely from the keyring
 ```{r, data}
-)
+
 
 # Write the raster to postgres
 

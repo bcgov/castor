@@ -1,0 +1,370 @@
+<!--
+Copyright 2025 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+---
+title: "Scripts for creating spatial inputs for Castor"
+author: "Elizabeth Kleynhans"
+date: "20/04/2026"
+output: html_document
+---
+
+# About this document
+
+This document provides example scripts for constructing the core spatial layers required to initialize and run a Castor model. Scripts are intended as illustrative templates and may be adapted to local study areas, datasets, or resolutions.
+
+
+```{r setup, include=FALSE}
+# Global setup for Castor preprocessing scripts
+# - Loads common spatial and data wrangling libraries
+# - Defines the standard provincial grid used throughout the model
+# - Ensures all rasters are aligned (CRS, extent, resolution)
+# - Specifies the location of the files and which schema the data should be loaded into in the postgreSQL database
+
+knitr::opts_chunk$set(echo = TRUE)
+
+#Get some important castor specific functions
+source(here::here("functions/R_Postgres.R"))
+
+library(data.table)
+library(sf)
+library(tidyverse)
+library(raster)
+library(fasterize)
+library(bcdata)
+library(bcmaps)
+library(terra)
+
+# Create the standard Castor provincial raster grid
+# All spatial layers used by Castor must align with this grid
+prov.rast <- raster(
+  nrows = 15744, ncols = 17216,
+  xmn = 159587.5, xmx = 1881187.5,
+  ymn = 173787.5, ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = c(100, 100),
+  vals = 0
+)
+
+data.dir <- "<path\\to\\files>" # path where the files you want to include in your postgres database are temporarily stored e.g. this could be your downloads folder or another folder within the project. 
+database.schema<-'test' # name of the schema in you database that you want to load the relevant files
+```
+
+
+# Vegetation Resource Inventory (VRI)
+
+The [VRI](https://catalogue.data.gov.bc.ca/dataset/vri-2024-forest-vegetation-composite-rank-1-layer-r1-) provides the initial forest state for Castor, including species composition, age, height, and basal area. For most castor applications, the **Forest Vegetation Composite Rank 1 layer** is sufficient, as it provides a single
+best‑available representation of stand attributes per polygon.
+
+Users may substitute alternative forest inventory data if:
+ - the data has the following attributes: age, height, crown closure, quadratic mean diameter 125, BC Land-cover Classification System Level 1, 2 and 4, and site index
+- polygons can be rasterized to the Castor grid.
+
+```{r, inventory data}
+# download and open the VRI data
+vri_all <- st_read(paste0(data.dir,"\\VEG_COMP_LYR_R1_POLY_2024.gdb"))
+
+# The VRI is huge so unless you are planning on running your analysis in multiple area I would recommend clipping the full VRI layer to your area of interest and then only upload that to postgres.
+
+# first clip the vri to the bounding box of the tsa. 
+vri_tsa_bbox <- st_crop(vri_all, st_bbox(tsa)) # in this case tsa is your area of interest that you created i.e. in the study_area_boundaries.Rmd (https://github.com/bcgov/castor/blob/main/functions/study_area_boundaries.Rmd)
+
+# create some space on your hard drive if its small
+rm(vri_all) 
+gc()
+
+# Next select only the features we are interested in.
+vri_tsa<- vri_tsa_bbox %>% 
+  dplyr::select(FEATURE_ID, OPENING_ID, OPENING_NUMBER, FEATURE_CLASS_SKEY, BCLCS_LEVEL_1, BCLCS_LEVEL_4, BCLCS_LEVEL_5, BEC_ZONE_CODE, BASAL_AREA, SPECIES_CD_1, SPECIES_PCT_1, SPECIES_CD_2, SPECIES_PCT_2, SPECIES_CD_3, SPECIES_PCT_3, SPECIES_CD_4, SPECIES_PCT_4, SPECIES_CD_5, SPECIES_PCT_5, SPECIES_CD_6, SPECIES_PCT_6, PROJ_AGE_1, PROJ_HEIGHT_1) %>%
+  dplyr::rename_with(tolower)
+
+con <- dbConnect(RPostgres::Postgres(),host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL')) 
+
+st_write(st_as_sf(vri_tsa, crs=3005), con, Id(schema = database.schema, table = "vri_2024_test"))
+dbDisconnect(con)
+
+# Rasterize 
+ras.vri <- fasterize::fasterize (st_cast (vri_tsa, "MULTIPOLYGON"), prov.rast, field = "feature_id")
+writeRaster (ras.vri, paste0(data.dir,("\\raster_vri_fid.tif")), overwrite = T)
+
+# write data
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ', data.dir,'\\raster_vri_fid.tif -t 100x100 ', database.schema,'.rast_vri_id_test | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/', keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+The resulting VRI raster contains a feature ID per pixel, which allows Castor to join pixel‑level state back to polygon‑level forest attributes when initializing the database.
+
+
+# Timber Harvesting Land Base (THLB)
+
+The THLB layer defines which pixels are eligible for harvest activities in Castor. Pixels outside the THLB are excluded from harvest scheduling.
+
+Any spatial representation of the THLB may be used, provided it:
+- is binary (inside / outside THLB),
+- aligns to the Castor grid,
+- and is consistent with the planning context of the analysis.
+
+A version of the provincial timber harvesting land base can be obtained from https://catalogue.data.gov.bc.ca/dataset/provincial-timber-harvesting-land-base-thlb-by-timber-supply-area-tsa-
+
+```{r thlb}
+
+thlb<-st_read(paste0(data.dir,"\\tsa02_thlb.gdb"))
+
+# Rasterize THLB to match Castor grid
+
+ras.thlb <- fasterize::fasterize (st_cast (thlb, "MULTIPOLYGON"), prov.rast, field = "thlb_fact")
+
+terra::writeRaster (ras.thlb, file = paste0(data.dir, "\\raster_thlb.tif"), overwrite = TRUE)
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ', data.dir, '\\raster_thlb.tif -t 100x100 ',database.schema,'.rast_thlb | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+# Elevation
+
+Elevation is used directly in Castor and indirectly to derive secondary variables such as slope.
+Here we use the BC provincial CDED DEM and resample it to the Castor 100‑m grid.
+
+Alternative DEM sources may be used if they are:
+- projected to BC Albers,
+- resampled to the Castor grid,
+- and internally consistent with other spatial layers.
+
+```{r elevation}
+
+cded_vrt <- cded(
+  aoi = tsa,
+  ask = FALSE   # important for scripts / pipelines
+)
+
+dem <- rast(cded_vrt)
+dem_bc <- project(dem, prov.rast)
+
+dem_bc_r <- raster::raster(dem_bc)
+dem_bc_100m <- raster::resample(
+  dem_bc_r,
+  prov.rast,
+  method = "bilinear"
+)
+
+# check dem_bc_100m matches ras.thlb
+dem_bc_100m
+ras.thlb
+
+## Upload data to db
+writeRaster (dem_bc_100m, file = paste0(data.dir,"\\raster_elev.tif"), format = "GTiff", overwrite = TRUE)
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ', data.dir, '\\raster_elev.tif -t 100x100 ',database.schema,'.rast_elev | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/', keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+# Roads
+
+Road layers influence access, disturbance patterns, and spatial cost effects in Castor.
+Two road representations are supported:
+- a simple binary access layer, and
+- a distance‑weighted access layer that penalizes remoteness from mills.
+Users should choose the option appropriate to their research question.
+
+## Overview of road options
+
+**Option 1 — Simple (binary) roads**
+This option treats all roads as providing equal, unconstrained access. Roads indicate where access exists, but do not impose any access cost or remoteness penalty.
+
+ - Equivalent to the logic used in the [Roads](https://landscitech.github.io/roads/) R package
+ - Equivalent to the simple version of RoadsCastor
+ - No mill locations required
+ - Roads act as a binary access mask only
+
+**Option 2 — Distance‑weighted roads (advanced)**
+This option applies a penalty to non‑permanent roads that increases with distance from processing facilities (mills).
+
+ - Supported by RoadsCastor and is a more complex workflow
+ - Captures remoteness and access gradients
+ - Requires mill location data
+ - More computationally expensive, but potentially more realistic
+ 
+We provide example code for both options but first provide an example for getting roads data and getting it into the correct format.
+
+### Get roads data
+Get roads data. In this example Ill use the BC Cumulative Effects Framework - Integrated Roads - 2026 (https://catalogue.data.gov.bc.ca/dataset/bc-cumulative-effects-framework-integrated-roads-current/resource/4b2aa2a5-8cfd-4410-a0af-d7f257b4131c) but any data can be used. 
+
+Roads are first classified into permanent and non‑permanent types and then buffered by 51 m prior to rasterization.
+This buffering step ensures that linear road features adequately intersect the 100 m raster grid. Without buffering, narrow road lines may fall between raster cell centers and be omitted during rasterization, leading to incomplete road representation.
+
+```{r roads}
+library(sf)
+library(raster)
+library(fasterize)
+library(data.table)
+library(RANN)
+library(dplyr)
+
+# get roads data
+roads <- st_read(paste0(data.dir,"\\BC_CEF_Integrated_Roads_2026\\BC_CE_Integrated_Roads_2026.gdb")) %>%
+  st_transform(3005)
+
+roads$road_class <- NA_integer_
+
+# Permanent roads
+roads$road_class[
+  roads$DRA_ROAD_SURFACE == "paved" |
+  (!is.na(roads$DRA_ROAD_NAME_FULL) & roads$DRA_ROAD_CLASS != "Trail")
+] <- -2
+
+# Non-permanent roads
+roads$road_class[is.na(roads$road_class)] <- -1
+
+# buffer roads
+roads_buf <- st_buffer(roads, dist = 51)
+
+road_class_rast <- fasterize(
+  st_cast(roads_buf, "MULTIPOLYGON"),
+  prov.rast,
+  field = "road_class"
+)
+
+road_class_rast[is.na(road_class_rast[])] <- 0
+```
+
+#### Option 1 — Simple (binary) roads
+Description
+This option assumes all roads provide equal access with zero penalty, regardless of road type or distance from mills. Roads are treated purely as an access mask.
+This is the approach taken by the R package [Roads](https://landscitech.github.io/roads/)
+```{r roads}
+# Binary road access raster
+# 0  = road present (accessible)
+# NA = no road (inaccessible)
+
+
+road_binary <- road_class_rast
+road_binary[] <- NA                # start with everything NA
+road_binary[road_class_rast < 0] <- 0
+
+
+plot(road_binary, main = "Binary Roads (Simple Option)")
+
+writeRaster (road_binary, paste0(data.dir, "\\road_binary.tif", overwrite = T))
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, '\\road_binary.tif -t 100x100 ',database.schema,'.rast_roads_binary | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/', keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+#### Option 2 — Distance‑weighted roads (advanced)
+Description
+This option applies a remoteness penalty to non‑permanent roads based on distance to the nearest processing facility (mill).
+
+Permanent roads have zero penalty
+Non‑permanent roads incur a penalty proportional to distance
+
+```{r}
+
+# Get mill locations
+mills <- bcdc_query_geodata("WHSE_IMAGERY_AND_BASE_MAPS.GSR_TMBR_PRCSSING_FAC_SV") %>%
+  collect()
+
+# remove duplicates
+mills_unique <- mills %>% 
+  dplyr::distinct(geometry, .keep_all = TRUE)
+
+# Identify road cells
+road_cells <- which(road_class_rast[] < 0)
+
+# Cell coordinates
+road_pts <- xyFromCell(road_class_rast, road_cells)
+
+# Mill coordinates
+mill_xy <- st_coordinates(mills_unique)
+
+# Nearest‑neighbour distance (meters)
+dist <- RANN::nn2(
+  data  = mill_xy,
+  query = road_pts,
+  k = 1
+)
+
+road_dist <- road_class_rast
+road_dist[road_cells] <- dist$nn.dists[, 1]
+road_dist[road_dist == 0] <- NA
+
+# apply road penalties
+road_weight <- road_class_rast
+
+# Reclassify to penalty weights
+road_weight[road_weight == -2] <- 0   # permanent roads
+road_weight[road_weight == -1] <- 1   # non‑permanent roads
+road_weight[road_weight ==  0] <- NA  # no road
+
+#
+road_weighted <- road_weight * road_dist
+
+plot(road_weighted, main = "Distance‑Weighted Roads (Advanced Option)")
+
+writeRaster (road_weighted, paste0(data.dir, "\\road_weighted.tif", overwrite = T))
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, '\\road_weighted.tif -t 100x100 ',database.schema,'.rast_roads_weighted | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/', keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+## Roads Cost surface
+
+
+This section is descriptive rather than prescriptive. Users are responsible for supplying a road‑building cost surface appropriate to their analysis. We do not provide an example script because
+
+A road‑building cost surface is a raster layer that represents the relative cost of constructing a road through each cell of the landscape. This surface is used by graph‑based and least‑cost path algorithms (e.g., Castor, [Roads R package](https://landscitech.github.io/roads/))) to simulate where new roads would most likely be built. Importantly, a road‑building cost surface represents construction difficulty, not road access, remoteness, or travel cost after roads exist.
+
+### User responsibility
+The creation of a road‑building cost surface is intentionally left to the user. Neither Castor, SELES‑STSM, nor the roads R package prescribe a single method for defining construction cost. Instead, users are expected to supply a cost surface that is appropriate for their modeling objectives, spatial scale, and available data.
+
+**Users may:**
+ - construct their own cost surface from input layers,
+ - reuse an existing cost surface developed for a similar application,
+ - or apply a simplified formulation suitable for exploratory or sensitivity analyses.
+
+**Conceptual model**
+In general form, a road‑building cost surface encodes a function such as:
+road_build_cost = f(terrain, region, land cover, crossings, barriers)
+
+Each raster cell is assigned a numeric value proportional to the marginal cost of road construction through that location. Cells that cannot support road construction (e.g., large lakes or coastal waterbodies) are treated as absolute barriers and excluded from the graph.
+
+**Typical input data layers**
+While specific implementations vary, road‑building cost surfaces commonly incorporate some subset of the following inputs.
+
+1. Topography
+
+Slope derived from a digital elevation model (DEM). Steeper slopes represent higher construction cost and can be included as a linear or nonlinear term.
+
+2. Regional context
+
+Regional boundaries such as Timber Supply Areas (TSAs)
+Used to apply region‑specific intercepts or coefficients
+Reflects variation in geology, climate, and engineering standards
+
+3. Land cover or ecological modifiers
+
+Biogeoclimatic zones (e.g., ESSF)
+Used to represent systematic cost differences associated with soil conditions, precipitation, or ecosystem type
+
+4. Linear feature crossings
+
+Pipeline crossings
+Watercourse crossings
+Typically represented as per‑cell counts multiplied by unit crossing costs
+
+5. Absolute barriers
+
+Large lakes or coastal waterbodies
+Treated as non‑buildable areas (NA values)
+
+
+6. Appraisal‑based cost estimates (optional)
+
+In some applications (e.g., Castor), road‑building cost surfaces have been informed by road development cost models documented in the BC Interior and Coast Appraisal Manuals: [Interior Appraisal Manual](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/interior-timber-pricing/interior-appraisal-manual), [Coast Appraisal Manual](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/coast-timber-pricing/coast-appraisal-manual).
+

@@ -395,13 +395,16 @@ Read growth and yield model outputs (managed and natural) and supporting referen
 
 ```{r}
 # get the current tipsy table
-tipsy <- read_csv(paste0(data.dir, "BaseCase_nog\\tsa02\\R\\data\\MSYT\\MSYT_current_output.csv"))
 
-reference_tab <- read_csv(paste0(data.dir,"BaseCase_nog\\tsa02\\R\\data\\MSYT\\MSYT_reference.csv"))
-input_tab<-read_csv(paste0(data.dir,"BaseCase_nog\\tsa02\\R\\data\\MSYT\\MSYT_current_input.csv"))
+data.dir <- "<path\\to\\files>"
+
+tipsy <- read_csv(paste0(data.dir, "\\MSYT\\MSYT_current_output.csv"))
+
+reference_tab <- read_csv(paste0(data.dir,"\\MSYT\\MSYT_reference.csv"))
+input_tab<-read_csv(paste0(data.dir,"\\MSYT\\MSYT_current_input.csv"))
 
 #get the natural stand yield table in wide format
-vdyp_wide<-read_csv(paste0(data.dir,"BaseCase_nog\\tsa02\\R\\data\\NSYT\\tsa02_nsyt.csv")) 
+vdyp_wide<-read_csv(paste0(data.dir,"\\NSYT\\tsa02_nsyt.csv")) 
 ```
 
 
@@ -454,7 +457,7 @@ nrow(input_fids)  # diagnostic: number of candidate deciduous-leading features
 ## identify deciduous-leading stands based on inventory species codes.
 ##
 ## Species codes beginning with 'A' or 'E' are treated as deciduous.
-query <- "select feature_id, spec_cd_1 from tsa02_ar_table where spec_cd_1 like 'A%' or spec_cd_1 like 'E%';"
+query <- "select feature_id, spec_cd_1 from test.tsa02_ar_table where spec_cd_1 like 'A%' or spec_cd_1 like 'E%';"
 
 ## Connect to Postgres database containing AR attributes
 con <- dbConnect(
@@ -849,6 +852,9 @@ current <- bind_rows(vdyp_mat, op_yield_long) %>%# bring the two dataframs toget
   group_by(feature_id) %>% #group by feature_id
   arrange(feature_id, age) #%>% #sort by feature_id and age
 
+# check you have both natural and planted curves
+table(current$current_curve)
+
 ```
 
 Writes the current-condition growth and yield curves to the Postgres database so they can be accessed by downstream Castor modules.
@@ -1164,16 +1170,15 @@ fut_yield_long<-left_join(fut_yield_long, fut_yield_long_cc, by=c("feature_id", 
 Get Natural stand yield curves (VDYP curves curves) for locations where there is no managed stand curve i.e. the feature_id has no managed stand yield curve associated with it.
 ```{r}
 vdyp_mat <- anti_join(vdyp_wide1, fut_yield_long) # remove VDYP curves in openings
-vdyp_mat$future_curve<-"natural"
+vdyp_mat$future_curve<-"natural" # label the future curves that will stay on the natural stand yield curve
 
 vdyp_mat<-vdyp_mat %>% dplyr::select(feature_id, age, PRJ_VOL_DWB, PRJ_DOM_HT, PRJ_BA, future_curve) %>%
   rename(vol=PRJ_VOL_DWB, 
          ht = PRJ_DOM_HT,
          ba = PRJ_BA)
-
-fut_yield_long$future_curve<-"planted"
-
 vdyp_mat$cc<-0
+
+fut_yield_long$future_curve<-"planted" # label the curves that are planted
 
 # join managed and natural stand yield curves together
 future2 <- bind_rows(vdyp_mat, fut_yield_long) %>%# bring the two dataframs together
@@ -1198,45 +1203,21 @@ dbWriteTable(con, SQL("test.tsa02_future_thin_all"),future2,row.names=FALSE)
 
 This section takes the current and future growth‑and‑yield curves prepared earlier and performs the final integration steps required for use in Castor simulations. Specifically, it:
 
-Links yield curves to Analysis Units (AUs),
-Assigns yield curve IDs (YCIDs) for current and future conditions,
-Creates spatial rasters that tell Castor which yield curve applies to each location, and
-Writes all tabular and spatial inputs to Postgres in the formats expected by Castor.
+Links yield curves to Analysis Units (AUs), assigns yield curve IDs (YCIDs) for current and future conditions, creates spatial rasters that tell Castor which yield curve applies to each location, and writes all tabular and spatial inputs to Postgres in the formats expected by Castor.
 
 At the end of this section, all growth and yield inputs are fully aligned with Castor’s data model.
 
-### Load current and future yield tables from Postgres
-The script first reconnects to Postgres and reads back the previously written tables containing:
-
-Current‑condition yield curves (natural + managed), and
-Future yield curves (post‑harvest managed stands).
-
-Basic checks are performed to confirm that each feature_id has the expected number of age rows (26 ages). These checks guard against incomplete curves or accidental duplication during earlier joins.
-
 
 ```{r, G&Y data}
-con <- dbConnect(RPostgres::Postgres(),host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL')) 
+#Load and format Analysis Unit (AU) information
+#This table defines the relationship between spatial Analysis Units and yield curves, and includes attributes such as:
+#stand type classifications, current and future yield curve IDs, and metadata linking AUs to managed and natural yield trajectories. Note this table may have regeneration delay but Castor currently does not have the functionality to use this parameter. 
 
-## TABLES
-tab.dat<-dbGetQuery(con, "SELECT * FROM test.tsa02_current_thin_all")
+tab.au.info <- data.table(read.csv(paste0(data.dir,"\\csv\\auinfo_tsa02_stsm2024.txt"), header = T, sep = '\t'))
 
-tab.dat.fut<-dbGetQuery(con, "SELECT * FROM test.tsa02_future_thin_all")
-```
+# feature_id serves as the common key, and column names are replaced to match Castor’s expected schema.
+#This AU table provides the bridge between spatial units and yield curves.
 
-Load and format Analysis Unit (AU) information
-An AU information table (below) is loaded from disk. This table defines the relationship between spatial Analysis Units and yield curves, and includes attributes such as:
-
-regeneration delay (note: stored but not enforced by Castor), stand type classifications, current and future yield curve IDs, and metadata linking AUs to managed and natural yield trajectories.
-
-The table is reformatted so that:
-
-feature_id serves as the common key, and column names match Castor’s expected schema.
-
-This AU table provides the bridge between spatial units and yield curves.
-```{r, G&Y data}
-tab.au.info <- data.table(read.csv("D:\\Liz_github\\castor_research\\R\\scenarios\\Boundary_analysis\\BaseCase_nog\\tsa02\\R\\data\\csv\\auinfo_tsa02_stsm2024.txt", header = T, sep = '\t'))
-
-# Format
 tab.au.info <- tab.au.info [, c ("auid", "AUid", "RegenDelay", "MHA", "MHV", "StandType", "LeadSpp", "pPlantedAU1", "PlantedAU1", "UnmanagedAU")]
 colnames (tab.au.info) <- c ("auid", "feature_id", "regen_delay", "mha", "mhv", "standtype", "leadspp", "perc_planted", "managed_ycid", "natural_ycid")
 ```
@@ -1259,8 +1240,8 @@ tab.au.info<-tab.au.info[order(feature_id, auid)]
 tab.au.info.cur<-tab.au.info[auid<(length(tab.au.info$auid)/2 +1), ]
 tab.au.info.fut<-tab.au.info[auid>length(tab.au.info$auid)/2, ]
 
-tab.dat<-data.table(tab.dat)
-tab.dat.fut<-data.table(tab.dat.fut)
+tab.dat<-data.table(current)
+tab.dat.fut<-data.table(future2)
 current_curves<-merge(tab.dat, tab.au.info.cur, by="feature_id")
 future_curves<-merge(tab.dat.fut, tab.au.info.fut, by="feature_id")
 
@@ -1268,12 +1249,6 @@ current_curves<-current_curves %>% rename(curve = current_curve)
 future_curves<-future_curves %>% rename(curve = future_curve)
 
 curves<-rbind(current_curves, future_curves)
-# look for feature id's where I dont have current and future curves. I should have 26 * 2 fields for each feature id.
-count <- curves %>%
-              group_by (feature_id) %>%
-               tally ()
-check <- count %>%
-          dplyr::filter (n < 52)
 ```
 
 ### Calculate deciduous percentage from the VRI
@@ -1340,12 +1315,11 @@ vri_con<-vri[,c("feature_id", "conifer_pct_cover_total")]
 
 curves<-merge(curves, vri_con, by="feature_id")
 
-# join the tables
-
 curves [, dec_pcnt := 100 - conifer_pct_cover_total]
+#remove the column conifer_pct_cover_total
 curves[, conifer_pct_cover_total:=NULL]
-curves [, qmd := 0]
-curves [, eca := 0]
+curves [, qmd := 0] # if you have no quad mean diameter values include it as 0 for a place holder
+curves [, eca := 0] # similarly if you have no expected clearcut area values include it as a zero
 ```
 
 ### Assign current and future yield curve IDs (YCIDs)
@@ -1357,238 +1331,182 @@ All stands are assigned a future managed YCID, which will be used after harvest.
 
 Negative YCIDs are used to distinguish natural yield curves from managed ones, following Castor convention.
 This step defines the rule‑based transition from current to future yield curves that Castor applies during simulation.
-
-```{r, G&Y data}
-#### to use PlantedAU/managed/TIPSY as current volumes for existing managed stands ####
-curves [standtype == "oldCurve" | standtype == "thriftyCurve", ycid_current := natural_ycid]
-curves [standtype == "managedCurve", ycid_current := managed_ycid]
-curves [, ycid_future := managed_ycid]
-
-# rasters
-rast.auid <- terra::rast ("D:\\Liz_github\\castor_research\\R\\scenarios\\Boundary_analysis\\BaseCase_nog\\tsa02\\R\\data\\tiff\\tsa02_au.tif")
-
-tab.transition <- unique (curves [auid<(length(tab.au.info$auid)/2 +1), c ("feature_id","auid", "ycid_current", "ycid_future")])
-tab.transition2 <- tab.transition[ycid_current<(length(tab.au.info$auid)/2 +1), ycid_current:=ycid_current * -1]
-
-rast.current.ycid <- rast.auid
-rast.current.ycid <- terra::subst (rast.current.ycid, tab.transition$auid, tab.transition$ycid_current)
-plot(rast.current.ycid)
-
-rast.future.ycid <- rast.auid
-rast.future.ycid <- terra::subst (rast.future.ycid, tab.transition$auid, tab.transition$ycid_future)
-plot(rast.future.ycid)
-```
-
-write rasters to postgres
-```{r, G&Y data}
-rast.current.ycid2<-extend(rast.current.ycid, ras.aoi)
-writeRaster (rast.current.ycid2, paste0 (data.dir, "rast_ycid_current.tif"), overwrite = T)
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'rast_ycid_current.tif -t 100x100 boundary_tsa.rast_ycid_current | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
-
-rast.future.ycid2<-extend(rast.future.ycid, ras.aoi)
-writeRaster (rast.future.ycid2, paste0 (data.dir, "rast_ycid_future.tif"), overwrite = T)
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'rast_ycid_future.tif -t 100x100 boundary_tsa.rast_ycid_future | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
-```
-
-
-```{r, G&Y data}
-# current
-setnames(curves, "vol", "tvol")
-setnames(curves, "ht", "height")
-setnames(curves, "ba", "basalarea")
-setnames(curves, "cc", "crownclosure")
-setnames(curves, "auid", "ycid")
-tab.current <- curves [ycid < 49968, c ("ycid", "feature_id", "age", "tvol", "dec_pcnt", "height", "qmd", "basalarea", "crownclosure", "eca", "ycid_current")]
-tab.current[ycid_current<49968, ycid_current:=ycid_current* -1] # make id negative
-tab.current[ ,ycid:=ycid_current] # make id negative
-tab.current.unique<-unique(tab.current)
-nrow(tab.current.unique)
-tab.current.unique[order(ycid, age)]
-tab.current.unique[ycid==-49967,]
-
-tab.current.unique
-count<-tab.current.unique %>% 
-  group_by(ycid) %>%
-  tally()
-check <- count %>%
-          dplyr::filter (n > 26)
-
-
-
-conn <- DBI::dbConnect(dbDriver("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port ='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-DBI::dbWriteTable (conn, c ("boundary_tsa", "yields_current"), value = tab.current.unique, row.names = FALSE, overwrite = TRUE)
-
-# future
-tab.future <- curves [ycid > 49967, c ("ycid", "feature_id", "age", "tvol", "dec_pcnt", "height", "qmd", "basalarea", "crownclosure", "eca", "ycid_future")]
-tab.future.unique<-unique(tab.future)
-tab.future$ycid <- tab.future$ycid_future
-conn <- DBI::dbConnect(dbDriver("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port ='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-DBI::dbWriteTable (conn, c ("boundary_tsa", "yields_future"), value = tab.future, row.names = FALSE, overwrite = TRUE)
-```
-
-
-```{r, G&Y data}
-#### to use current AUID as current volumes for all stands ####
-# vdyp/current
-tab.vdyp <- curves [ycid < 49968, c ("ycid", "feature_id", "age", "tvol", "dec_pcnt", "height", "qmd", "basalarea", "crownclosure", "eca")]
-tab.vdyp$ycid <- tab.vdyp$ycid * -1 # make id negative
-
-rast.auid <- terra::rast ("D:\\Liz_github\\castor_research\\R\\scenarios\\Boundary_analysis\\BaseCase_nog\\tsa02\\R\\data\\tiff\\tsa02_au.tif")
-rast.auid <- rast.auid * -1
-
-rast.auid2<-extend(rast.auid, ras.aoi)
-
-writeRaster (rast.auid2, paste0 (data.dir, "rast_ycid_vdyp.tif"), overwrite = T)
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'rast_ycid_vdyp.tif -t 100x100 boundary_tsa.rast_ycid_vdyp | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
-
-conn <- DBI::dbConnect(dbDriver("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port ='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-DBI::dbWriteTable (conn, c ("boundary_tsa", "vdyp"), value = tab.vdyp, row.names = FALSE, overwrite = TRUE)
-
-
-# tipsy/future
-tab.tipsy <- curves [ycid > 49967, c ("ycid", "feature_id", "age", "tvol", "dec_pcnt", "height", "qmd", "basalarea", "crownclosure", "eca")]
-tab.transition <- unique (curves [ycid > 49967, c ("ycid", "managed_ycid")])
-tab.transition$ycid<-(tab.transition$ycid-49967) * -1
-
-rast.tipsy <- rast.auid
-rast.tipsy<-terra::subst (rast.tipsy, tab.transition$ycid, tab.transition$managed_ycid)
-plot(rast.tipsy)
-rast.tipsy2<-extend(rast.tipsy, ras.aoi)
-
-writeRaster (rast.tipsy2, paste0 (data.dir, "rast_ycid_tipsy.tif"), overwrite = T)
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'rast_ycid_tipsy.tif -t 100x100 boundary_tsa.rast_ycid_tipsy | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
-
-DBI::dbWriteTable (conn, c ("boundary_tsa", "tipsy"), value = tab.tipsy, row.names = FALSE, overwrite = TRUE)
-#DBI::dbWriteTable (conn, c("castor_stsm_compare", "vdyp_tipsy_vat"), value = tab.transition, row.names = FALSE, overwrite = TRUE)
-
-dbDisconnect (conn)
-
-```
-## upload the gr_skey raster
 ```{r}
-grskey_ras<-rast("D:\\Liz_github\\castor_research\\R\\scenarios\\Boundary_analysis\\BaseCase_nog\\tsa02\\R\\data\\tiff\\tsa02_gr_skey.tif")
-skey<-data.table(skey = as.integer(grskey_ras[]))
-tab.count <- skey %>%
-              group_by (skey) %>%
-               tally ()
 
-tab.count %>% filter(n>1)
+library(data.table)
+library(dplyr)
+library(terra)
+library(DBI)
+library(RPostgres)
 
-grskey_ras2<-extend(grskey_ras, ras.aoi)
+## ---------------------------------------------------------------------
+## 1. Define YCID boundary (natural vs managed)
+## ---------------------------------------------------------------------
+## Convention: lower half = natural, upper half = managed
+ycid_split <- max(tab.au.info$auid) / 2
 
-writeRaster (grskey_ras2, paste0 (data.dir, "rast_grskey_tsa02.tif"), overwrite = T)
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'rast_grskey_tsa02.tif -t 100x100 boundary_tsa.rast_grskey_tsa02 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
+## ---------------------------------------------------------------------
+## 2. Assign current and future YCIDs by stand type
+## ---------------------------------------------------------------------
+## Current condition:
+##   - oldCurve / thriftyCurve → natural (VDYP)
+##   - managedCurve           → managed (TIPSY)
+
+curves[
+  standtype %in% c("oldCurve", "thriftyCurve"),
+  ycid_current := natural_ycid
+]
+
+curves[
+  standtype == "managedCurve",
+  ycid_current := managed_ycid
+]
+
+## Future condition:
+##   - After harvest, all stands use managed (TIPSY) curves
+curves[, ycid_future := managed_ycid]
+
+
+## ---------------------------------------------------------------------
+## 3. Build AU-level transition table (one row per AU)
+## ---------------------------------------------------------------------
+tab.transition <- unique(
+  curves[
+    auid <= ycid_split,
+    .(feature_id, auid, ycid_current, ycid_future)
+  ]
+)
+
+## Negative YCIDs indicate natural yield curves (Castor convention)
+tab.transition[
+  ycid_current <= ycid_split,
+  ycid_current := -ycid_current
+]
+
+
+## ---------------------------------------------------------------------
+## 4. Create spatial YCID rasters (current and future)
+## ---------------------------------------------------------------------
+## Load AU raster once
+rast.auid <- terra::rast(paste0(data.dir,
+  "/tiff/tsa02_au.tif"))
+
+## Current YCID raster
+rast.current.ycid <- terra::subst(
+  rast.auid,
+  tab.transition$auid,
+  tab.transition$ycid_current
+)
+
+## Future YCID raster
+rast.future.ycid <- terra::subst(
+  rast.auid,
+  tab.transition$auid,
+  tab.transition$ycid_future
+)
+
+
+## ---------------------------------------------------------------------
+## 5. Write YCID rasters to disk and Postgres
+## ---------------------------------------------------------------------
+writeRaster(
+  extend(rast.current.ycid, ras.aoi),
+  paste0(data.dir, "rast_ycid_current.tif"),
+  overwrite = TRUE
+)
+
+system(
+  paste0(
+    'raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ',
+    data.dir, 'rast_ycid_current.tif -t 100x100 test.rast_ycid_current | ',
+    'psql postgres://',
+    keyring::key_get("dbuser",  keyring = "postgreSQL"), ':',
+    keyring::key_get("dbpass",  keyring = "postgreSQL"), '@',
+    keyring::key_get("dbhost",  keyring = "postgreSQL"), ':5432/clus'
+  )
+)
+
+writeRaster(
+  extend(rast.future.ycid, ras.aoi),
+  paste0(data.dir, "rast_ycid_future.tif"),
+  overwrite = TRUE
+)
+
+system(
+  paste0(
+    'raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ',
+    data.dir, 'rast_ycid_future.tif -t 100x100 test.rast_ycid_future | ',
+    'psql postgres://',
+    keyring::key_get("dbuser",  keyring = "postgreSQL"), ':',
+    keyring::key_get("dbpass",  keyring = "postgreSQL"), '@',
+    keyring::key_get("dbhost",  keyring = "postgreSQL"), ':5432/clus'
+  )
+)
+
+
+## ---------------------------------------------------------------------
+## 6. Build Castor-ready CURRENT yield table
+## ---------------------------------------------------------------------
+tab.current <- curves[
+  ycid_current <= ycid_split,
+  .(ycid_current, feature_id, age, vol, dec_pcnt, ht, qmd, ba, cc, eca)
+]
+
+setnames(
+  tab.current,
+  old = c("ycid_current", "vol", "ht", "ba", "cc"),
+  new = c("ycid",         "tvol", "height", "basalarea", "crownclosure")
+)
+
+tab.current[, ycid := as.integer(ycid)]
+tab.current <- unique(tab.current)
+
+
+## ---------------------------------------------------------------------
+## 7. Build Castor-ready FUTURE yield table
+## ---------------------------------------------------------------------
+tab.future <- curves[
+  ycid_future > ycid_split,
+  .(ycid_future, feature_id, age, vol, dec_pcnt, ht, qmd, ba, cc, eca)
+]
+
+setnames(
+  tab.future,
+  old = c("ycid_future", "vol", "ht", "ba", "cc"),
+  new = c("ycid",        "tvol", "height", "basalarea", "crownclosure")
+)
+
+tab.future[, ycid := as.integer(ycid)]
+tab.future <- unique(tab.future)
+
+
+## ---------------------------------------------------------------------
+## 8. Write yield tables to Postgres
+## ---------------------------------------------------------------------
+conn <- dbConnect(
+  RPostgres::Postgres(),
+  host     = keyring::key_get("dbhost", keyring = "postgreSQL"),
+  dbname   = keyring::key_get("dbname", keyring = "postgreSQL"),
+  port     = 5432,
+  user     = keyring::key_get("dbuser", keyring = "postgreSQL"),
+  password = keyring::key_get("dbpass", keyring = "postgreSQL")
+)
+
+dbWriteTable(
+  conn,
+  Id(schema = "test", table = "yields_current"),
+  tab.current,
+  overwrite = TRUE
+)
+
+dbWriteTable(
+  conn,
+  Id(schema = "test", table = "yields_future"),
+  tab.future,
+  overwrite = TRUE
+)
+
+dbDisconnect(conn)
 ```
-
-
-
-## Blocking
-```{r blocking}
-
-### use script below to replicate the STSM approach of not creating 'blocks' (i.e., each pixel is a block) to the castor db
-#### note the spread function in castor is not complete
-
-castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb.sqlite"))
-# update pixels table 
-dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
-dbBegin (castordb)
-rs <- dbSendQuery (castordb, "UPDATE pixels SET blockid = pixelid;")
-dbClearResult (rs)
-dbCommit (castordb)
-
-# create blocks table
-dbExecute (castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")  
-dbExecute (castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
-dbExecute (castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL"))
-dbExecute (castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
-                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
-                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
-dbExecute (castordb, "CREATE INDEX index_blockid on blocks (blockid)")
-
-# create adjacent blocks table
-ras <- terra::rast (ncol = 5223, nrow = 2947, xmin = 830187.5, 
-			              xmax = 1352488, ymin = 1388088, ymax = 1682788,)  
-terra::crs(ras)  <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"  
-edgesAdj <- data.table(SpaDES.tools::adj(returnDT= TRUE, 
-                                         directions = 8, numCol = ncol(ras), numCell=ncol(ras)*nrow(ras),
-                                         cells = 1:as.integer(ncol(ras)*nrow(ras)))) 
-blockids <- data.table (dbGetQuery (castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
-setkey (blockids, pixelid)  
-edgesAdj <- merge (edgesAdj, blockids, by.x = "to", by.y = "pixelid" )  
-edgesAdj <- merge (edgesAdj, blockids, by.x = "from", by.y ="pixelid" )
-edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
-edgesAdj <- edgesAdj[blockid.x  != blockid.y]
-edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
-edgesAdj <- unique (edgesAdj)
-setnames(edgesAdj, c ("blockid", "adjblockid")) 
-  
-dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
-dbBegin(castordb)  
-rs <- dbSendQuery (castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)  
-dbClearResult(rs)
-dbCommit(castordb) 
-dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
-
-
-
-
-
-### use script below if you want to add analysis units (AU's) as blocks to the castor db
-castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
-
-tab.au <- data.table (blockid = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-								                                          srcRaster = "fort_nelson_tsa.rast_au" , # 
-                                                          clipper = "fort_nelson_tsa.bounds_fort_nelson_tsa", 
-								                                          geom = "wkb_geometry", 
-                                                          where_clause = " tsa_name in (''Fort_Nelson_TSA'')",
-                                            conn = NULL)[]))
-tab.au [, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
-tab.au <- tab.au[blockid > 0, ]  
-	 
-# update pixels table 
-dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
-dbBegin (castordb)
-rs <- dbSendQuery (castordb, "Update pixels set blockid = :blockid where pixelid = :pixelid", tab.au)
-dbClearResult (rs)
-dbCommit (castordb)
-
-# create blocks table
-dbExecute(castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")  
-dbExecute(castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
-dbExecute(castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL"))
-dbExecute(castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
-                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
-                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
-dbExecute(castordb, "CREATE INDEX index_blockid on blocks (blockid)")
-
-# create adjacent blocks table
-ras <- terra::rast (ncol = 5223, nrow = 2947, xmin=830187.5, 
-			        xmax=1352488, ymin=1388088, ymax=1682788,)  
-terra::crs(ras)  <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"  
-edgesAdj <- data.table(SpaDES.tools::adj(returnDT= TRUE, 
-directions = 8, numCol = ncol(ras), numCell=ncol(ras)*nrow(ras),
-                                             cells = 1:as.integer(ncol(ras)*nrow(ras)))) 
-blockids <- data.table (dbGetQuery (castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
-setkey (blockids, pixelid)  
-edgesAdj <- merge (edgesAdj, blockids, by.x = "to", by.y = "pixelid" )  
-edgesAdj <- merge (edgesAdj, blockids, by.x = "from", by.y ="pixelid" )
-edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
-edgesAdj <- edgesAdj[blockid.x  != blockid.y]
-edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
-edgesAdj <- unique (edgesAdj)
-setnames(edgesAdj, c ("blockid", "adjblockid")) 
-  
-dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
-dbBegin(castordb)  
-rs <- dbSendQuery (castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)  
-dbClearResult(rs)
-dbCommit(castordb) 
-dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
-  
-```
-
-
-
-
 

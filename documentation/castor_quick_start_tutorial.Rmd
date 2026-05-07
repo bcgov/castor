@@ -35,7 +35,7 @@ For an overview of how the Castor model works, we recommend reading our [wiki](h
 ## 1. Download Software
 Castor is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R software. You can download program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, and therefore we also recommend that you download the free version of [RStudio](https://rstudio.com/products/rstudio/download/). RStudio is an integrated development environment (IDE) for working with R code. It provides various windows and tabs for interacting with and running R code, downloading and loading R packages, interfacing with GitHub (more on that below), and managing R ['objects'](https://www.datacamp.com/community/tutorials/data-types-in-r). We also recommend you download ['git' software](https://gitforwindows.org/) to interface and work with the model code. 
 
-To work with the castor model, you will need to download [PostgreSQL](https://www.postgresql.org/download/). Usually  when PostgreSQL is installed pgAdmin is also installed but if it is missing you can download it separately from here [pgAdmin](https://www.pgadmin.org/) software. pgAdmin is useful software that will allow you to connect to and work with your spatial layers stored in PostgreSQL databases, which are the key data structure used by Castor. 
+To work with the castor model, you will need to download [PostgreSQL](https://www.postgresql.org/download/). Usually  when PostgreSQL is installed pgAdmin is also installed but if it is missing you can download it separately from [pgAdmin](https://www.pgadmin.org/) software. pgAdmin is useful software that will allow you to connect to and work with your spatial layers stored in PostgreSQL databases, which are the key data structure used by Castor. 
 
 To work with spatial data, you may also want to install OSGeo4W. OSGeo4W provides a convenient bundle of open‑source geospatial tools, including QGIS, GDAL/OGR, and GRASS GIS. QGIS (an open‑source alternative to ArcGIS) is especially helpful for visually inspecting and exploring your spatial layers.
 Many R packages that rely on GDAL/OGR now include these libraries internally, so a separate installation is often unnecessary on Windows. However, Mac users still need to install GDAL/OGR manually, as these tools are not bundled with macOS versions of the relevant R packages.
@@ -76,6 +76,7 @@ You should see a list of file paths (e.g., *C:\\Program Files\\....* ). Click on
 
 ![](images/system_edit.jpg)
 
+
 ## 2. Download the Model Code from GitHub
 Once you are up and running with R Studio you can 'clone' the Castor model code (i.e., make a local copy of it) so you can run and edit it from your computer. We store the Castor model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/main/BC-Open-Source-Development-Employee-Guide/README.md) on the use of GitHub. As part of this process you will be asked to create two-factor authentication. Note that the GitHub password may only work temporarily, in which case, after you have created an authenticated GitHub account you will also need to set-up a ['personal access token' (PAT)](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Follow [these inrstuctions](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) to set up a PAT. Select the scopes, or permissions, you'd like to grant this token as everything except *admin:org_hook*. Note that there is no need to complete step 10 in the instructions. 
 
@@ -90,6 +91,24 @@ The castor repository is located [here](https://github.com/bcgov/castor). The Gi
 
 The GitHub version of the Castor repository can be thought of as the *central* or *canonical* copy of the code. GitHub allows multiple people to work with and contribute to the code simultaneously, while maintaining a stable and version‑controlled record of changes. Cloning the repository creates a local copy of the code on your computer, allowing you to run the model, explore the code, and make local modifications.
 
+
+### 2.1 Cloning the Castor Repository
+
+Castor can be cloned in several ways depending on your level of comfort with Git and how much of the repository you need.  
+Below we describe three methods, from the most straightforward (recommended for new users) to more advanced and selective workflows:
+
+- [2.1a Standard RStudio clone with submodule initialization](#21a-standard-rstudio-clone-with-submodule-initialization)
+- [2.1b One-step clone including all submodules](#21b-one-step-clone-including-all-submodules)
+- [2.1c Advanced: cloning only selected submodules](#21c-advanced-cloning-only-selected-submodules)
+
+You can jump directly to any method using the links above.
+
+
+#### 2.1a Standard RStudio Clone with Submodule Initialization
+
+We recommend cloning the repository to a local folder (not a network or synced drive). We also recommend avoiding cloning directly to the root `C:\` drive. Instead, clone the repository into a subdirectory such as `C:\work\git_repos\` or within your user profile directory (e.g. `C:\username\`).
+
+
 To clone the Castor repository, open **RStudio**, click on the **File** menu in the top left, and then select **New Project**. This will open a new window:
 
 ![](images/git.jpg)
@@ -102,14 +121,13 @@ Enter the following:
 - **Project directory name:** `castor`
 - **Create project as subdirectory of:** a local folder on your computer
 
-We recommend cloning the repository to a local folder (not a network or synced drive). We also recommend avoiding cloning directly to the root `C:\` drive. Instead, clone the repository into a subdirectory such as `C:\work\git_repos\` or within your user profile directory (e.g. `C:\username\`).
-
-
 ![](images/git_repo.jpg)
 
-When you click Create Project, RStudio will clone the Castor repository into the selected folder. You’ll see that the directory structure matches the GitHub view. However, the subfolders inside the modules/ directory will initially appear empty. This is expected.
+When you click Create Project, RStudio will clone the Castor repository into the selected folder. You’ll see that the directory structure matches the GitHub view. However, the subfolders inside the **~\\castor\\modules\\...** directory will initially appear empty. This is expected.
 
-### 2.1 Initializing the Castor Modules (Git Submodules)
+
+#### Initializing the Castor Modules (Git Submodules)
+
 The Castor repository uses Git submodules to manage each module separately. This keeps the top‑level repository lightweight and ensures each version of Castor points to specific versions of its modules.
 To populate the module directories, open the Terminal pane in RStudio and run:
 
@@ -119,20 +137,25 @@ git submodule update --init --recursive
 ```
 This command downloads and initializes all the module repositories referenced by the version of Castor you have cloned and ensure each module is checked out at the correct version (for version control). Once this step is complete, the Castor project is fully cloned and ready to use.
 
-### 2.2 Alternative: Clone Castor and all modules in one step
+
+#### 2.1b One‑Step Clone Including All Submodules
+
 Alternatively, you can clone Castor and all the submodules at once by pasting this command into the terminal window:
 
 ```bash
 git clone --recurse-submodules https://github.com/bcgov/castor.git
 
 ```
-This automatically retrieves the main repository along with every submodule.
+This automatically retrieves the main repository along with every submodule. 
 
-### 2.3 Advanced: Downloading selected submodules only
+Note: The above bash command clones the repository into a new folder named `castor/`, which is created in the terminal’s current working directory. Before running the command, ensure your terminal is set to the location where you want the Castor folder to be created.
+
+
+#### 2.1c Advanced: Cloning Only Selected Submodules
 
 By default, initializing Castor submodules downloads all modules listed in the `modules/` directory. In some cases, users may only need a subset of these modules for their workflow.
 
-To download only selected modules, first clone the Castor repository as described above, but do not initialize submodules yet.
+To download only selected modules, first clone the Castor repository as described in [2.1a](#21a-standard-rstudio-clone-with-submodule-initialization), but do not initialize the submodules.
 
 After cloning Castor, open the **Terminal** tab in RStudio and initialize only the modules you need. For example, to download only the `dataCastor` module:
 
@@ -159,14 +182,16 @@ Within RStudio, you will see a **Git** tab in the top‑right pane. This tab pro
 
 ![](images/git_rstudio.jpg)
 
+
 ### 3.1 Recommended workflow
 
-Once the Castor repository and its modules have been cloned, most users will not need to modify the Castor source code. Instead, analyses should be performed by:
+Once the Castor repository and its submodules have been cloned, most users will not need to modify the Castor source code. Instead, analyses should be performed by:
 - configuring input data,
 - adjusting model parameters, and
 - running Castor using the existing scripts and modules.
 
-To keep your local code up to date with the official Castor version, periodically click Pull in the Git tab. This will download any updates made by the Castor development team.
+Castor uses Git submodules to manage and version external dependencies. Each Castor release points to specific, tested versions of these modules
+
 
 ### 3.2 Providing feedback or requesting changes
 
@@ -202,56 +227,182 @@ castor/
 
 ## 4. Set up a keyring for database access
 
-Castor uses locally managed PostgreSQL databases rather than a shared network database. To keep database credentials secure, usernames and passwords are not stored directly in the Castor source code. Instead, Castor uses the R package `keyring` to store database credentials securely on your local machine (e.g. Windows Credential Manager or macOS Keychain). This allows Castor scripts and modules to retrieve credentials at runtime without exposing them in plain text or committing them to Git.
+Castor uses locally managed PostgreSQL databases rather than a shared or centrally hosted database. Each user is responsible for configuring and managing their own PostgreSQL instance as needed for their analyses. To avoid storing database usernames and passwords directly in the Castor source code or configuration files, Castor uses the R package keyring to manage database credentials securely on the user’s local machine (e.g., Windows Credential Manager or macOS Keychain). Although Castor no longer relies on a shared network database, keyring is retained throughout the codebase to:
 
-Using `keyring` has several advantages:
-- Credentials are stored locally and encrypted
-- Sensitive information is never written into scripts or configuration files
-- Scripted workflows can authenticate to PostgreSQL securely and automatically
+ - maintain secure handling of credentials,
+ - support automated and scripted workflows, and
+ - avoid the need to repeatedly hard‑code or re‑enter passwords across multiple scripts.
 
-Many functions within the Castor model assume that database credentials are available via `keyring`. For example, several spatial and database utility functions retrieve connection details using calls such as `keyring::key_get()` when establishing PostgreSQL connections. As a result, setting up the keyring is the recommended and simplest way to enable database access when using Castor. Before running Castor workflows for the first time, users must store their PostgreSQL connection details in the keyring.
+Using keyring allows Castor scripts and modules to retrieve credentials at runtime without exposing them in plain text or committing sensitive information to version control. As a result, setting up the keyring is the recommended and simplest way to enable local database access when using Castor. Before running Castor workflows for the first time, we recommend users store their PostgreSQL connection details in the keyring.
 
 ### 4.1 How to set up your keyring
 
 An R Markdown helper document is provided in the Castor repository:
-functions/keyring_init.Rmd
-<https://github.com/bcgov/castor/tree/main/functions/keyring_init.Rmd>
+[functions/keyring_init.Rmd](https://github.com/bcgov/castor/tree/main/functions/keyring_init.Rmd)
 Open and run this Rmd file in RStudio. It walks you through:
 
 Creating a keyring (if one does not already exist)
 Adding your PostgreSQL username and password
 Testing that Castor can retrieve these credentials successfully
 
-Note: These credentials are only for your PostgreSQL database.
-They are not the same as your GitHub credentials—GitHub and PostgreSQL are completely independent systems.
+Note: These credentials are only for your local PostgreSQL database. They are not the same as your GitHub credentials.
 
-## 5. How to create a Forest Harvest Scenario
 
-Now that you are familiar with the software, some of the model code and some of the Castor data, we want to introduce you to the process of developing a model to address a hypothetical forest management scenario. As an example we will develop the layers necessary to run a scenario for the Boundary TSA. However, this same approach can be used for any area of interest. 
+## 5. Castor Preprocessing Workflow
 
-### 5.1 Creating a shapefile for your area of interest
+This section describes the standard workflow for preparing inputs to run a Castor simulation.  
+All steps are script‑based to ensure transparency, reproducibility, and flexibility across study areas and planning objectives.
 
-An R Markdown helper document is provided in the Castor repository:
-`functions/study_area_boundaries.Rmd`  
-https://github.com/bcgov/castor/tree/main/functions/study_area_boundaries.Rmd
+Castor inputs fall into four broad classes:
 
-Open this R Markdown file in RStudio and run it step by step. The document guides you through the process of defining and generating the files required to describe your study area. Specifically, it walks you through:
+1. **Core spatial inputs**: Define the area of interest and spatial structure
+2. **Growth and yield inputs**: Describe forest growth within the area of interest
+3. **Spatial constraints and scenarios**: Define management rules and policy objectives
+4. **Optional module-specific spatial inputs**: Provide additional spatial information required by selected Castor modules
 
-- specifying the geographic extent of your area of interest;
-- loading or creating spatial boundary data (e.g. polygons defining the study area);
-- projecting and validating spatial layers to ensure they are suitable for use with Castor;
-- creating standardized boundary files used by Castor workflows; and
-- saving the resulting spatial objects in a consistent format and location for use in subsequent analyses.
+Each class of input serves a distinct role in the model, and together they fully define a Castor simulation.
 
-The helper document is designed to be interactive and explanatory. Users are encouraged to read the narrative text in the document and execute code chunks sequentially, adjusting parameters and file paths as needed for their specific study area.
+### 5.1 Core Spatial Inputs
+
+#### 5.1.1 Study area boundary
+
+The first layer that is required for any castor analysis is a file defining the boundaries of your study area. The study area boundary defines the area being modeled and all other inputs are linked to, clipped by, and interpreted within this spatial framework. The [Study Area Boundaries.Rmd](https://github.com/bcgov/castor/blob/main/functions/study_area_boundaries.Rmd) provides an example workflow for defining the area of interest.
+
+#### 5.1.2 Landscape attributes
+
+In addition to knowing where your study takes place you also need to provide information about the landscape in that area. 
+Key attributes include which parts of you study area are forested and eligible for harvest.
+
+The (Castor_input_layers.Rmd)[]provides an example script of how 
+
+# 5.2 Growth and Yield Inputs
+
+Growth and yield inputs describe **how forests within the area of interest grow through time**.  
+They define the biophysical behaviour of the forest and are required for all Castor simulations.
+
+Because growth and yield information is specific to the landscape being modelled, it is prepared **after** the area of interest and forest inventory have been defined.
+
+Growth and yield inputs are typically:
+- constructed once per project,
+- reused across multiple management scenarios,
+- updated only when inventory, yield models, or regeneration assumptions change.
+
+---
+
+## Conceptual model
+
+Castor does not simulate tree growth directly. Instead, growth is represented using **pre‑computed yield curves**, indexed by stand age.
+
+Two yield states are represented:
+
+- **Natural (unharvested) stands**  
+  Represented using VDYP yield curves.
+
+- **Managed (harvested and regenerated) stands**  
+  Represented using TASS/TIPSY yield curves.
+
+At the start of a simulation, each analysis unit is assigned a **current yield curve**.  
+When a harvest occurs, Castor:
+- resets stand age to zero, and
+- switches the stand to a **future managed yield curve**.
+
+Yield curves therefore encode all growth and regeneration assumptions used by the model.
+
+---
+
+## Growth and yield preparation steps
+
+### Script reference  
+**Growth and Yield sections in `Scripts for creating spatial inputs for Castor.Rmd`**
+
+### 1. Ingest growth model outputs
+
+Required inputs include:
+
+- VDYP output tables for natural stands
+- TIPSY/TASS output tables for managed stands (current condition)
+- TIPSY/TASS output tables representing post‑harvest regeneration assumptions (future condition)
+
+Supporting reference tables are used to identify stand origin, species composition, and other metadata required for yield processing.
+
+---
+
+### 2. Construct current‑condition yield curves
+
+For each feature or analysis unit:
+
+- Managed stands:
+  - derive volume, height, basal area, and crown closure from TIPSY/TASS outputs
+  - extend curves to the full simulation horizon (e.g., to age 250)
+- Natural stands:
+  - derive yield attributes from VDYP outputs
+  - supply placeholder values where attributes are unavailable
+
+Managed and natural curves are combined into a **single long‑format table**, indexed by feature ID and stand age.
+
+---
+
+### 3. Construct future yield curves
+
+Future yield curves represent forest growth following harvest.
+
+- Derived from post‑harvest TIPSY/TASS outputs
+- Separate curves may be created for deciduous/mixedwood and conifer‑only stands
+- Natural VDYP curves are retained for stands that remain unmanaged
+
+---
+
+### 4. Link yield curves to Analysis Units
+
+An Analysis Unit (AU) table links spatial units to yield curves using yield curve identifiers (YCIDs).
+
+Each AU is assigned:
+- a **current YCID** (used at simulation start), and
+- a **future YCID** (used after harvest).
+
+By convention:
+- negative YCIDs identify natural yield curves,
+- positive YCIDs identify managed yield curves.
+
+---
+
+### 5. Create YCID rasters and yield tables
+
+Two rasters are created:
+- a **current YCID raster**, and
+- a **future YCID raster**.
+
+Final Castor‑ready yield tables are written in the canonical format:
 
 ## 5. Castor SQLite Database
 
-The simulator modules within the Castor model do not run directly off of the PostgreSQL database. Instead Castor has a module called *dataCastor* that consolidates data from the PostgreSQL database into a portable SQLite database. The SQLite database contains all the data needed to run the simulator modules for a defined area of interest. This approach provides a lot of flexibility, as it creates a self-contained, relatively low memory database that can be shared among users. One way to think about the Castor data structure, is that the PostgreSQL database serves as the central repository for stable, provincial-scale datasets, such as for example, the forest inventory. The *dataCastor* compiles a specified subset of this data for an area of interest and groups the information into an SQLite database.  
+The simulator modules within Castor do not operate directly on a PostgreSQL database. Instead, Castor uses a dedicated preprocessing module, dataCastor, to assemble all required inputs into a portable SQLite database that is then used by the simulator modules.
 
-### 5.1 Getting Aquainted with a Castor SQLite database
+### 5.1 Current workflow
 
-In this section you will use the *dataCastor* module to create a simple SQLite database. The data used in this example are synthetic and provided for instructional purposes only. The goal of this exercise is to become familiar with how the Castor SQLite database is structured and how to connect to it in order to run queries and retrieve information.
+In the current Castor workflow, users provide input data by loading the required spatial and tabular layers into a locally managed PostgreSQL database. The dataCastor module connects to this database, extracts the datasets needed for a defined area of interest, and compiles them into a single SQLite database containing all information required to run the Castor simulations. This SQLite database is self‑contained and optimized for simulation use, making it easy to move between machines, archive, or reuse for repeated model runs without re‑querying PostgreSQL.
+
+### 5.2 Historical context
+
+Previously, Castor connected to a central, province‑wide PostgreSQL database that stored authoritative datasets (e.g., forest inventory layers). In that earlier design, dataCastor clipped and subsetted these large datasets to an area of interest before creating the SQLite database. While the underlying mechanism remains the same, responsibility for data management has now shifted to individual users, who supply their own datasets via their local PostgreSQL instances.
+
+Although the intermediate PostgreSQL step may appear redundant for users working with small study areas (where only area‑specific data are uploaded), the use of dataCastor and the SQLite database provides several ongoing benefits:
+ - A consistent and reproducible data structure for all Castor simulations
+ - Clear separation between data preparation and model execution
+ - A compact, portable database format optimized for simulation performance
+ - Simplified sharing and archiving of simulation inputs
+
+For these reasons, the SQLite database remains a core component of the Castor architecture.
+
+### 5.3 Getting Aquainted with a Castor SQLite database
+
+In this section, you will use the *dataCastor* module to create a simple, synthetic SQLite database. The data used in this example are provided for instructional purposes only and are not intended for use in a proper Castor simulation.
+
+The goal of this exercise is to:
+ - become familiar with the structure and contents of a Castor SQLite database, and
+ - learn how to connect to the database, run queries, and retrieve information required by the Castor simulator modules.
+
+This section focuses on understanding how Castor consumes data and how the SQLite database is used during the simulation, independent of how real input data are prepared or sourced. In the next section (Section 6), we describe the types of datasets required to run a full Castor simulation and outline the expected data structure and content. Example scripts and workflows for preparing and uploading datasets to PostgreSQL are provided elsewhere in the documentation and supporting repositories, and are referenced there rather. 
 
 To begin, navigate to the *dataCastor* module located in the `castor/modules/` directory. This directory contains two files: `dataCastor.R` and `dataCastor.Rmd`.
 
@@ -261,13 +412,13 @@ The `dataCastor.Rmd` file is used to define scenario‑specific parameters that 
 
 Within the `.Rmd` file you will see elements of the SpaDES module structure. The document begins with a textual description of the module, followed by a code chunk (*r module_usage*) that specifies the modules, parameters, and objects required to run the *dataCastor* workflow.
 
-At the top of this code chunk you will find the required package imports (`library()` calls), sourced functions (`source()` calls), environment configuration (e.g. `Sys.setenv()`), and directory paths (`setPaths()`) for module inputs and outputs.
+At the top of this code chunk you will find the required package imports (`library()` calls), sourced functions (`source()` calls), and directory paths (`setPaths()`) for module inputs and outputs.
 
 The `.Rmd` file also defines a list object called `times`. Since *dataCastor* represents a single, non‑dynamic process, both the start and end times are set to 0.
 
 Finally, the `.Rmd` file defines a `parameters` list containing the inputs required to run the *dataCastor* module. Parameters are organized by module, with each module having its own nested list of parameters. This modular structure provides flexibility and allows modules to be added or removed without modifying unrelated parameters.
 
-```{r module_usage}
+```{r module_usage, message=FALSE, warning=FALSE}
 library(SpaDES)
 library(SpaDES.core)
 library(data.table)
@@ -329,7 +480,7 @@ dbGetQuery(con, "SELECT * FROM pixels where age > 0 limit 1;")
 ```
 The *yields* table contains all the required yield curves (age vs yield) for the analysis. Note "yields" can be anything like basal area per ha, equivalent clear cut area (eca), or something not labelled below but can be inferred from the age of a specific stand/forest type like say fire risk (ignition/ha) or carbon (t/ha).
 
-```{r yields_table}
+```{r yields_table, message=FALSE, warning=FALSE}
 library(ggplot2)
 #Take a look at the yields table
 yields<-dbGetQuery(con, "SELECT * FROM yields order by age")
@@ -338,7 +489,7 @@ print(yields)
 ```
 The *raster_info* table contains the metadata used to build rasters and connect the *pixels* table to the spatial location. The default entry is a raster is named 'ras' but you can add multiple rasters as their resolution or scale changes - for instance the climate projection information is at a resolution of 800 m after downscaling to the PRISM grid.  
 
-```{r raster_info_table}
+```{r raster_info_table, message=FALSE, warning=FALSE}
 library(terra)
 # Get the raster metadata
 ras.info<-dbGetQuery(con, "SELECT * FROM raster_info where name = 'ras';")
@@ -359,7 +510,7 @@ dbGetQuery(con, "SELECT * FROM zone")
 ```
 The zone_column refers to the name of the column in the pixels table. Adding more zones by the user to specify say wildlife habitat areas or ungulate winter range just adds more columns to the pixels table that are labelled as zone1, zone2, ..., zone100
 
-The reference refers to the name of the raster which was labelled by the user (e.g., 'wha_2024.tif', 'uwr_2022.tif'). Here reference column contains a single entry 'default' because the simple database didn't describe a zone from a list of raster rather it made a default zone where all pixels belong to the same zone and labelled this zone as 'default'.
+The reference refers to the name of the raster which was labelled by the user (e.g., 'wha_2026.tif', 'uwr_2026.tif'). Here reference column contains a single entry 'default' because the simple database didn't describe a zone from a list of raster rather it made a default zone where all pixels belong to the same zone and labelled this zone as 'default'.
 
 The zoneConstraints are essentially inequalities assigned to each zoneid contained within a zone. Thus, a single zone raster (e.g., BEC zones) can have multiple zonal constraints. These represent inequalities such that a query must hold for a percentage of the total area. The inequalities look like this: WHERE_CLAUSE >= | <= percentage*t_area
 
@@ -369,7 +520,7 @@ E.g., the WHERE_CLAUSE is: variable (age) type (ge; greater or equal to) thresho
 dbGetQuery(con, "SELECT * FROM zoneConstraints")
 ```
 * NOTE:
-- The zoneConstraints can begin and stop according to the user defined 'start' and 'stop' columns
+- The zoneConstraints can begin and stop according to the user defined 'start' and 'stop' columns. For example this zone constraint would run from time 0 to time 250 i.e. the entire length of this example simulation but you could change those values. 
 - The WHERE_CLAUSE can contain multiple conditions like: `AGE > 20 AND basalarea > 15'
 
 During the simulation of timber harvesting in forestryCastor, these zoneConstraints are used to build individual queries (one for each ZoneConstraint) to determine the left hand side and right hand side of the inequality. For a brief primer on how forestryCastor uses this information ---
@@ -379,11 +530,49 @@ Pixels are selected that occur within the zoneid and are sorted - 'ORDER BY' the
 Once all the pixels are sorted there is a 'LIMIT' of what gets returned in the result set. Thus, there will be pixels being returned that don't meet the WHERE_CLAUSE but will be considered "recruitment". Note - that this simple assignment of zonal constraints doesn't consider the spatial juxtaposition in the classification of recruitment.
 
 
-As the level of complexity increase, more modules are added, there will be more tables created in the castordb. For instance, blockingCastor will add the *blocks* table which be related to the *pixels* table using 'blockid' as a foreign key in the *pixels* table and a primary key in the *blocks* table. Similarily, *roads* table will be added as roadCastor is included, etc
+As the level of complexity increase, more modules are added, there will be more tables created in the castordb. For instance, blockingCastor will add the *blocks* table which be related to the *pixels* table using 'blockid' as a foreign key in the *pixels* table and a primary key in the *blocks* table. Similarily, *roads* table will be added as roadCastor is included, etc.
+
+
+## 6. How to create a Forest Harvest Scenario
+
+Now that you are familiar with the software, some of the model code and some of the Castor data, we want to introduce you to the process of developing a model to address a example forest management scenario. To do this we will develop the layers necessary to run a scenario for the Boundary TSA. However, this same approach can be used for any area of interest. 
+
+At a minimum castor needs the following information to run a harvest scenario.
+
+ - Defined area of interest (AOI)
+ - Timber harvesting land base for the AOI
+ - Vegetation information for AOI e.g. Vegetation resource inventory
+ - growth and yield information for the AOI
+ - Harvest constraints e.g. wildlife habitat areas, ungulate winter ranges, community watersheds, etc.
+ 
+ Some additional but useful information includes roads (both locations and cost surface to build roads) and blocking. 
+ 
+
+
+### 6.1 Creating a shapefile for your area of interest
+
+An R Markdown helper document is provided in the Castor repository:
+[`functions/study_area_boundaries.Rmd`](https://github.com/bcgov/castor/tree/main/functions/study_area_boundaries.Rmd)
+
+Open this R Markdown file in RStudio and run it step by step. The document guides you through the process of defining and generating the files required to describe your study area. Specifically, it walks you through:
+
+- specifying the geographic extent of your area of interest;
+- loading or creating spatial boundary data (e.g. polygons defining the study area);
+- projecting and validating spatial layers to ensure they are suitable for use with Castor;
+- creating standardized boundary files used by Castor workflows; and
+- saving the resulting spatial objects in a consistent format and location for use in subsequent analyses.
+
+The helper document is designed to be interactive and explanatory. Users are encouraged to read the narrative text in the document and execute code chunks sequentially, adjusting parameters and file paths as needed for their specific study area.
+
+### 6.2 Creating other input layers for your area of interest
+
+
 
 ### 5.2 Creating a Castor SQLite Database from PostgreSQL
 
 So far, a castordb was created using made-up information. Operationally, castor models should be specific to actual planning units. To do this, we have opted to develop and maintain a centralized database that houses information and data in a form that is ready to go for any location in the province of BC. The idea is that we run a .rmd to build the castordb then reference this database for use in scenario analysis. This has some benefits like: processing and manipulating the information outside of the simulation which saves on the simulation side, storage of the data and information into a relational database rather than a set of folders, dissemination of the information to other users. However, any localized postgres relational database will work as long as the your database contains the [SQL functions](https://github.com/bcgov/castor/blob/main/functions/FAIB_RASTER_FUNCTIONS.sql) used by castor. You will have to run this SQL script within the postgres database (I think)
+
+
 
 Below we provide an example of the code chunk you can use to run the script, with annotations that describe each parameter. Instead of copying code its best navigate to the castor/R/scenarios/tutorial folder and run the dataCastor_tutorial.Rmd. Below we will describe the key parameters need to run *dataCastor* for building a castordb. 
 
