@@ -43,7 +43,10 @@ At any point in time, the landscape is composed of two stand types:
 
 Both natural and managed stands are represented in Castor as age‑based yield curves that include volume, height, basal area, crown closure, and related stand attributes.
 
-When a natural stand is harvested, Castor resets stand age to zero and switches the stand from a VDYP yield curve to a TASS/TIPSY yield curve. This transition is implemented as a discrete change in yield curve ID at the time of harvest. 
+At the start of a simulation, each analysis unit (pixel) is assigned a current yield curve which could either be natural (VDYP) or managed (TASS/TIPSY) depending on its harvest history.  
+When a stand is harvested in Castor:
+- all pixels within that stand have their ages resets to zero, and
+- the yield curve switches to the future yield curve. For natural stands this means that its yield curve updates from a natural stand yield curve to a managed stand yield curve i.e. VDYP curve -> TASS/TIPSY curve. This transition is implemented as a discrete change in yield curve ID at the time of harvest. However, if the pixel was already on a managed stand yield curve because it had previously been harvested and replanted then its future yield curve will be the same as before i.e. it stays on the same yield curve (TASS/TIPSY curve -> same TASS/TIPSY curve). Yield curves therefore encode all growth and regeneration assumptions used by the model.
 
 Note, Castor does not implement an explicit regeneration delay. Following harvest, stand age begins increasing immediately, and growth is applied directly from the TIPSY/TASS yield curve as soon as the next simulation time step is evaluated. Any delay in post‑harvest growth must therefore either be implicit in the shape of the TASS/TIPSY yield curves themselves or the code in growingStockCastor needs be modified to include regeneration delay.
 
@@ -52,7 +55,7 @@ In summary, Castor requires:
  - [TASS](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/tree-and-stand-simulator-tass) / [TIPSY](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/table-interpolation-program-for-stand-yields-tipsy) curves for managed (harvested) stands
  - A consistent mapping that allows stands to switch from VDYP to TIPSY/TASS at harvest
 
-This script ingests raw VDYP and TASS/TIPSY outputs obtained from modellers within FAIB (https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling) and reformats it into the structures required by Castor, including both current and future yield curves, along with spatial rasters that identify which yield curve applies to each analysis unit at different points in time.
+This script ingests raw VDYP and TASS/TIPSY outputs obtained from modellers within FAIB (https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling) and reformats it into the structures required by Castor, including both current and future yield curves, along with spatial rasters that identify which yield curve applies to each pixel at different points in time.
 
 
 ## Get_curves

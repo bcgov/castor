@@ -270,28 +270,13 @@ The first layer that is required for any castor analysis is a file defining the 
 
 #### 5.1.2 Landscape attributes
 
-In addition to knowing where your study takes place you also need to provide information about the landscape in that area. 
-Key attributes include which parts of you study area are forested and eligible for harvest.
+In addition to knowing where your study takes place you also need to provide information about the landscape in that area. Key attributes include which parts of you study area are forested and eligible for harvest and how terrain and access vary across space.
 
-The (Castor_input_layers.Rmd)[]provides an example script of how 
+The (Castor_input_layers.Rmd)[https://github.com/bcgov/castor/blob/main/functions/Castor_input_layers.Rmd]provides an example script of where and how to get and load the required information
 
-# 5.2 Growth and Yield Inputs
+#### 5.1.3 Growth and Yield Inputs
 
-Growth and yield inputs describe **how forests within the area of interest grow through time**.  
-They define the biophysical behaviour of the forest and are required for all Castor simulations.
-
-Because growth and yield information is specific to the landscape being modelled, it is prepared **after** the area of interest and forest inventory have been defined.
-
-Growth and yield inputs are typically:
-- constructed once per project,
-- reused across multiple management scenarios,
-- updated only when inventory, yield models, or regeneration assumptions change.
-
----
-
-## Conceptual model
-
-Castor does not simulate tree growth directly. Instead, growth is represented using **pre‑computed yield curves**, indexed by stand age.
+Castor does not simulate tree growth directly. Instead, growth is represented using pre‑computed yield curves, indexed by stand age.
 
 Two yield states are represented:
 
@@ -301,78 +286,14 @@ Two yield states are represented:
 - **Managed (harvested and regenerated) stands**  
   Represented using TASS/TIPSY yield curves.
 
-At the start of a simulation, each analysis unit is assigned a **current yield curve**.  
-When a harvest occurs, Castor:
-- resets stand age to zero, and
-- switches the stand to a **future managed yield curve**.
+At the start of a simulation, each pixel is assigned a current yield curve which could either be natural (VDYP) or managed (TASS/TIPSY) depending on its harvest history.  
+When a stand is harvested in Castor:
+- all pixels within that stand have their ages resets to zero, and
+- the yield curve switches to the future yield curve. For natural stands this means that its yield curve updates from a natural stand yield curve to a managed stand yield curve i.e. VDYP curve -> TASS/TIPSY curve. However, if the pixel was already on a managed stand yield curve because it had previously been harvested and replanted then its future yield curve will be the same as before i.e. it stays on the same yield curve (TASS/TIPSY curve -> same TASS/TIPSY curve) Yield curves therefore encode all growth and regeneration assumptions used by the model.
 
-Yield curves therefore encode all growth and regeneration assumptions used by the model.
+The script [growth_and_yield.Rmd](https://github.com/bcgov/castor/blob/main/functions/growth_and_yield.Rmd) provides an example for getting VDYP and TASS/TIPSY output into the format required by castor. 
 
----
-
-## Growth and yield preparation steps
-
-### Script reference  
-**Growth and Yield sections in `Scripts for creating spatial inputs for Castor.Rmd`**
-
-### 1. Ingest growth model outputs
-
-Required inputs include:
-
-- VDYP output tables for natural stands
-- TIPSY/TASS output tables for managed stands (current condition)
-- TIPSY/TASS output tables representing post‑harvest regeneration assumptions (future condition)
-
-Supporting reference tables are used to identify stand origin, species composition, and other metadata required for yield processing.
-
----
-
-### 2. Construct current‑condition yield curves
-
-For each feature or analysis unit:
-
-- Managed stands:
-  - derive volume, height, basal area, and crown closure from TIPSY/TASS outputs
-  - extend curves to the full simulation horizon (e.g., to age 250)
-- Natural stands:
-  - derive yield attributes from VDYP outputs
-  - supply placeholder values where attributes are unavailable
-
-Managed and natural curves are combined into a **single long‑format table**, indexed by feature ID and stand age.
-
----
-
-### 3. Construct future yield curves
-
-Future yield curves represent forest growth following harvest.
-
-- Derived from post‑harvest TIPSY/TASS outputs
-- Separate curves may be created for deciduous/mixedwood and conifer‑only stands
-- Natural VDYP curves are retained for stands that remain unmanaged
-
----
-
-### 4. Link yield curves to Analysis Units
-
-An Analysis Unit (AU) table links spatial units to yield curves using yield curve identifiers (YCIDs).
-
-Each AU is assigned:
-- a **current YCID** (used at simulation start), and
-- a **future YCID** (used after harvest).
-
-By convention:
-- negative YCIDs identify natural yield curves,
-- positive YCIDs identify managed yield curves.
-
----
-
-### 5. Create YCID rasters and yield tables
-
-Two rasters are created:
-- a **current YCID raster**, and
-- a **future YCID raster**.
-
-Final Castor‑ready yield tables are written in the canonical format:
+#### 5.3.4 Additional scripts for other modules
 
 ## 5. Castor SQLite Database
 
