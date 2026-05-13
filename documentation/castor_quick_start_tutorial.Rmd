@@ -250,41 +250,41 @@ Note: These credentials are only for your local PostgreSQL database. They are no
 
 ## 5. Castor Preprocessing Workflow
 
-This section describes the standard workflow for preparing inputs to run a Castor simulation.  
-All steps are script‑based to ensure transparency, reproducibility, and flexibility across study areas and planning objectives.
+This section describes the standard workflow for preparing inputs to run a Castor simulation. Inputs for this simulation are stored in a postgreSQL database which castor accesses. Thus, we provide example scripts using R for developing the required layers which then will be uploaded to your postgreSQL database. These scripts should help you understand the format that castor requires but you are welcome to insert your own data. Also, all steps are script‑based to ensure transparency, reproducibility, and flexibility across study areas and planning objectives. For most examples we access data from the [BC Geographic Warehouse](https://www2.gov.bc.ca/gov/content/data/finding-and-sharing/bc-geographic-warehouse) as much as possible as this is freely available data and typically available for any part of the province.  
 
 Castor inputs fall into four broad classes:
 
-1. **Core spatial inputs**: Define the area of interest and spatial structure
-2. **Growth and yield inputs**: Describe forest growth within the area of interest
-3. **Spatial constraints and scenarios**: Define management rules and policy objectives
-4. **Optional module-specific spatial inputs**: Provide additional spatial information required by selected Castor modules
+5.1. **Core spatial inputs**: Define the area of interest and spatial structure
+5.2. **Spatial constraints and scenarios**: Define management rules and policy objectives around where and the amount of harvest that can take place
+5.3. **Growth and yield inputs**: Describe forest growth within the area of interest
+5.4. **Optional module-specific spatial inputs**: Provide additional spatial information required by selected Castor modules
 
 Each class of input serves a distinct role in the model, and together they fully define a Castor simulation.
 
 ### 5.1 Core Spatial Inputs
 
-#### 5.1.1 Study area boundary
+The first layer that is required for any castor analysis is a file defining the boundaries of your study area. The study area boundary defines the area being modeled and all other inputs are linked to, clipped by, and interpreted within this spatial framework. The [Study Area Boundaries.Rmd](https://github.com/bcgov/castor/blob/main/functions/study_area_boundaries.Rmd) provides an example workflow for defining your area of interest.
 
-The first layer that is required for any castor analysis is a file defining the boundaries of your study area. The study area boundary defines the area being modeled and all other inputs are linked to, clipped by, and interpreted within this spatial framework. The [Study Area Boundaries.Rmd](https://github.com/bcgov/castor/blob/main/functions/study_area_boundaries.Rmd) provides an example workflow for defining the area of interest.
+In addition to knowing where your study takes place you also need to provide information about the landscape in that area. Key attributes include which parts of you study area are forested, this can be obtained from the VRI and which parts are and eligible for harvest i.e. the timber harvesting land base (THLB).  and how terrain and access vary across space.
 
-#### 5.1.2 Landscape attributes
+The (Castor_input_layers.Rmd)[https://github.com/bcgov/castor/blob/main/functions/Castor_input_layers.Rmd] provides an example script of where and how to get and load the required information.
 
-In addition to knowing where your study takes place you also need to provide information about the landscape in that area. Key attributes include which parts of you study area are forested and eligible for harvest and how terrain and access vary across space.
+### 5.2 Land constraints
 
-The (Castor_input_layers.Rmd)[https://github.com/bcgov/castor/blob/main/functions/Castor_input_layers.Rmd]provides an example script of where and how to get and load the required information
+Land constraints are spatially‑defined management designations that influence how forestry and land‑use activities can occur across the landscape. These include areas established to protect visual quality, wildlife habitat, biodiversity values, water resources, and other public or ecological interests. Examples include visual quality objectives, general wildlife measures, biodiversity emphasis options, ungulate winter ranges, wildlife management areas, and community watersheds. Within these designated areas, management activities may be restricted, modified, or subject to additional conditions to ensure that ecological, social, or resource values are maintained alongside timber production.
 
-#### 5.1.3 Growth and Yield Inputs
+In Castor, land constraints are represented as spatial zones paired with rules that limit or condition management actions within those areas. These rules do not directly prescribe activities at specific locations; instead, they define landscape‑level conditions—such as minimum retained area, age thresholds, or exclusion from harvest—that the model must satisfy over time. 
+
+In the 'functions' folder you can find examples of how to set these constraints up for your landscape. The [prov_manage_objs.Rmd](https://github.com/bcgov/castor/blob/main/functions/prov_manage_objs.Rmd) demonstrates how to incorporate Aspatial Old Growth Retention, Fisheries Sensitive Watersheds, Visual Quality Objectives and other no-harvest constraints such as parks and protected areas, spatial old growth management areas, and biodiversity, mining and tourism areas. The [uwr_cond_harvest.Rmd](https://github.com/bcgov/castor/blob/main/functions/uwr_cond_harvest.Rmd) and the [wha_cond_harvest.Rmd](https://github.com/bcgov/castor/blob/main/functions/wha_cond_harvest.Rmd) demonstrate how to include conditional harvest constraints for ungulate winter range and wildlife habitat areas. 
+
+
+### 5.2 Growth and Yield Inputs
 
 Castor does not simulate tree growth directly. Instead, growth is represented using pre‑computed yield curves, indexed by stand age.
 
 Two yield states are represented:
-
-- **Natural (unharvested) stands**  
-  Represented using VDYP yield curves.
-
-- **Managed (harvested and regenerated) stands**  
-  Represented using TASS/TIPSY yield curves.
+- **Natural (unharvested) stands**: [VDYP](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/variable-density-yield-projection-vdyp) yield curves.
+- **Managed (harvested and regenerated) stands**: [TASS](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/tree-and-stand-simulator-tass)/[TIPSY](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/table-interpolation-program-for-stand-yields-tipsy) yield curves.
 
 At the start of a simulation, each pixel is assigned a current yield curve which could either be natural (VDYP) or managed (TASS/TIPSY) depending on its harvest history.  
 When a stand is harvested in Castor:
@@ -293,13 +293,158 @@ When a stand is harvested in Castor:
 
 The script [growth_and_yield.Rmd](https://github.com/bcgov/castor/blob/main/functions/growth_and_yield.Rmd) provides an example for getting VDYP and TASS/TIPSY output into the format required by castor. 
 
-#### 5.3.4 Additional scripts for other modules
 
-## 5. Castor SQLite Database
+### 5.3 Optional module-specific spatial inputs
+
+Various other modules require spatial layers as inputs for them to be included in the castor simulation. In most cases we have created scripts to be used as an example for how to create the required layers. Below we will list the modules and there additional required layers:
+
+**roadsCastor:** Needs a raster of the current road network and a cost surface for building roads. See 
+
+
+#### 5.3.2 Creating your own constraint
+
+Imagine you want to test the impact of creating various protections on forestry. For example you may want to create a new ungulate winter range and need to understand its impact. This new ungulate winter range will require that over 90% of the forest in this area be over the age of 80 years. We'll demonstrate how implement this constraint in the script below. 
+
+Many of the model parameters in Castor are created in the "castor->params" folder. In this folder there are several .Rmd files with scripts and text describing how to create those parameters. You can look in this folder to see how we defined various parameters used in Castor. The spatial parameter scripts convert spatial polygons to raster data with an associated table that defines the constraint to be applied to the spatial area.
+
+In the code chunk below we provide a similar script as an example that you can use to learn the process. This script is to demonstrate how to create zone constraints for a made up area in Revelstoke TSA. We describe the script in detail below the code chunk. 
+```{r create constraints for AOI,eval = FALSE}
+
+# Load packages and source scripts
+library (raster)
+library (fasterize)
+library (sf)
+library (DBI)
+library (here)
+library(data.table)
+library(dplyr)
+library(bcdata)
+library(units)
+library(ggplot2)
+
+source (paste0(here::here(), "/functions/R_Postgres.R"))
+
+# 1. For demsontration I need to create a random polygon within the revelstoke TSA. Ill do this first. This chunk of code can be skipped if you already have an area that needs protection. In that case you can just load you are that you want to create constraints for
+
+# get the revelstoke TSA. Knowing the boundary of your area of interest in not neccessary for creating constraints but I do it here to help us sample a random area to protect.
+
+tsa <- bcdc_query_geodata("WHSE_ADMIN_BOUNDARIES.FADM_TSA_SV") |>
+  filter(TSA_NUMBER_DESCRIPTION == "Revelstoke TSA") |>
+  collect() |>
+  st_transform(3005) |>     # BC Albers
+  st_make_valid()
+
+# sample a random point within the TSA
+set.seed(100)  # for reproducibility
+
+pt <- st_sample(tsa, size = 1) |> 
+  st_sf()
+
+# create a 10 000 ha reserve around the randomly sampled point
+
+area_target <- set_units(10000, ha) |> set_units(m^2)
+radius <- sqrt(as.numeric(area_target) / pi)
+poly.data <- st_buffer(pt, dist = radius) |>
+  st_intersection(tsa)
+
+# look at the revelstoke TSA and the random area that will be protect. 
+plot(st_geometry(tsa), col = "grey90")
+plot(st_geometry(poly.data), col = "red", add = TRUE)
+plot(st_geometry(pt), pch = 3, add = TRUE)
+
+# Note from this point forward we do not bother with the TSA boundary again. It was only used to create our example area. 
+
+# 2. Create provincial raster 
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs", 
+  resolution = c(100, 100), vals = 0)
+
+# 3. Create an integer value attributed to each unique zone in the protected area polygon
+poly.data$zone <- as.integer (1) # create a zone field with integer value of 1; may need to do for zoneid as well
+# OR, alternatively, if you have more than one zone in the shapefile, use below
+poly.data$zone <- as.integer (as.factor (poly.data$zone)) # if there is an existing zone field, create an integer to define each zone (factor)
+
+# 4. Create a raster and upload to the postgres database
+ras.data <-fasterize::fasterize (poly.data, prov.rast, field = "zone") # converts polygon to raster
+
+writeRaster (ras.data, file = "raster_test.tif", format = "GTiff", overwrite = TRUE) # saves the raster to your local folder
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here (), 
+                                  '/functions/raster_test.tif -t 100x100 rast.raster_test | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get ('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)  # sends the 'input' script to command line to upload the raster to the database
+
+# 5. Create Look-up Table of the zone integers
+poly.data$zone_name <- as.character ("test_scenario")
+lu.poly.data <- unique (data.table (cbind (poly.data$zone, poly.data$zone_name)))
+lu.poly.data <- lu.poly.data [order(V1)]
+setnames (lu.poly.data, c("V1", "V2"), c("raster_integer", "zone_name"))
+
+conn <- DBI::dbConnect(
+  RPostgres::Postgres(),
+  host     = keyring::key_get("dbhost", keyring = "postgreSQL"),
+  dbname   = keyring::key_get("dbname", keyring = "postgreSQL"),
+  port     = 5432,
+  user     = keyring::key_get("dbuser", keyring = "postgreSQL"),
+  password = keyring::key_get("dbpass", keyring = "postgreSQL")
+) # create connection to the postgreSQL database
+
+DBI::dbWriteTable (conn, 
+                   c("public", "vat_test"),
+                   value = lu.poly.data, 
+                   row.names = FALSE, 
+                   overwrite = TRUE)
+
+# 6. Create zone constraint table. 
+
+#In this example, you create a zone constraint that requires 90% (percentage = 90) of the forest within the zone (zoneid = 1) to be greater than or equal (type = 'ge') to 80 (threshold = as.numeric(80)) years old (variable = 'age'). You also need to define several fields, including: reference_zone, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the 'rast.' schema is also included); zoneid, which is the integer id for the zone in the raster that you want to assign the constraint; variable, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); threshold is the value at which to apply the threshold; type defines whether the threshold is greater than or equal to (i.e., 'ge') or less than or equal to (i.e., 'le'); percentage is the percent of the zone that must meet the variable threshold; ndt is the natural disturbance threshold to apply to the zone (here we use 0, as these are specific to certain constraint types); multi_condition is a field that can be used to develop several criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply a constraint where both crown closure and basal area of the forest stand must be over 30 for the defined area threshold; denom is a field that allows you to define the area over which to apply a constraint, i.e., to set the area denominator as total area of the zone, or treed area within the zone; the default value (NA) sets the denominator to total area, whereas ' treed > 0 ' sets it to treed area; start and stop are fields that define when, in years, a zone constraint is applied, where here we use the default 0 and 250, which sets the constraint to occur for the first 250 years of a simulation (and thus over an entire 200 year simulation).
+zone_test <- data.table (zoneid = as.integer(1), 
+                         type = 'ge', 
+                         variable = 'age', 
+                         threshold = as.numeric(80), 
+                         reference_zone = 'rast.raster_test', 
+                         percentage = 90, 
+                         ndt = as.integer(0), 
+                         multi_condition = as.character(NA),
+                         denom = as.character(NA),
+                         start = as.integer(0),
+                         stop = as.integer(250)
+                         )
+
+DBI::dbWriteTable (conn, c("zone", "zone_test"), # commit tables to pg
+                   value = zone_test, 
+                   row.names = FALSE, 
+                   overwrite = TRUE) 
+dbExecute (conn, paste0("ALTER TABLE zone.zone_test INHERIT zone.constraints"))
+dbDisconnect (conn) # disconnect from the database
+```
+
+To run the script, you will need the raster, fasterize, sf, here, data.table, DBI, dplyr, bcdata, units, and ggplot2 packages; these can be downloaded via RStudio if you do not already have them. You will also need to load our R_Postgres.R script, using the source () command. This script contains specific functions created for querying PostgreSQL data from R (the script is located in the "castor->functions" folder).
+
+First, you will create a random area within the Revelstoke TSA that we will pretend needs protecting.
+
+Second, you create an 'empty' raster object (all pixels will have a 0 value) configured to the provincial standard. We use this for all rasters to ensure that all of our data aligns spatially. Make sure you do not to change the parameters of the raster (e.g., nrows, xmn, etc.).
+
+Third, you create an integer value for each unique area or 'zone' within the polygon (protected area) data. Here, we are using a single polygon with a single 'zone', and therefore we create a 'zone' field where zone = 1. We also provide an example for creating integer values for spatial polygons with more than one unique 'zone'. In this step we are creating an integer value for each unique zone that will be the value attributed to the raster. Thus, the raster represents the spatial location of each zone.
+
+Fourth, you will convert the polygon to a raster across the extent of BC, using the provincial standard as a template. This is done to ensure that each unique raster in the data is aligned with each other, and raster data can then be 'stacked' to measure multiple raster values at the same location. In this step, the raster is saved to a local drive, and then a command line is called from R to upload the data to the PostgreSQL using the *raster2pgsql* function. Within this function, *-s* assigns the spatial reference system, which is *3005* (NAD83/BC Albers); *-d* drops (deletes) any existing raster in the database with the same name and creates a new one; *-I* creates an index for the raster data; *-C* applies constraints to the raster to ensure it is registered properly (e.g., correct pixel size); *-M* 'vacuums' the data, which reclaims any obsolete or deleted data; *-N* applies a "NODATA" value to where there is no data; *2147483648* defines the raster as a 32-bit integer; *-t* defines the number of 'tiles' or rows in the database, and here we use 100x100 to create a tile for each pixel; *rast.raster_test* defines the schema and table name to save in the PostgreSQL database; the *psql* statement defines the credentials for the database (fill in the appropriate credentials).
+
+Fifth, you create a 'look-up table' that links each raster integer zone to a zone name. In the example here, we create a name for the 'zone'. Once the table is created, you upload it to the PostgreSQL database.
+
+In the sixth and final step, you create a table that defines a forest harvest constraint for each zone. In this example, you create a zone constraint that requires 90% (percentage = 90) of the forest within the zone (zoneid = 1) to be greater than or equal (type = 'ge') to 80 (threshold = as.numeric(80)) years old (variable = 'age'). Within the table, you need to define several fields, including: reference_zone, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the 'rast.' schema is also included); zoneid, which is the integer id for the zone in the raster that you want to assign the constraint; variable, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); threshold is the value at which to apply the threshold; type defines whether the threshold is greater than or equal to (i.e., 'ge') or less than or equal to (i.e., 'le'); percentage is the percent of the zone that must meet the variable threshold; ndt is the natural disturbance threshold to apply to the zone (here we use 0, as these are specific to certain constraint types); multi_condition is a field that can be used to develop several criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply a constraint where both crown closure and basal area of the forest stand must be over 30 for the defined area threshold; denom is a field that allows you to define the area over which to apply a constraint, i.e., to set the area denominator as total area of the zone, or treed area within the zone; the default value (NA) sets the denominator to total area, whereas ' treed > 0 ' sets it to treed area; start and stop are fields that define when, in years, a zone constraint is applied, where here we use the default 0 and 250, which sets the constraint to occur for the first 250 years of a simulation (and thus over an entire 200 year simulation).
+
+Note that in this example we are creating a constraint for a single zone (i.e., one row). For more complicated zoning schemes, constraints for multiple rows (i.e., unique zoneid's) may need to be created.
+
+Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" function. This command will incorporate the new table into the 'constraints' table in the database. You may have noticed all of the constraint tables are uploaded to their own schema in the database called zone. The constraints table in the zone schema contains all of the constraints data (i.e., "inherits" the data) from all of the zones that were created as a parameter. You will see later that this table is used to define all zone constraints to be applied in the Castor model, thus it is critical to ensure that any zone constraint you create gets incorporated into this table.
+
+### 5.4 Optional module-specific spatial inputs
+
+
+
+## 6. Castor SQLite Database
 
 The simulator modules within Castor do not operate directly on a PostgreSQL database. Instead, Castor uses a dedicated preprocessing module, dataCastor, to assemble all required inputs into a portable SQLite database that is then used by the simulator modules.
 
-### 5.1 Current workflow
+### 6.1 Current workflow
 
 In the current Castor workflow, users provide input data by loading the required spatial and tabular layers into a locally managed PostgreSQL database. The dataCastor module connects to this database, extracts the datasets needed for a defined area of interest, and compiles them into a single SQLite database containing all information required to run the Castor simulations. This SQLite database is self‑contained and optimized for simulation use, making it easy to move between machines, archive, or reuse for repeated model runs without re‑querying PostgreSQL.
 
@@ -895,45 +1040,6 @@ mysimout<-spades(mySim)
 
 Now that your familiar with the elements of the *forestryCastor* module, run some simulation scenarios so you can get familiar with its functionality and model outputs. 
 
-
-## 8. Uploading to the cloud
-As described above, the *uploaderCastor* module is where you define the parameters for where simulation outputs are stored. We currently store this output data in a PostgreSQL database deployed on a virtual machine under a Compute Canada account. You can use the PGAdmin software to connect to the database and navigate to the outputs. You will need to obtain the credentials from the Castor team to make the connection. 
-
-If you can make the connection to the database, navigate to the "tutorial" schema, and open it, then click and open the "Tables". This will open a directory list of the outputs saved by *uploaderCastor*. You will see several tables, including  "growing stock", "harvest", "scenarios", and "state", which are all data tables, and some tables that end with "_constraint", "_cutblocks", and "_roads", which are raster outputs from each scenario, and thus have the scenario name and harvest unit as their prefix (we won't discuss the other tables here).
-
-![](images/pgadmin_output.jpg)
-
-Navigate to the "growing stock" table, right click on it, click on "View/Edit Data", then "All Rows". This will open the table in the lower right of the PGAdmin viewer. This table provides information on how much volume is available (gs), including within the timber harvest land base (m_gs), and within the deciduous portion of the timber harvest land base  (m_dec_gs) for each time interval (timeperiod), timber harvest unit (compartment) and scenario (scenario). This can be used to track the 'stock' of volume available to be harvested at each time interval.   
-
-![](images/pgadmin_table.jpg) 
-
-Similarly, open the "harvest" table and explore the data. For each scenario (scenario), time interval (timeperiod), and harvest unit (compartment), this table provides the amount of volume (volume) of timber harvested in m^3^. It also provides the area harvested (area), and the area (transition_area) and volume (transition_volume) harvested from 'managed stands', i.e., stands that have been previously harvested and replanted. In addition, it provides the area-weighted age of the harvested stands (age), and the area of THLB that is unconstrained, available to harvest. 
-
-Finally, the "scenarios" table documents the scenario name and description parameters for each simulated scenario, and the "state" table describes the initial state of the simulated landscape, including the area of road (i.e., pixels with a road), old (>139 year old), mature (41 to 139 year old) and early (< 41 year old) seral forest and THLB, by harvest unit (compartment). 
-
-Alternatively, much of this information can be accessed in summary form using the ["Castor Explorer" web application](https://github.com/bcgov/castor_explorer). Similar to the "Castor Scenario" app, you can access it by going to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note if you haven't already done so, you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you log in, click on the "Castor Explorer Tool" link. This will take you to a simple webpage with a list of tabs on the left side of the page. Click on the "Dashboard" tab, and it will open a list tabs specific to indicators tracked by the model (e.g., "Forestry" and "Caribou"). Click on the "Scenario" tab, and it will open two boxes in the main window: "Area of interest" and "Scenarios".
-
-![](images/castor_explorer_home.jpg) 
-
-In the "Area of interest" box you can click the arrow on the right side to select from a drop down list of the harvest units (e.g., TSAs and TFLs) where simulations were run. These consist of the names of the 'schemas' in the PostgreSQL database, and you should see the "tutorial" area of interest/schema. Select it, and you will see some check boxes appear in the "Scenarios" box, and a "Current State" display will appear on the right side of the main window. 
-
-The check boxes correspond to the scenario names that were simulated for the harvest unit, by reading the "scenarios" table in the PostgreSQL database. The "Current State" display shows the characteristics of the landscape of the harvest unit, at the start of the simulation. It reads the "state" table in the PostgreSQL database and provides information on things such as the age structure of the forest, the amount THLB and roaded area and the average volume/ha of available stands. Click on the "revelstoke_bau" (or whichever scenario name that you used) text box to mark it with a check, and then click the "forestry" tab on the left side.  
-
-![](images/castor_explorer_aoi.jpg) 
-
-Here you will see a stack of green boxes with a title on the left side and plus sign non the right side. Each of these boxes can be opened to obtain a figure of a forest harvest characteristics of the simulation. Click on the plus sign on the "Harvest Flow" box and you will get a figure showing the area (top) and volume (bottom) of forest harvested at each time interval. You will notice the BAU scenario harvest volume is a flat line, indicating the maximum non-declining harvest yield.
-
-![](images/castor_explorer_harvestflow.jpg) 
-
-Click on the various boxes to explore the outputs. The "Transition Harvest" box illustrates the amount of volume harvested from managed stands at each time interval. The "Available THLB" box illustrates how much area of THLB is available and the "Growing Stock" illustrates how much volume is available at each time interval. You can also explore some of the other tabs, but note that some of these may not function, as the information may not be output for the scenario. Also note that the web application should be considered as a 'beta version', and requires some improvements.
-
-Also note that you can visualize some spatial outputs (i.e., rasters of cutblocks, roads and constraint areas) from each scenario. To do this, click on "Map Viewer" tab on the left hand side of the page. This will open a "Map Query" box in the middle of the page with a drop down box. From the drop down box you can select the raster outputs specific to the scenarios you checked. These raster names correspond to the rasters output from the simulation. Click on the raster ending with "_cutblocks" and click on "Load" and you will see a raster layer colour-coded to the year that a block was last harvested.
-
-![](images/castor_explorer_map.jpg) 
-
-Also note that there is a "Query Builder" tab on the left side of the page, that you can use to build SQL queries of data in the PostgeSQL database, by selecting the Table, Tables and Columns, and data summary type. 
-
-The above provides you with some tools and examples of how to download and illustrate the data to explore simulation scenarios. There is a high degree of flexibility, in that you can use the tools provided in the web app, download the data yourself and create your own figures and tables, modify the web app to include different outputs and even design your own output "reports" in the Castor modules.
 
 ## 9. Conclusion
 Congratulations! You have completed the tutorial and are well on your way to becoming an expert in the Castor model. Feel free to contact the Castor team with questions or comments. 

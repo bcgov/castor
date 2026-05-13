@@ -1,0 +1,131 @@
+<!--
+Copyright 2025 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+---
+title: "Scripts for creating spatial inputs for Castor"
+author: "Elizabeth Kleynhans"
+date: "20/04/2026"
+output: html_document
+---
+
+# About this document
+
+This document provides example scripts for constructing the core spatial layers required to initialize and run a Castor model. Scripts are intended as illustrative templates and may be adapted to local study areas, datasets, or resolutions.
+
+
+```{r setup, include=FALSE}
+# Global setup for Castor preprocessing scripts
+# - Loads common spatial and data wrangling libraries
+# - Defines the standard provincial grid used throughout the model
+# - Ensures all rasters are aligned (CRS, extent, resolution)
+# - Specifies the location of the files and which schema the data should be loaded into in the postgreSQL database
+
+knitr::opts_chunk$set(echo = TRUE)
+
+#Get some important castor specific functions
+source(here::here("functions/R_Postgres.R"))
+
+library(data.table)
+library(sf)
+library(tidyverse)
+library(raster)
+library(fasterize)
+library(bcdata)
+library(bcmaps)
+library(terra)
+
+# Create the standard Castor provincial raster grid
+# All spatial layers used by Castor must align with this grid
+prov.rast <- raster(
+  nrows = 15744, ncols = 17216,
+  xmn = 159587.5, xmx = 1881187.5,
+  ymn = 173787.5, ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = c(100, 100),
+  vals = 0
+)
+
+data.dir <- "<path\\to\\files>" # path where the files you want to include in your postgres database are temporarily stored e.g. this could be your downloads folder or another folder within the project. 
+database.schema<-'test' # name of the schema in you database that you want to load the relevant files
+```
+
+
+# Vegetation Resource Inventory (VRI)
+
+The [VRI](https://catalogue.data.gov.bc.ca/dataset/vri-2024-forest-vegetation-composite-rank-1-layer-r1-) provides the initial forest state for Castor, including species composition, age, height, and basal area. For most castor applications, the **Forest Vegetation Composite Rank 1 layer** is sufficient, as it provides a single
+best‑available representation of stand attributes per polygon.
+
+Users may substitute alternative forest inventory data if:
+ - the data has the following attributes: age, height, crown closure, quadratic mean diameter 125, BC Land-cover Classification System Level 1, 2 and 4, and site index
+- polygons can be rasterized to the Castor grid.
+
+```{r, inventory data}
+# download and open the VRI data
+vri_all <- st_read(paste0(data.dir,"\\VEG_COMP_LYR_R1_POLY_2024.gdb"))
+
+# The VRI is huge so unless you are planning on running your analysis in multiple area I would recommend clipping the full VRI layer to your area of interest and then only upload that to postgres.
+
+# first clip the vri to the bounding box of the tsa. 
+vri_tsa_bbox <- st_crop(vri_all, st_bbox(tsa)) # in this case tsa is your area of interest that you created i.e. in the study_area_boundaries.Rmd (https://github.com/bcgov/castor/blob/main/functions/study_area_boundaries.Rmd)
+
+# create some space on your hard drive if its small
+rm(vri_all) 
+gc()
+
+# Next select only the features we are interested in.
+vri_tsa<- vri_tsa_bbox %>% 
+  dplyr::select(FEATURE_ID, OPENING_ID, OPENING_NUMBER, FEATURE_CLASS_SKEY, BCLCS_LEVEL_1, BCLCS_LEVEL_4, BCLCS_LEVEL_5, BEC_ZONE_CODE, BASAL_AREA, SPECIES_CD_1, SPECIES_PCT_1, SPECIES_CD_2, SPECIES_PCT_2, SPECIES_CD_3, SPECIES_PCT_3, SPECIES_CD_4, SPECIES_PCT_4, SPECIES_CD_5, SPECIES_PCT_5, SPECIES_CD_6, SPECIES_PCT_6, PROJ_AGE_1, PROJ_HEIGHT_1) %>%
+  dplyr::rename_with(tolower)
+
+con <- dbConnect(RPostgres::Postgres(),host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL')) 
+
+st_write(st_as_sf(vri_tsa, crs=3005), con, Id(schema = database.schema, table = "vri_2024_test"))
+dbDisconnect(con)
+
+# Rasterize 
+ras.vri <- fasterize::fasterize (st_cast (vri_tsa, "MULTIPOLYGON"), prov.rast, field = "feature_id")
+writeRaster (ras.vri, paste0(data.dir,("\\raster_vri_fid.tif")), overwrite = T)
+
+# write data
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ', data.dir,'\\raster_vri_fid.tif -t 100x100 ', database.schema,'.rast_vri_id_test | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/', keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+The resulting VRI raster contains a feature ID per pixel, which allows Castor to join pixel‑level state back to polygon‑level forest attributes when initializing the database.
+
+
+# Timber Harvesting Land Base (THLB)
+
+The THLB layer defines which pixels are eligible for harvest activities in Castor. Pixels outside the THLB are excluded from harvest scheduling.
+
+Any spatial representation of the THLB may be used, provided it:
+- is binary (inside / outside THLB),
+- aligns to the Castor grid,
+- and is consistent with the planning context of the analysis.
+
+A version of the provincial timber harvesting land base can be obtained from https://catalogue.data.gov.bc.ca/dataset/provincial-timber-harvesting-land-base-thlb-by-timber-supply-area-tsa-
+
+```{r thlb}
+
+thlb<-st_read(paste0(data.dir,"\\tsa02_thlb.gdb"))
+
+# Rasterize THLB to match Castor grid
+
+ras.thlb <- fasterize::fasterize (st_cast (thlb, "MULTIPOLYGON"), prov.rast, field = "thlb_fact")
+
+terra::writeRaster (ras.thlb, file = paste0(data.dir, "\\raster_thlb.tif"), overwrite = TRUE)
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ', data.dir, '\\raster_thlb.tif -t 100x100 ',database.schema,'.rast_thlb | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+

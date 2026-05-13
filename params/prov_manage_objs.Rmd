@@ -574,13 +574,10 @@ dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints (zoneid integer, re
 
 dbExecute(conn, "ALTER TABLE zone.zone_nharv INHERIT zone.constraints")
 dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone.constraints")
-#dbExecute(conn, "ALTER TABLE zone.zone_wha INHERIT zone.constraints") # defined in wha_cond_harvest_GBR.RMD
 dbExecute(conn, "ALTER TABLE zone.zone_beo INHERIT zone.constraints")
 dbExecute(conn, "ALTER TABLE zone.zone_fsw INHERIT zone.constraints")
-#dbExecute(conn, "ALTER TABLE zone_uwr_gbr INHERIT zone_constraints_gbr") # defined in uwr_cond_harvest_GBR.RMD
 dbExecute(conn, "ALTER TABLE zone.zone_cw INHERIT zone.constraints")
 dbExecute(conn, "ALTER TABLE zone.zone_wau INHERIT zone.constraints")
-#dbExecute(conn, "ALTER TABLE zone_mofrl_gbr INHERIT zone_constraints_gbr")
 
 #if you need to change the column types do as below
 dbExecute(conn, "ALTER TABLE zone.zone_beo ALTER COLUMN multi_condition SET DATA TYPE text;")
