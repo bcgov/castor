@@ -87,7 +87,7 @@ start the installation and accept the default installation location. At
 the setup window select PostgreSQL Server, pgAdmin 4, Stack Builder, and
 Command Line Tools, then select ‘Next’.
 
-![](images/postgreSQL_1.png)
+![](images/postgresql_1.png)
 
 If you work for the BC government, we recommend that you do not accept
 the default ‘Data Directory’ location. Rather create a new folder on
@@ -95,7 +95,7 @@ your C drive that you have administrator rights to so that your data
 remains accessible to you. E.g. you could change the location to
 `C:\Data\PostgreSQL\17\data`.
 
-![](images/postgreSQL_2.png)
+![](images/postgresql_2.png)
 
 Next you will likely be asked to enter a password. The standard password
 is: postgres. Also accept the standard port (5432), and accept the
@@ -106,24 +106,24 @@ standard locale. After doing this, start the install.
 After the PostgreSQL install has completed, the Stackbuilder will
 appear. Start the StackBuilder application (to install PostGIS)
 
-![](images/postgreSQL_3.png)
+![](images/postgresql_3.png)
 
 Launch StackBuilder and select the PostgreSQL 17 installation from the
 drop down selection box.
 
-![](images/postgreSQL_4.png)
+![](images/postgresql_4.png)
 
 Expand the Spatial Extensions and select the PostGIS 2.5 bundle for 64
 bit.
 
-![](images/postgreSQL_5.png)
+![](images/postgresql_5.png)
 
 Then select next and next to install the download (Do not tick the ‘Skip
 installation’ box). Agree to the license terms. Then select the PostGIS
 component and install to the default location, probably
 (`C:\Program Files\PostgreSQL\11`).
 
-![](images/postgreSQL_6.png)
+![](images/postgresql_6.png)
 
 Next you may be asked something like ‘Raster drivers are disabled by
 default. To change you need to set POSTGIS_GDAL_ENABLED_DRIVERS…’,
@@ -141,18 +141,18 @@ left hand side, in the file tree under ‘Servers’. You will be queried
 for the password on the first login, enter the password that you set
 during the install (e.g. postgres) and click ok.
 
-![](images/postgreSQL_7.png)
+![](images/postgresql_7.png)
 
 Click down the tree, opening ‘Databases’ followed by ‘postgres’ as seen
 below. Then right mouse click on Extensions and select Create -\>
 Extension. A box called “Create Extensions” will open.
 
-![](images/postgreSQL_8.png)
+![](images/postgresql_8.png)
 
 Click on the drop down arrow next to ‘Name’ and scroll down to or type
 **postgis**. Select postgis and click ok.
 
-![](images/postgreSQL_9.png)
+![](images/postgresql_9.png)
 
 Repeat the process of creating an extension but this time add
 **postgis_raster**. After doing this postgreSQL should be set up. By
@@ -977,7 +977,7 @@ mysimout<-spades(mySim)
 ```
 
     ##    user  system elapsed 
-    ##    1.17    0.02    1.19
+    ##    1.21    0.06    1.26
 
 After running the above script a castor SQLite database will be located
 in */modules/dataCastor* its name will be ‘simple_castordb.sqlite’
