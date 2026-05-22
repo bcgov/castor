@@ -87,7 +87,7 @@ start the installation and accept the default installation location. At
 the setup window select PostgreSQL Server, pgAdmin 4, Stack Builder, and
 Command Line Tools, then select ‘Next’.
 
-![](images/postgresql_1.png)
+![](images/postgresql_1.PNG)
 
 If you work for the BC government, we recommend that you do not accept
 the default ‘Data Directory’ location. Rather create a new folder on
@@ -977,7 +977,7 @@ mysimout<-spades(mySim)
 ```
 
     ##    user  system elapsed 
-    ##    1.11    0.05    1.18
+    ##    1.07    0.01    1.10
 
 After running the above script a castor SQLite database will be located
 in */modules/dataCastor* its name will be ‘simple_castordb.sqlite’
