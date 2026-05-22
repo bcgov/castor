@@ -87,7 +87,7 @@ start the installation and accept the default installation location. At
 the setup window select PostgreSQL Server, pgAdmin 4, Stack Builder, and
 Command Line Tools, then select ‘Next’.
 
-![](images/postgresql_1.PNG)
+![](images/postgres_1.jpg)
 
 If you work for the BC government, we recommend that you do not accept
 the default ‘Data Directory’ location. Rather create a new folder on
@@ -977,7 +977,7 @@ mysimout<-spades(mySim)
 ```
 
     ##    user  system elapsed 
-    ##    1.07    0.01    1.10
+    ##    1.25    0.04    1.30
 
 After running the above script a castor SQLite database will be located
 in */modules/dataCastor* its name will be ‘simple_castordb.sqlite’
@@ -1022,10 +1022,10 @@ example, a foreign key related to the *yields* table is aptly named
 dbGetQuery(con, "SELECT * FROM pixels where age > 0 limit 1;")
 ```
 
-    ##   pixelid compartid own yieldid yieldid_trans zone_const treed thlb cflb silvsystem elv age vol dist crownclosure height basalarea qmd siteindex dec_pcnt eca salvage_vol dual priority
-    ## 1    9217       all   1       1             1          0     1    1    1          0   0   3  NA    0           60     10        NA  NA        NA        0  NA           0   NA        0
-    ##   zone1
-    ## 1     1
+    ##   pixelid compartid own yieldid yieldid_trans zone_const treed thlb cflb silvsystem elv age vol dist crownclosure height basalarea qmd siteindex
+    ## 1    9217       all   1       1             1          0     1    1    1          0   0   3  NA    0           60     10        NA  NA        NA
+    ##   dec_pcnt eca salvage_vol dual priority zone1
+    ## 1        0  NA           0   NA        0     1
 
 The *yields* table contains all the required yield curves (age vs yield)
 for the analysis. Note “yields” can be anything like basal area per ha,
