@@ -977,7 +977,7 @@ mysimout<-spades(mySim)
 ```
 
     ##    user  system elapsed 
-    ##    1.21    0.06    1.26
+    ##    1.11    0.05    1.18
 
 After running the above script a castor SQLite database will be located
 in */modules/dataCastor* its name will be ‘simple_castordb.sqlite’
