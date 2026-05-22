@@ -87,7 +87,7 @@ start the installation and accept the default installation location. At
 the setup window select PostgreSQL Server, pgAdmin 4, Stack Builder, and
 Command Line Tools, then select ‘Next’.
 
-![](documentation/images/postgresql_1.png)
+![](images/postgresql_1.png)
 
 If you work for the BC government, we recommend that you do not accept
 the default ‘Data Directory’ location. Rather create a new folder on
@@ -157,7 +157,7 @@ Click on the drop down arrow next to ‘Name’ and scroll down to or type
 Repeat the process of creating an extension but this time add
 **postgis_raster**. After doing this postgreSQL should be set up. By
 adding these extensions you can write shapefiles and raster files to
-your database, as outlined in many of the files in the ‘~/castor/params’
+your database, as outlined in many of the files in the `~/castor/params`
 folder
 
 ### 1.2 R Packages
@@ -278,7 +278,7 @@ Below we describe three methods, from the most straightforward
 - [2.1a Standard RStudio clone with submodule
   initialization](#21a-standard-rstudio-clone-with-submodule-initialization)
 - [2.1b One-step clone including all
-  submodules](#21b-one-step-clone-including-all-submodules)
+  submodules](#21b-onestep-clone-including-all-submodules)
 - [2.1c Advanced: cloning only selected
   submodules](#21c-advanced-cloning-only-selected-submodules)
 
@@ -977,7 +977,7 @@ mysimout<-spades(mySim)
 ```
 
     ##    user  system elapsed 
-    ##    1.18    0.00    1.19
+    ##    1.32    0.03    1.36
 
 After running the above script a castor SQLite database will be located
 in */modules/dataCastor* its name will be ‘simple_castordb.sqlite’
