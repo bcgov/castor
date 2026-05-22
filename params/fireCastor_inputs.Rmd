@@ -22,7 +22,7 @@ output: html_document
 
 # About this document
 
-This document describes methods to create scripts for constructing the core spatial layers required to run fireCastor within Castor. Scripts are intended as illustrative templates and may be adapted to local study areas, datasets, or resolutions.
+This document describes methods to create scripts for constructing the core spatial layers required to run fireCastor within Castor. Scripts are intended as illustrative templates and may be adapted to local study areas and datasets.
 
 
 ```{r setup, include=FALSE}
@@ -76,15 +76,34 @@ Alternative DEM sources can be used but they must be:
 - projected to BC Albers,
 - resampled to the Castor grid
 
+In the example below I demonstrate uploading DEM for the Boundary TSA. However, if you plan on doing various analyses for different regions of the province it may be more efficient to upload a single dem raster in to postgres that castor will then query on the fly. 
+
 ```{r elevation}
 
-#Get Canadian digital elevation model (https://publications.gc.ca/site/eng/9.952083/publication.html)
+#Get Canadian digital elevation model for area of interest (https://publications.gc.ca/site/eng/9.952083/publication.html)
 cded_vrt <- cded(
-  aoi = tsa,
+  aoi = tsa, #tsa referes to the the study area created in study_area_boundaries.Rmd
   ask = FALSE   # important for scripts / pipelines
 )
 
 dem <- rast(cded_vrt)
+
+#--------------------------------------------
+## Alternatively you can download dem for the entire province like this:
+# Get the provincial boundary as your AOI
+#bc_boundary <- bc_bound() 
+
+# Fetch the CDED data 
+# Note: At a provincial scale, this may take a moment to download/process the first time
+# prov_dem <- cded(
+#   aoi = bc_boundary,
+#   ask = FALSE
+# )
+
+#dem <- terra::rast(prov_dem)
+#---------------------------------------------
+
+
 dem_bc <- project(dem, prov.rast)
 # resample dem to the resolution used by castor
 dem_bc_100m <- resample(

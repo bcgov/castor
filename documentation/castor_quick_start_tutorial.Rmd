@@ -15,9 +15,7 @@ See the License for the specific language governing permissions and limitations 
 
 ---
 title: "Castor Quick Start Tutorial"
-author:
-  - Tyler Muhly
-  - Elizabeth Kleynhans
+author:Tyler Muhly and Elizabeth Kleynhans
 date: "First published: 2020-02-12, Updated: 2026-03-04" 
 output:
   md_document:
@@ -35,10 +33,10 @@ For an overview of how the Castor model works, we recommend reading our [wiki](h
 ## 1. Download Software
 Castor is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R software. You can download program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, and therefore we also recommend that you download the free version of [RStudio](https://rstudio.com/products/rstudio/download/). RStudio is an integrated development environment (IDE) for working with R code. It provides various windows and tabs for interacting with and running R code, downloading and loading R packages, interfacing with GitHub (more on that below), and managing R ['objects'](https://www.datacamp.com/community/tutorials/data-types-in-r). We also recommend you download ['git' software](https://gitforwindows.org/) to interface and work with the model code. 
 
-To work with the castor model, you will need to download [PostgreSQL](https://www.postgresql.org/download/). Usually  when PostgreSQL is installed pgAdmin is also installed but if it is missing you can download it separately from [pgAdmin](https://www.pgadmin.org/) software. pgAdmin is useful software that will allow you to connect to and work with your spatial layers stored in PostgreSQL databases, which are the key data structure used by Castor. 
+To work with the castor model, you will need to download [PostgreSQL](https://www.postgresql.org/download/). Usually  when PostgreSQL is installed pgAdmin is also installed but if it is missing you can download it separately from [pgAdmin](https://www.pgadmin.org/) software. pgAdmin is useful software that will allow you to connect to and work with your spatial layers stored in PostgreSQL databases, which are the key data structure used by Castor. When installing PostgreSQL make note of your chosen 'Host name/address', 'Port', 'Username', and 'Password'. You will need these to set up your keyring. Detailed steps for installing PostgreSQL are provided below at 1.1 PostgreSQL and PostgreSQL extensions.
 
 To work with spatial data, you may also want to install OSGeo4W. OSGeo4W provides a convenient bundle of open‑source geospatial tools, including QGIS, GDAL/OGR, and GRASS GIS. QGIS (an open‑source alternative to ArcGIS) is especially helpful for visually inspecting and exploring your spatial layers.
-Many R packages that rely on GDAL/OGR now include these libraries internally, so a separate installation is often unnecessary on Windows. However, Mac users still need to install GDAL/OGR manually, as these tools are not bundled with macOS versions of the relevant R packages.
+Many R packages that rely on GDAL/OGR now include these libraries internally, so a separate installation is often unnecessary on Windows if you are not going to use QGIS to quickly inspect layers. However, Mac users still need to install GDAL/OGR manually, as these tools are not bundled with macOS versions of the relevant R packages.
 
 If you are a government employee, you may want to download these software as approved by your information technology department.
 
@@ -50,6 +48,54 @@ In summary, the first step of working with Castor is to download the following s
 * [PostgreSQL](https://www.postgresql.org/download/)
 * [pgAdmin](https://www.pgadmin.org/) (optional)
 * [OSGeo4W](https://trac.osgeo.org/osgeo4w/) (optional)
+
+### 1.1 PostgreSQL and PostgreSQL extensions
+
+After downloading PostgreSQL, start the installation and accept the default installation location. At the setup window select PostgreSQL Server, pgAdmin 4, Stack Builder, and Command Line Tools. 
+
+![](images/postgreSQL_1.png)
+
+If you work for the BC government, we recommend that you do not accept the default 'Data Directory' location. Rather create a new folder on your C drive that you have administrator rights to so that your data remains accessible to you. E.g. you could change the location to 'C:\Data\PostgreSQL\17\data'.
+![](images/postgreSQL_2.png)
+
+Next you will likely be asked to enter a password. The standard password is: postgres. Also accept the standard port (5432), and accept the standard locale. After doing this start the install. 
+
+#### Installation of PostGIS
+After the PostgreSQL install has completed, the Stackbuilder will appear.
+Start the StackBuilder application (to install PostGIS)
+
+![](images/postgreSQL_3.png)
+
+Launch StackBuilder and select the PostgreSQL 17 installation from the drop down selection box.
+![](images/postgreSQL_4.png)
+Expand the Spatial Extensions and select the PostGIS 2.5 bundle for 64 bit. 
+![](images/postgreSQL_5.png)
+Then select next and next to install the download (Do not tick the 'Skip installation'). Agree to the license terms. Then select the PostGIS component and install to the default location, probably ('C:\Program Files\PostgreSQL\11').
+
+
+![](images/postgreSQL_6.png)
+
+Next you may be asked something like 'Raster drivers are disabled by default. To change you need to set POSTGIS_GDAL_ENABLED_DRIVERS...', select no. Also hit no if you are asked 'Raster out of db is disabled by default. To enable ...'
+
+At this point PostGIS should be done installing.
+
+The last thing you need to do is add the spatial extensions so that they are available in postgreSQL. To do this open pgAdmin4. You may be prompted to set a master password for pgAdmin, do that and remember it.
+
+Once pgAdmin has started click on the PostgreSQL 17 server.
+You will be queried for the password on the first login, enter the password that you set during the install (e.g. postgres).
+
+![](images/postgreSQL_7.png)
+Click down the tree until you get to postgres: ( as below)
+Right mouse click on Extensions and select Create -> Extension:
+
+![](images/postgreSQL_8.png)
+
+Click on the drop down arrow and scroll down or type postgis.
+Select postgis and click ok. 
+![](images/postgreSQL_9.png)
+
+Repeat the process of creating an extension but this time add **postgis_raster**. After doing this postgreSQL should be set up and ready for use.
+
 
 ### 1.1 R Packages
 When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packages must meet certain QA/QC
@@ -75,6 +121,7 @@ This will open a new window with "User variables" and "System variables" boxes. 
 You should see a list of file paths (e.g., *C:\\Program Files\\....* ). Click on the "New" button and enter the directory where the PostgreSQL "bin" folder is located; in this example it is located at *C:\\Program Files\\PostgreSQL\\11\\bin*. Enter the correct directory location and click 'Ok'. This will add PostGreSQL to your environment variables and allow you to run the software correctly. 
 
 ![](images/system_edit.jpg)
+
 
 
 ## 2. Download the Model Code from GitHub
