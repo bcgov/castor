@@ -20,12 +20,7 @@ output: github_document
 ---
 
 
-
-
-
 # Forest and Land Use Simulator (Castor) Quick Start Tutorial
-
-TESTING
 
 The Castor quick-start tutorial provides step-by-step instructions on how to use Castor. It is designed to familiarize you with creating and running a simple forest harvest scenario analysis using Castor. For an overview of how the Castor model works, we recommend reading our [wiki](https://github.com/bcgov/castor/wiki). The wiki provides an introduction to the framework and components of Castor that may facilitate understanding this tutorial. 
 

@@ -16,8 +16,6 @@ See the License for the specific language governing permissions and limitations 
 
 # Forest and Land Use Simulator (Castor) Quick Start Tutorial
 
-TESTING
-
 The Castor quick-start tutorial provides step-by-step instructions on
 how to use Castor. It is designed to familiarize you with creating and
 running a simple forest harvest scenario analysis using Castor. For an
@@ -979,7 +977,7 @@ mysimout<-spades(mySim)
 ```
 
     ##    user  system elapsed 
-    ##    1.17    0.05    1.21
+    ##    1.17    0.02    1.19
 
 After running the above script a castor SQLite database will be located
 in */modules/dataCastor* its name will be ‘simple_castordb.sqlite’
