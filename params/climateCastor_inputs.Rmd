@@ -1,0 +1,283 @@
+---
+title: "climateCastor_inputs"
+author: "Elizabeth Kleynhans"
+date: "2026-06-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(terra)
+library(data.table)
+library(bcmaps)
+library(bcdata)
+library(climr)
+library(DBI)
+library(RPostgres)
+library(keyring)
+library(sf)  
+```
+
+## Create climateid look up table and raster
+
+Overview
+This script generates two primary outputs to optimize climate data processing within the Castor simulation framework:
+
+A 100m Provincial Raster: Stored in PostgreSQL (rast.climate_prism_base_layer), where each 100m cell contains the ID of its "parent" 800m climate cell.
+
+A Climate Lookup Table: Stored in PostgreSQL (vat.climate_prism_lat_lon_lookup), linking each 800m climate ID to its geographic coordinates (Lat/Long in EPSG:4326) and elevation.
+
+Why this approach?
+Performance: By pre-calculating the relationship between the high-resolution simulation grid (100m/1ha) and the climate data grid (800m), we eliminate the need for expensive spatial joins or coordinate transformations during the model run. The simulation simply "clips" the ID raster and queries the lookup table—a much faster database operation.
+
+Scientific Alignment: PRISM climate data is natively delivered at an 800m resolution. Processing climate variables at a finer scale (like 100m) often relies on artificial interpolation. By fetching data at the native 800m scale, we maintain data integrity while significantly reducing the number of climate API calls required.
+
+Data Efficiency: Querying 1 climate point per 64 hectares (instead of 64 points) reduces the data volume by 98%, drastically increasing the speed of climate downscaling tools like climr.
+
+Workflow
+Grid Generation: Creates a standardized 800m grid aggregated from the 100m BC Albers provincial template.
+
+Elevation Extraction: Automatically fetches the Provincial Digital Elevation Model (CDED) and resamples it to the climate grid.
+
+Coordinate Mapping: Transforms grid centroids to WGS84 (Lat/Long) to ensure compatibility with climate data fetchers.
+
+Database Synchronization: Uploads the results to PostgreSQL, ensuring the raster and the lookup table are perfectly indexed to one another.
+
+```{r}
+
+# --- 1. USER CONFIGURATION ---
+output_dir  <- "./outputs/"
+db_name     <- "castor"
+
+if(!dir.exists(output_dir)) dir.create(output_dir)
+
+# 2. GENERATE GRIDS FROM TEMPLATE - use the prov.rast defined at the start of this script---
+# Create the 800m Climate Grid (Aggregation factor of 8)
+# We initialize it with unique IDs
+prism_style_800m <- terra::aggregate(prov.rast, fact = 8)
+prism_style_800m$pixelid_climate <- 1:terra::ncell(prism_style_800m)
+
+# Project IDs back to 100m for the Postgres raster layer
+# This creates the map where every 100m pixel knows its Climate ID
+climate_id_100m <- terra::project(prism_style_800m$pixelid_climate, prov.rast, method = "near")
+
+output_tif <- file.path(output_dir, "climate_prism_base_layer.tif")
+terra::writeRaster(climate_id_100m, output_tif, overwrite = TRUE)
+
+# --- 3. FETCH DEM DATA DYNAMICALLY ---
+
+#If you downloaded dem when creating the provincial CMI value skip this section
+######################################
+message("Fetching Provincial DEM (CDED)... this may take a few minutes.")
+bc_boundary <- bcmaps::bc_bound()
+prov_dem_raw <- bcmaps::cded(aoi = bc_boundary, ask = FALSE)
+dem_raster<-terra::rast(prov_dem_raw)
+
+# Ensure it's a terra object and resample to our 800m grid
+# method = "bilinear" is preferred for continuous elevation data
+
+dem_800m <- terra::project(dem_raster, prism_style_800m, method = "bilinear")
+
+# --- 4. BUILD THE LOOKUP TABLE ---
+
+# 1. Get the center points of the 800m cells while still in Albers
+cells_800m <- 1:terra::ncell(prism_style_800m)
+coords_albers <- terra::xyFromCell(prism_style_800m, cells_800m)
+
+# 2. Extract Elevation values from our resampled 800m DEM
+# Since coords_albers came from prism_style_800m, these match 1:1
+el_values <- terra::extract(dem_800m, coords_albers)
+
+# 3. Convert Albers Points to Lat/Long (WGS84) for climate model compatibility
+# We project points (not the raster) to prevent cell-count mismatches
+pts <- terra::vect(coords_albers, crs = "EPSG:3005")
+pts_wgs84 <- terra::project(pts, "EPSG:4326")
+coords_wgs84 <- terra::geom(pts_wgs84)[, c("x", "y")]
+
+# 4. Combine into a final data.table
+xyz_table <- data.table(
+  pixelid_climate = cells_800m,
+  long = coords_wgs84[, "x"],
+  lat  = coords_wgs84[, "y"],
+  el   = el_values[[1]] # Extract returns a df, we want the column
+)
+
+# --- 5. DATABASE UPLOAD ---
+
+conn <- DBI::dbConnect(
+  RPostgres::Postgres(),
+  host     = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+  dbname   = db_name,
+  port     = 5432,
+  user     = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+  password = keyring::key_get('dbpass', keyring = 'postgreSQL')
+)
+
+# Write the lookup table (VAT)
+DBI::dbWriteTable(conn, c("vat", "climate_prism_lat_lon_lookup"), value = xyz_table, overwrite = TRUE)
+DBI::dbDisconnect(conn)
+
+# --- 6. UPLOAD climate_id_100m raster to postgres ---
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 ', output_tif, '-t 100x100 ',database.schema,'.climate_prism_base_layer | psql postgres://',
+                                   keyring::key_get('dbuser', keyring = 'postgreSQL'), ':',
+                                   keyring::key_get('dbpass', keyring = 'postgreSQL'), '@',
+                                   keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/',
+                                   keyring::key_get('dbname', keyring = 'postgreSQL')),
+        show.output.on.console = FALSE, invisible = TRUE)
+
+
+```
+
+
+## Provincial CMI value raster
+
+The lavaf3r (Lochhead in prep.) equations used in fireCastor to predict the number of ignitions and fire size require a single climate moisture index (CMI) value that represents how dry the entire province is each summer. Below is a script to create this value for historical and future years of your choice and for your choice of global circulation models (GCM's) and SSP's. 
+
+```{r}
+## --- Configuration Section ---
+# User: Edit these variables to change the GCMs, scenarios, or resolution
+target_gcms   <- c("MPI-ESM1-2-HR") 
+target_ssps   <- c("ssp245", "ssp370")
+target_years  <- 2015:2100
+target_runs   <- 8
+grid_res      <- 5000  # Meters (5km). We increase the grid size from 100m to 5km because it takes for ever if you do it at 100m. 
+output_table  <- "prov_cmi_ave" # Postgres table name
+
+# Define Summer CMI variables
+vars_cmi      <- c("CMI_05", "CMI_06", "CMI_07", "CMI_08")
+## -----------------------------
+
+### 1. Generate Provincial Grid
+message("Generating provincial grid at ", grid_res, "m resolution...")
+
+
+prov_rast_large <- rast(
+  xmin = 159587.5, xmax = 1881187.5,
+  ymin = 173787.5, ymax = 1748187.5,
+  crs   = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = c(grid_res, grid_res)
+)
+
+# Extract coordinates from the provincial raster and project to WGS84 for climr
+
+prov.rast_wgs84 <- terra::project(prov_rast_large, "EPSG:4326")
+
+# 2. Get coordinates directly from the projected raster
+latlong <- as.data.table(terra::crds(prov.rast_wgs84, df = TRUE))
+setnames(latlong, c("lon", "lat"))
+latlong[, id := seq_len(.N)]
+
+# 3. Extract Elevation for every point. climR adjust the climate data according to elevation so this is why its needed
+
+# if you have an elevation map for the entire province skip this.
+#---------------------------
+
+message("Fetching provincial DEM data...")
+
+# Get the provincial boundary as your AOI
+# This ensures you have the extent of all of BC
+bc_boundary <- bc_bound() 
+
+# Fetch the CDED data 
+# Note: At a provincial scale, this may take a moment to download/process the first time
+prov_dem <- cded(
+  aoi = bc_boundary,
+  ask = FALSE
+)
+
+dem_raster <- terra::rast(prov_dem)
+#----------------------------
+
+# 4. Extract the CRS from the raster object
+dem_crs <- terra::crs(dem_raster)
+
+# 5. Transform your points to match the DEM's projection
+# We use st_transform on our points sf object
+pts_sf <- st_transform(pts_sf, dem_crs)
+
+# 6. Extract values using terra (passing the SpatRaster and the transformed points)
+# We convert pts_sf to a SpatVector for maximum speed with terra
+elev_values <- terra::extract(dem_raster, terra::vect(pts_sf))
+
+# 7. Assign back to your data.table
+# Column 1 is the ID, Column 2 is the elevation (usually named after the file)
+latlong[, elev := elev_values[[2]]]
+latlong <- latlong[!is.na(elev)]    # Drop points outside the terrestrial boundary
+
+### 8. Downscale Climate Data (Batch Processing)
+# Function to process in chunks to prevent memory crashes
+process_cmi <- function(input_dt, gcms, ssps, years, runs) {
+  
+  # Split data into chunks of 5000 points
+  chunk_size <- 5000
+  n_chunks <- ceiling(nrow(input_dt) / chunk_size)
+  full_out <- list()
+  
+  for(i in 1:n_chunks) {
+    message("Processing chunk ", i, " of ", n_chunks)
+    idx <- ((i-1) * chunk_size + 1):min(i * chunk_size, nrow(input_dt))
+    
+    ds <- downscale(
+      xyz = input_dt[idx],
+      which_refmap = "refmap_climr",
+      gcm_ssp_years = years,
+      gcms = gcms,
+      ssps = ssps,
+      max_run = runs,
+      vars = vars_cmi,
+      ensemble_mean = FALSE,
+      db_option = "local" #there are various options for db_option but I find local to work best.
+    )
+    
+    # Calculate Mean Summer CMI
+    ds[, rowmeanCMI := rowMeans(.SD), .SDcols = vars_cmi]
+    ds <- ds[RUN != "ensembleMean", .(GCM, SSP, RUN, PERIOD, rowmeanCMI)]
+    
+    full_out[[i]] <- ds
+  }
+  
+  # Combine chunks and aggregate to provincial average
+  final_dt <- rbindlist(full_out)
+  summary_dt <- final_dt[, .(ave_cmi = mean(rowmeanCMI, na.rm = TRUE)), 
+                        by = .(GCM, SSP, RUN, PERIOD)]
+  
+  # Standardize names for Postgres
+  setnames(summary_dt, tolower(names(summary_dt)))
+  summary_dt[, gcm := gsub("-", "_", gcm)]
+  
+  return(summary_dt)
+}
+
+# Run the process
+results <- process_cmi(latlong, target_gcms, target_ssps, target_years, target_runs)
+
+### 9. Load into Postgres
+message("Connecting to database and uploading results...")
+
+conn <- DBI::dbConnect(
+  dbDriver("PostgreSQL"), 
+  host = keyring::key_get('dbhost'), 
+  dbname = keyring::key_get('dbname'), 
+  port = '5432', 
+  user = keyring::key_get('dbuser'), 
+  password = keyring::key_get('dbpass')
+)
+
+# Check if table exists to decide on append vs overwrite
+
+if(dbExistsTable(conn, output_table)) {
+  # Option A: Append new data
+  dbWriteTable(conn, output_table, results, append = TRUE, row.names = FALSE)
+  message("Data appended to ", output_table)
+} else {
+  # Option B: Create new table
+  dbWriteTable(conn, output_table, results, row.names = FALSE)
+  message("New table created: ", output_table)
+}
+
+dbDisconnect(conn)
+
+```
+

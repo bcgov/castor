@@ -480,9 +480,9 @@ An R Markdown helper document is provided in the Castor repository:
 [functions/keyring_init.Rmd](https://github.com/bcgov/castor/tree/main/functions/keyring_init.Rmd)
 Open and run this Rmd file in RStudio. It walks you through:
 
-Creating a keyring (if one does not already exist) Adding your
-PostgreSQL username and password Testing that Castor can retrieve these
-credentials successfully
+- Creating a keyring (if one does not already exist)
+- Adding your PostgreSQL username and password
+- Testing that Castor can retrieve these credentials successfully
 
 Note: These credentials are only for your local PostgreSQL database.
 They are not the same as your GitHub credentials.
@@ -504,13 +504,15 @@ available for any part of the province.
 
 Castor inputs fall into four broad classes:
 
-5.1. **Core spatial inputs**: Define the area of interest and spatial
-structure 5.2. **Spatial constraints and scenarios**: Define management
+[5.1. Core spatial inputs](#51-core-spatial-inputs): Define the area of
+interest and spatial structure [5.2. Spatial constraints and
+scenarios](#52-spatial-constraints-and-scenarios): Define management
 rules and policy objectives around where and the amount of harvest that
-can take place 5.3. **Growth and yield inputs**: Describe forest growth
-within the area of interest 5.4. **Optional module-specific spatial
-inputs**: Provide additional spatial information required by selected
-Castor modules
+can take place [5.3. Growth and yield
+inputs](#53-growth-and-yield-inputs): Describe forest growth within the
+area of interest [5.4. Optional module-specific spatial
+inputs](#54-optional-module-specific-spatial-inputs): Provide additional
+spatial information required by selected Castor modules
 
 Each class of input serves a distinct role in the model, and together
 they fully define a Castor simulation.
@@ -977,7 +979,7 @@ mysimout<-spades(mySim)
 ```
 
     ##    user  system elapsed 
-    ##    1.32    0.03    1.36
+    ##    1.29    0.06    1.40
 
 After running the above script a castor SQLite database will be located
 in */modules/dataCastor* its name will be ‘simple_castordb.sqlite’
