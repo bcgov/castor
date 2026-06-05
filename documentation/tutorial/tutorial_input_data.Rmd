@@ -1,0 +1,409 @@
+<!--
+Copyright 2025 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+---
+title: "Example_castor_simulation"
+author: "Elizabeth Kleynhans"
+date: "2026-06-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(terra)
+library(sf)
+library(data.table)
+library(DBI)
+library(RPostgres)
+library(keyring)
+library(fasterize)
+library(raster)
+```
+
+## 1. Provincial raster template
+This template is needed so that the extent of every raster used in the analyses in Castor line up
+```{r}
+prov.rast <- raster::raster(
+  nrows = 15744,
+  ncols = 17216,
+  xmn = 159587.5,
+  xmx = 1881187.5,
+  ymn = 173787.5,
+  ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = c(100, 100),
+  vals = 0
+)
+```
+
+## 2. Create my boundary files
+The bounday files determine where the analysis takes place. Three files are required; a shapefile of your area of interest, a raster of your area of interest, and a lookup table for your area of interest. These need to be loaded into your postgres database.
+```{r}
+# ─────────────────────────────────────────────
+# 1. Create your area of interest
+# ─────────────────────────────────────────────
+
+xmin <- 999987.5
+xmax <- 1063088
+ymin <- 1167088
+ymax <- 1223388
+
+study_area_sf <- st_sf(
+  area_id = 1,
+  tsa_name = "study_area_test",
+  geometry = st_as_sfc(
+    st_bbox(c(
+      xmin = xmin,
+      xmax = xmax,
+      ymin = ymin,
+      ymax = ymax
+    ), crs = st_crs(3005))
+  )
+)
+
+# ─────────────────────────────────────────────
+# 2. Lookup table (VAT)
+# ─────────────────────────────────────────────
+
+vat <- data.table(
+  value = 1,
+  tsa_name = "study_area"
+)
+
+setnames(vat, c("value", "tsa_name"))
+
+# ─────────────────────────────────────────────
+# 3. Fasterize ONTO prov.rast ✅
+# ─────────────────────────────────────────────
+
+study_area_rast <- fasterize(
+  st_cast(study_area_sf, "MULTIPOLYGON"),
+  prov.rast,
+  field = "area_id"
+)
+
+plot(study_area_rast)
+
+# Save raster
+writeRaster(study_area_rast, "study_area.tif", overwrite = TRUE)
+
+# ─────────────────────────────────────────────
+# 4. Write shapefile locally
+# ─────────────────────────────────────────────
+
+st_write(study_area_sf, "study_area.shp", delete_dsn = TRUE)
+
+# ─────────────────────────────────────────────
+# 5. Connect to Postgres
+# ─────────────────────────────────────────────
+
+conn <- dbConnect(
+  RPostgres::Postgres(),
+  host     = keyring::key_get("dbhost", keyring = "postgreSQL"),
+  dbname   = keyring::key_get("dbname", keyring = "postgreSQL"),
+  port     = 5432,
+  user     = keyring::key_get("dbuser", keyring = "postgreSQL"),
+  password = keyring::key_get("dbpass", keyring = "postgreSQL")
+)
+
+# ─────────────────────────────────────────────
+# 6. Write vector to Postgres
+# ─────────────────────────────────────────────
+# I created a schema called test, so that is where I will write the data. If you want your data in a different postgres schema change the name from test to your schema name. 
+st_write(
+  study_area_sf,
+  conn,
+  Id(schema = "test", table = "study_area")
+)
+
+# ─────────────────────────────────────────────
+# 7. Write lookup table (VAT)
+# ─────────────────────────────────────────────
+
+dbWriteTable(
+  conn,
+  Id(schema = "test", table = "vat_study_area"),
+  vat,
+  overwrite = TRUE,
+  row.names = FALSE
+)
+
+# ─────────────────────────────────────────────
+# 8. Upload raster (prov-aligned) to PostGIS
+# ─────────────────────────────────────────────
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 study_area.tif -t 100x100 test.rast_study_area | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get ('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+# ─────────────────────────────────────────────
+# 9. Disconnect
+# ─────────────────────────────────────────────
+
+dbDisconnect(conn)
+```
+## 3. get THLB for area of interest
+
+I our example the area of interest crosses both the MacKenzie TSA and the Prince George TSA so we need to download both of those. 
+A version of the provincial timber harvesting land base can be obtained from https://catalogue.data.gov.bc.ca/dataset/provincial-timber-harvesting-land-base-thlb-by-timber-supply-area-tsa-
+Head to this site and download the THLB data for TSA24 and TSA 16
+
+```{r}
+data.dir <- "<path\\to\\files>"
+thlb_24<-st_read(paste0(data.dir,"\\tsa24\\tsa24_thlb.gdb"))
+thlb_16<-st_read(paste0(data.dir,"\\tsa16\\tsa16_thlb.gdb"))
+
+# check CRS match
+st_crs(thlb_24)
+st_crs(thlb_16)
+st_crs(study_area_sf)
+
+# combine THLB for both TSA's
+thlb <- bind_rows(thlb_24, thlb_16)
+
+
+# clip thlb to my area of interest
+thlb_crop <- st_crop(thlb, st_bbox(study_area_sf))
+thlb_crop <- st_make_valid(thlb_crop)
+
+
+# Rasterize THLB to match Castor grid
+ras.thlb <- fasterize::fasterize (st_cast (thlb_crop, "MULTIPOLYGON"), prov.rast, field = "thlb_fact")
+plot(ras.thlb)
+
+terra::writeRaster (ras.thlb, file = "raster_thlb.tif", overwrite = TRUE)
+# upload raster to postgres
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 raster_thlb.tif -t 100x100 test.rast_thlb | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/',keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+## 4. Get the VRI for your area of interest. Note uploading the whole VRI file takes ages so I clip it to the area of interest before working with it.
+```{r}
+# download and open the VRI data
+
+# ─────────────────────────────────────────────
+# 1. Define bbox from study area
+# ─────────────────────────────────────────────
+
+bbox <- st_bbox(study_area_sf)
+
+# Convert bbox to WKT polygon
+bbox_wkt <- st_as_text(st_as_sfc(bbox))
+
+# ─────────────────────────────────────────────
+# 2. Read VRI clipped to bbox (FAST)
+# ─────────────────────────────────────────────
+
+vri_tsa <- st_read(
+  dsn = paste0(data.dir, "\\VEG_COMP_LYR_R1_POLY_2025.gdb"),
+  wkt_filter = bbox_wkt
+)
+
+# ─────────────────────────────────────────────
+# 3. Ensure CRS is correct (important)
+# ─────────────────────────────────────────────
+
+vri_tsa <- st_transform(vri_tsa, 3005)
+
+# ─────────────────────────────────────────────
+# 4. Select only needed columns + rename
+# ─────────────────────────────────────────────
+
+vri_tsa <- vri_tsa %>%
+  dplyr::select(
+    FEATURE_ID, OPENING_ID, OPENING_NUMBER,
+    BCLCS_LEVEL_1, BCLCS_LEVEL_4, BCLCS_LEVEL_5,
+    BEC_ZONE_CODE, BASAL_AREA,
+    SPECIES_CD_1, SPECIES_PCT_1,
+    SPECIES_CD_2, SPECIES_PCT_2,
+    SPECIES_CD_3, SPECIES_PCT_3,
+    SPECIES_CD_4, SPECIES_PCT_4,
+    SPECIES_CD_5, SPECIES_PCT_5,
+    SPECIES_CD_6, SPECIES_PCT_6,
+    PROJ_AGE_1, PROJ_HEIGHT_1,
+    SITE_INDEX,
+    Shape
+  ) %>%
+  dplyr::rename_with(tolower)
+
+# ─────────────────────────────────────────────
+# 5. Optional: clean geometry (only after clipping!)
+# ─────────────────────────────────────────────
+
+vri_tsa <- st_make_valid(vri_tsa)
+
+# ─────────────────────────────────────────────
+# 6. Upload to postgres
+# ─────────────────────────────────────────────
+
+con <- dbConnect(RPostgres::Postgres(),host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL')) 
+
+st_write(st_as_sf(vri_tsa, crs=3005), con, Id(schema = "test", table = "vri_2025"))
+dbDisconnect(con)
+
+# ─────────────────────────────────────────────
+# 8. Rasterize feature_id and upload to postgres
+# ─────────────────────────────────────────────
+ras.vri <- fasterize::fasterize (st_cast (vri_tsa, "MULTIPOLYGON"), prov.rast, field = "feature_id")
+writeRaster (ras.vri, "raster_vri_fid.tif", overwrite = T)
+
+# write data
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 raster_vri_fid.tif -t 100x100 test.rast_vri_id_test | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/', keyring::key_get('dbname', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+## 5. Get land constraints i.e. harvesting constraints
+
+Our test area has some harvest constraints such as no harvesting in provincial parks, protected areas, ogmas, and some ungulate winter ranges and wildlife habitat areas. It also has some conditional harvesting associated with ungulate winter range, and some wildlife habitat area. In the section below we will include a few of these constraint as a demonstration for how to do this. For a full script creating constraints for the whole province see the files uwr_cond_harvest.Rmd, wha_cond_harvest.Rmd, and prov_manage_objs.Rmd in the 'castor//params//' folder. 
+
+Download the forest harvest restrictions layer from: https://catalogue.data.gov.bc.ca/dataset/forest-harvesting-restrictions-generalized-
+Then extract the layer and read it into R
+```{r}
+harvest_restrictions<-st_read(paste0(data.dir,"\\forest_harvesting_restrictions.gdb"))
+
+harvest_restrictions_crop <- st_crop(harvest_restrictions, st_bbox(study_area_sf))
+
+unique(harvest_restrictions_crop$land_designation_type_name)
+unique(harvest_restrictions_crop$harvest_restriction_class_name)
+
+# ─────────────────────────────────────────────
+# 1. Create no harvest constraints
+# ─────────────────────────────────────────────
+
+harvest_restrictions_crop_nh<-harvest_restrictions_crop %>% dplyr::filter(land_designation_type_name %in% c("Ungulate Winter Range: No harvest", "Wildlife Habitat Area: No harvest", "Provincial Park", "Protected Area", "Old Growth Management Area (OGMA): Legal"))
+
+harvest_restrictions_crop_nh$harvest<-1
+nh.ras<-fasterize::fasterize(sf= harvest_restrictions_crop_nh, raster = prov.rast , field = "harvest")
+nh.ras[is.na(nh.ras)]<-0
+
+plot(nh.ras)
+nh.ras[nh.ras[] == 0 ] <- NA
+nh.ras[nh.ras[] > 0 ] <- 0
+writeRaster(nh.ras, "nharv.tif", overwrite = TRUE)
+
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M  C:\\Castor\\castor\\nharv.tif -t 100x100 test.zone_nharv_rast | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+df<-data.frame(type='nh', variable= '', threshold=0, reference_zone='test.zone_cond_nharv',
+ndt=0, percentage = 0, zoneid =0)
+df$zoneid<-as.integer(df$zoneid)#assign integer
+df$percentage<-as.numeric(df$percentage)#assign integer
+df$label<-'parks or OGMA'
+df$ndt<-as.integer(0)
+df$multi_condition <-NA
+df$denom<-NA
+df$start <- 0 
+df$stop <- 250
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("test", "zone_nharv"), value= df, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+# ─────────────────────────────────────────────
+# 1. Create conditional harvest constraints
+# ─────────────────────────────────────────────
+
+# first remove the no harvest areas that we delt with above.
+harvest_restrictions_crop<-data.table(harvest_restrictions_crop)
+harvest_restrictions_crop_nh<-data.table(harvest_restrictions_crop_nh)
+
+cond_harv<-anti_join(harvest_restrictions_crop,harvest_restrictions_crop_nh)
+
+cond_harv_uwr<-cond_harv %>% filter(land_designation_type_code == "uwr_conditional_harvest")
+cond_harv_uwr$ogc_fid <- seq_len(nrow(cond_harv_uwr))
+
+# first we will lookt at ungulate winter range u-7-015 for northern Caribou
+#Under GVM 1: harvesting is not to occur in the winter. GVM 2: manage using a two pass 140 year rotation such that 50% +/- 20% is harvested. This will be interpreted as 50% of the area has to be greater than 140 years. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_015.pdf
+
+u7015<-cond_harv_uwr %>% 
+  dplyr::select(ogc_fid, land_designation_name, geom) %>%
+  filter(land_designation_name=='u-7-015')
+
+u7015_table<-data.table(u7015)[,c("ogc_fid")]
+
+#SPC-009 - Primary forestry activites will all for 33% of area less than 3 meters
+u7015_table[, `:=`(reference_zone = 'test.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 140, ndt =0, label = 'u-7-015', multi_condition=NA, denom=NA, start=0, stop=250)]
+
+setnames(u7015_table, "ogc_fid", "zoneid")
+
+df<-rbind(df, u7015_table)
+
+
+# Not lets do it for u-7-007
+u7007<-cond_harv_uwr2 %>%
+  dplyr::select(ogc_fid, land_designation_name, geom) %>%
+  filter(land_designation_name=='u-7-007')
+
+#This UWR has three main General Wildlife Measures: Prevent displacement of caribou, reduce predator effectiveness and maintain forage biomass. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_007.pdf
+
+#Terrestrial lichen habitat are generally found in pine dominated forests with site index less than 14.5. We equate this to having at least 50 percent of this landbase greater than 70 years for the entire area
+
+# change the uwr to one unit (the min of the ogc_fid)
+zoneid_new2<-min(u7007$ogc_fid) #177829
+cond_harv_uwr[cond_harv_uwr$land_designation_name == 'u-7-007',]$ogc_fid<-zoneid_new2
+
+u7007_table<-data.table(zoneid =zoneid_new2, reference_zone ='test.zone_uwr', variable ='age', type = 'ge', percentage =50 , threshold = 70, ndt = 0, label = 'u-7-007',multi_condition=NA, denom=NA, start=0, stop=250)
+
+df<-rbind(df, u7007_table)
+
+# even thought there are more land constraints we will stop at this for our example
+cond_harv_uwr<-st_as_sf(cond_harv_uwr) %>% filter(ogc_fid %in% (df$zoneid))
+
+uwr.ras<-fasterize::fasterize(sf= cond_harv_uwr, raster = prov.rast , field = "ogc_fid")
+uwr.ras[nh.ras[] == 0 ] <- 0
+writeRaster(uwr.ras, file="C:\\Castor\\castor\\uwr.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 uwr.tif -t 100x100 test.zone_uwr_rast | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+df$ndt<-as.integer(0)
+df$zoneid<-as.integer(df$zoneid)#assign integer
+df$percentage<-as.numeric(df$percentage)#assign integer
+df$multi_condition <- as.character ('')
+
+
+conn <- dbConnect(
+  Postgres(),
+  host     = keyring::key_get('dbhost',  keyring = 'postgreSQL'),
+  dbname   = keyring::key_get('dbname',  keyring = 'postgreSQL'),
+  port     = 5432,
+  user     = keyring::key_get('dbuser',  keyring = 'postgreSQL'),
+  password = keyring::key_get('dbpass',  keyring = 'postgreSQL')
+)
+
+
+DBI::dbWriteTable(conn, DBI::Id(schema = "test", table = "cond_harv_uwr"), value = df, row.names = FALSE, overwrite = TRUE)
+
+dbExecute(conn,"UPDATE test.cond_harv_uwr SET denom = NULL WHERE denom IS NOT NULL;")
+
+#----------------------------
+#Inheritability in PostgreSQL
+#----------------------------
+
+
+dbExecute(conn, "CREATE TABLE IF NOT EXISTS test.zone_constraints (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision, multi_condition text, denom character varying, start integer, stop integer, label text )")
+
+dbExecute(conn, "ALTER TABLE test.cond_harv_uwr ALTER COLUMN denom SET DATA TYPE character varying;")
+dbExecute(conn, "ALTER TABLE test.zone_nharv ALTER COLUMN denom SET DATA TYPE character varying;")
+dbExecute(conn, "ALTER TABLE test.zone_nharv ALTER COLUMN multi_condition SET DATA TYPE text;")
+dbExecute(conn, "ALTER TABLE test.zone_nharv ALTER COLUMN start SET DATA TYPE integer;")
+dbExecute(conn, "ALTER TABLE test.zone_nharv ALTER COLUMN stop SET DATA TYPE integer;")
+dbExecute(conn, "ALTER TABLE test.cond_harv_uwr ALTER COLUMN start SET DATA TYPE integer;")
+dbExecute(conn, "ALTER TABLE test.cond_harv_uwr ALTER COLUMN stop SET DATA TYPE integer;")
+dbExecute(conn, "ALTER TABLE test.zone_nharv INHERIT test.zone_constraints")
+dbExecute(conn, "ALTER TABLE test.cond_harv_uwr INHERIT test.zone_constraints")
+
+```
+## 6. Get growth and yield information
+```{r}
+
+```
+
