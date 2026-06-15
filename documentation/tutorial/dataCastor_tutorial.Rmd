@@ -33,8 +33,8 @@ library (keyring)
 source (here::here("/functions/R_Postgres.R")) # R functions needed to run the script
 #Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') # Location of JAVA program; make sure the version is correct
 paths <- list(modulePath = paste0 (here::here (), "/modules"),
-              inputPath = paste0 (here::here (), "/tutorial/inputs"),
-              outputPath = paste0 (here::here (), "/scenarios/tutorial/outputs"))
+              inputPath = paste0 (here::here (), "/documentation/tutorial/inputs"),
+              outputPath = paste0 (here::here (), "/documentation/tutorial/outputs"))
 
 times <- list (start = 0, end = 0) # sets start and end time parameters; here both = 0 since this is a database creation step
 
@@ -52,22 +52,19 @@ parameters <-  list( # list of all parameters in the model, by module
                          nameCompartmentRaster = "test.rast_study_area", # name of the raster table in the Postgres database you want to use to define the analysis area; note the inclusion of "test.", which indicates the data is in the test schema of the database
                          nameCompartmentTable = "test.vat_study_area", # name of the value attribute table for identifying the associated names of the integer values in the raster table. 
                          nameMaskHarvestLandbaseRaster = 'test.rast_thlb', # name of the raster table that contains the timber harvest land base (THLB) area; these are the areas available for the model to harvest, and they are periodically defined as part of timber supply reviews
-                         nameZoneRasters = c("rast.zone_cond_nharv",
-                                             "rast.zone_cond_beo", 
-                                             "rast.zone_cond_vqo", 
-                                             "rast.zone_wha", 
-                                             "rast.zone_uwr", 
-                                             "rast.zone_cond_fsw"
+                         nameZoneRasters = c("test.zone_nharv_rast",
+                                             "test.zone_uwr_rast",
+                                             "test.zone_cond_beo"
                           ), 
-                          nameZoneTable = "zone.constraints", 
+                          nameZoneTable = "test.constraints", 
                           # natural and managed stands yield curves are the same    
-                          nameYieldsRaster = "rast.ycid_vdyp_2020", 
-                          nameYieldTable = "yc_vdyp_2020", 
-                          nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
-                          nameYieldTransitionTable = "tipsy_prov_2020",  
+                          nameYieldsRaster = "test.rast_ycid_current", 
+                          nameYieldTable = "test.yields_current", 
+                          nameYieldsTransitionRaster = "test.rast_ycid_future", 
+                          nameYieldTransitionTable = "test.yields_future",  
                           nameForestInventoryRaster = "test.rast_vri_id_test", 
                           nameForestInventoryKey = "feature_id", 
-                          nameForestInventoryTable = "test.vri_2024",
+                          nameForestInventoryTable = "test.vri_2025",
                           nameForestInventoryAge = "proj_age_1",  
                           nameForestInventoryHeight = "proj_height_1",
                           nameForestInventoryCrownClosure = "crown_closure",
@@ -77,12 +74,12 @@ parameters <-  list( # list of all parameters in the model, by module
                           nameForestInventorySiteIndex = "site_index"  
                     ),
   blockingCastor = list(blockMethod = 'pre', 
-                      patchZone = 'rast.zone_cond_beo', 
+                      patchZone = 'test.zone_cond_beo', 
                       patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cutblk_2022"),
+                      nameCutblockRaster ="test.cns_cutblk_2026"),
   roadCastor = list(roadMethod = 'mst',
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.ce_road_2022'
+                  nameRoads =  'test.rast_roads_binary'
                   ),
   uploadCastor = list(aoiName = 'tutorial',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 

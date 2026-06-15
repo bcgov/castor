@@ -73,7 +73,8 @@ prov.rast <- raster::raster(
  download forest harvest restrictions layer from: https://catalogue.data.gov.bc.ca/dataset/forest-harvesting-restrictions-generalized-
 Then extract the layer
 ```{r}
-harvest_restrictions<-st_read("C:\\Users\\ekleynha\\Downloads\\forest_harvesting_restrictions.gdb")
+data.dir<-"<location of downloaded forest harvest restrictions>" # e.g. data.dir<-"C:\\Downloads"
+harvest_restrictions<-st_read(paste0(data.dir,("\\forest_harvesting_restrictions.gdb")))
 harvest_restrictions
 
 harvest_restrictions
@@ -126,6 +127,16 @@ lu<-lu %>% rename(lu_id=LU_ID,
 lu.dt<-data.table(lu)
 lu.dt<-lu.dt[beo=="High", beo:=1][beo=="Intermediate", beo:=2][beo=="Low", beo:=3]
 lu.dt[is.na(beo), beo:=3]
+
+###
+lu.dt1<-lu.dt[!(beo=="Multiple" & is.na(rt_dt)),]
+lu.mult<-lu.dt[beo=="Multiple" & is.na(rt_dt),]
+lu.mult<-lu.mult[order(gis_ch_dt)]
+lu<-rbind(lu.dt1, lu.mult)
+lu$beo<-as.numeric(lu$beo)
+lu[is.na(beo), beo:=3]
+####
+
 lu<-rbind(lu.dt1, lu.mult)
 lu$beo<-as.numeric(lu$beo)
 lu[is.na(beo), beo:=3]
